@@ -11,7 +11,11 @@
 * Owner Saad Shafique
 * Status In Progress
 * Notes This document should be version controlled in Git from day one
-* Basil Findings Started defining the evaluation rubric. Key criteria columns will be web accessibility (must have browser UI), GitHub popularity (stars and recent commits), license type (MIT preferred, AGPL/GPL flagged as optional only), and completeness of solution (does it fully cover the service need or require supplementary tools). Each open source candidate from Tasks 3 through 14 will be scored against this rubric. Version controlled in this repo from day one as planned.
+* Basil Findings: Research Libre Chat (https://github.com/danny-avila/LibreChat.git) as the frontend interface for local LLM capabilities within NEXUS. This tool provides a ChatGPT-like experience that connects to Ollama models running on the user's hardware. Our co-founder identified this as a strategic fit because it offers conversation history, model switching, and tool-calling features that would take 3-4 months to build from scratch.
+    We need to verify license compatibility (MIT/Apache preferred), assess how deeply we can customize its appearance to match NEXUS branding, and determine if it can integrate with our       existing authentication system. If viable, this becomes our AI module—saving significant development time while delivering a polished experience.
+        Timeline: 2 days research
+        Priority: Critical (core dashboard feature)
+        Output: License assessment + integration feasibility report.
 
 ### Task 2 Audit License Compatibility
 * Category Research and Open Source Selection
