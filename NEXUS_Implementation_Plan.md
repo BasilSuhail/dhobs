@@ -9,8 +9,9 @@
 * Priority Critical
 * Duration 2 days
 * Owner Saad Shafique
-* Status Not Started
+* Status In Progress
 * Notes This document should be version controlled in Git from day one
+* Basil Findings Started defining the evaluation rubric. Key criteria columns will be web accessibility (must have browser UI), GitHub popularity (stars and recent commits), license type (MIT preferred, AGPL/GPL flagged as optional only), and completeness of solution (does it fully cover the service need or require supplementary tools). Each open source candidate from Tasks 3 through 14 will be scored against this rubric. Version controlled in this repo from day one as planned.
 
 ### Task 2 Audit License Compatibility
 * Category Research and Open Source Selection
