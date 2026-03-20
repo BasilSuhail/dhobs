@@ -20,8 +20,9 @@
 * Priority Critical
 * Duration 3 days
 * Owner Saad Shafique
-* Status Not Started
+* Status In Progress
 * Notes GPL tools can be offered as optional user installed components only
+* Basil Findings Identified 5 non-MIT tools in the proposed stack (Nextcloud AGPL, ERPNext GPL, Kiwix GPL, Vaultwarden AGPL, n8n Fair Code). Opened Discussion #4 to align on AGPL/GPL integration policy before completing the audit. Key decision needed on whether Apache 2.0 should be treated as first-class alongside MIT.
 
 ### Task 3 Research NAS and Media Layer Jellyfin
 * Category Research and Open Source Selection
