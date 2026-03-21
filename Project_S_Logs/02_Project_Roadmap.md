@@ -112,7 +112,7 @@
 * Category Research and Open Source Selection
 * Description Evaluate n8n at n8n.io for workflow automation. Confirm the license situation as n8n uses a fair code license and document limitations. Design the one click git pull and compose deployment workflow.
 * Dependencies Step 2
-* Priority High
+* Priority Medium
 * Duration 2 days
 * Owner Saad Shafique
 * Status Not Started
@@ -132,7 +132,7 @@
 * Category Research and Open Source Selection
 * Description Survey Chinese and open markets for Arduino compatible and Zigbee or Z Wave smart home devices. Evaluate Home Assistant at github.com/home assistant/core as the open source smart home management platform.
 * Dependencies Step 2
-* Priority Medium
+* Priority Low
 * Duration 4 days
 * Owner Saad Shafique
 * Status Not Started
@@ -142,7 +142,7 @@
 * Category Research and Open Source Selection
 * Description Evaluate Vaultwarden which is a Bitwarden compatible MIT server for the password management module. Document API endpoints for potential dashboard widget integration.
 * Dependencies Step 2
-* Priority Critical
+* Priority High
 * Duration 1 day
 * Owner Saad Shafique
 * Status Not Started
@@ -200,11 +200,11 @@
 * Status Not Started
 * Notes Use PBKDF2 or Argon2 as the KDF before AES encryption for added hardening
 
-### Task 20 Build Multi User Account Creation System
+### Task 20 Build Multi User Account Creation System (Available in business and/or lite version)
 * Category Initial Setup User Side
 * Description Enable the Master User to create sub accounts with username and temporary password. Each sub account is encrypted and stored under the same secure credential store. Sub accounts cannot modify master credentials.
 * Dependencies Step 18
-* Priority High
+* Priority Medium 
 * Duration 4 days
 * Owner Saad Shafique
 * Status Not Started
@@ -250,7 +250,7 @@
 * Duration 3 days
 * Owner Saad Shafique
 * Status Not Started
-* Notes No module should require more than 2 clicks to reach from the home screen
+* Notes No module should require more than 3 clicks to reach from the home screen
 
 ### Task 25 Design Logo and Brand Identity
 * Category Dashboard Design
