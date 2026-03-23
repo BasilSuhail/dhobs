@@ -88,3 +88,10 @@ OLLAMA_BASE_URL=http://localhost:11434
 - **Local-First:** By default, the app uses Ollama for 100% private local processing.
 - **No Hardcoding:** API keys are never stored in the codebase; they are loaded from the environment at runtime.
 - **Session Data:** All research logs are stored locally in `storage/sessions/` in JSON format.
+
+## 7. Tech Stack 
+- Python 3.11+
+- Django
+- PostgreSQL/SQLite
+- React/Angular
+- HTML 5+ and Tailwind CSS
