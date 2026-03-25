@@ -14,7 +14,7 @@ export function MediaSection() {
         )}
       >
         <iframe 
-          src="http://localhost:8096" 
+          src="http://192.168.1.68:8096" 
           className="w-full h-full border-0"
           title="Jellyfin Media Server"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

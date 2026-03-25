@@ -4,12 +4,12 @@ services:
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: project-s-jellyfin
-    user: 1000:1000
-    network_mode: 'host'
+    ports:
+      - '8096:8096'
     volumes:
-      - ./config/jellyfin:/config
-      - ./cache/jellyfin:/cache
-      - /home/saad/Videos/:/media
+      - ./data/jellyfin/config:/config
+      - ./data/jellyfin/cache:/cache
+      - ./data/media:/media
     restart: 'unless-stopped'
 
   dashboard:
@@ -30,7 +30,7 @@ services:
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     restart: always
     volumes:
-      - ./db/nextcloud:/var/lib/mysql
+      - ./data/nextcloud/db:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=nextcloud
       - MYSQL_PASSWORD=nextcloud
@@ -42,12 +42,12 @@ services:
     container_name: project-s-nextcloud
     restart: always
     ports:
-      - '8080:80'
+      - '8081:80'
     links:
       - db
     volumes:
-      - ./config/nextcloud:/var/www/html
-      - ./data/nextcloud:/var/www/html/data
+      - ./data/nextcloud/html:/var/www/html
+      - ./data/nextcloud/data:/var/www/html/data
     environment:
       - MYSQL_PASSWORD=nextcloud
       - MYSQL_DATABASE=nextcloud

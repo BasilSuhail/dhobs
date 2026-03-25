@@ -1,0 +1,20 @@
+FROM docker:24-dind
+
+# Install docker-compose and bash
+RUN apk update && apk add --no-cache docker-cli-compose bash
+
+WORKDIR /homeforge
+
+# Copy project files into the container
+COPY . .
+
+# Create the startup script
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'dockerd-entrypoint.sh dockerd &' >> /start.sh && \
+    echo 'echo "Waiting for Docker daemon to start..."' >> /start.sh && \
+    echo 'while ! docker info >/dev/null 2>&1; do sleep 1; done' >> /start.sh && \
+    echo 'echo "Docker started, launching services via docker compose..."' >> /start.sh && \
+    echo 'cd /homeforge && docker compose up' >> /start.sh && \
+    chmod +x /start.sh
+
+ENTRYPOINT ["/start.sh"]

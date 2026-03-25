@@ -124,7 +124,7 @@ export default function HomePage() {
         </>
       ) : (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {currentSection === "media" && <MediaSection />}
+          {(currentSection === "media" || currentSection === "jellyfin") && <MediaSection />}
           {currentSection === "storage" && <StorageSection />}
           {/* Add other sections here as needed */}
         </div>

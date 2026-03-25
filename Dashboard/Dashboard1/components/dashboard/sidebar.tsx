@@ -31,7 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutGrid, label: "Home", id: "home" },
   { icon: Play, label: "Media", id: "media" },
-  { icon: HardDrive, label: "Storage", id: "storage" },
+  { icon: Cloud, label: "Nextcloud", id: "nextcloud", url: "http://192.168.1.68:8081" },
   { icon: Activity, label: "Metrics", id: "metrics" },
 ]
 
