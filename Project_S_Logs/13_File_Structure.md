@@ -4,65 +4,49 @@ This document provides a comprehensive overview of the Project S directory struc
 
 ---
 
-## 1. Root Directory Structure
+## 1. Root Directory Layout
 
-```text
-ProjectS-HomeForge-main/
-├── docker-compose.yml       # Primary orchestration for core services
-├── Dockerfile.dind          # Definition for the Master DinD container
-├── run-dind.sh              # Entry point script to launch the environment
-├── ProjectS_Implementation_Plan.md  # Original project roadmap and goals
-├── README.md                # Quick-start guide and project overview
-├── .dockerignore            # Files excluded from Docker builds
-├── .gitignore               # Files excluded from Git version control
-│
-├── Dashboard/               # The central management UI
-│   └── Dashboard1/          # Next.js 16 + React 19 application source
-│
-├── Project_S_Logs/          # Documentation, decision logs, and audit reports
-│
-├── data/                    # Persistent application data (Nextcloud, Jellyfin)
-├── config/                  # Configuration files for integrated services
-├── cache/                   # Temporary cache files for media and web assets
-├── db/                      # MariaDB/PostgreSQL database storage
-└── dind-data/               # Persistent storage for internal DinD containers
-```
+The repository is organized into four main zones: Orchestration, Dashboard, Documentation, and Data.
 
----
+* **Orchestration Layer:**
+    * `docker-compose.yml`: Defines the core service stack.
+    * `Dockerfile.dind`: The isolated environment definition.
+    * `run-dind.sh`: The master initialization script.
+* **Frontend Layer (`Dashboard/`):**
+    * `Dashboard1/`: The Next.js application source.
+    * `Dashboard1/components/`: Modular UI sections (Media, Storage, etc.).
+* **Documentation Layer (`Project_S_Logs/`):**
+    * A chronological and thematic record of the project (01-13).
+* **Data Layer (`data/`, `db/`, `dind-data/`):**
+    * Persistent storage for all containerized applications.
 
-## 2. Component Breakdowns
+## 2. Dashboard Internal Structure (`/Dashboard/Dashboard1`)
 
-### 2.1 Dashboard (`Dashboard/Dashboard1/`)
-The dashboard is a modern web application built with the following internal structure:
-- **`app/`**: Next.js App Router files (`layout.tsx`, `page.tsx`, `globals.css`).
-- **`components/`**:
-    - **`dashboard/`**: Feature-specific sections (Media, Nextcloud, Storage, Terminal).
-    - **`ui/`**: 60+ shadcn/ui primitives (buttons, cards, dialogs).
-- **`hooks/`**: Custom React hooks (e.g., `use-mobile`, `use-toast`).
-- **`lib/`**: Utility functions and Tailwind merging helpers (`utils.ts`).
-- **`public/`**: Static assets (logos, icons, placeholders).
+| Path | Purpose |
+|---|---|
+| `app/` | Routing, global styles, and root layout. |
+| `components/dashboard/` | Core sections: `media`, `nextcloud`, `sidebar`, `storage`. |
+| `components/ui/` | Reusable shadcn/ui primitives. |
+| `hooks/` | Custom React hooks for UI state and responsiveness. |
+| `lib/` | Utility functions (`cn` helper, date formatting). |
+| `public/` | Static images, icons, and placeholder assets. |
 
-### 2.2 Orchestration (`/`)
-- **`docker-compose.yml`**: Defines the `dashboard`, `jellyfin`, `nextcloud`, and `db` services.
-- **`Dockerfile.dind`**: Creates a nested Docker environment to isolate user-deployed apps from the host.
+## 3. Data Persistence Map
 
-### 2.3 Documentation (`Project_S_Logs/`)
-A living history of the project, including:
-- **01-05**: Design principles, roadmap, and design system.
-- **06-07**: Technical reports and infrastructure audits.
-- **08-13**: Implementation logs for Docker, Jellyfin, Nextcloud, Storage, and File Structure.
+* **`/data/jellyfin`**: Media metadata and user profiles.
+* **`/data/nextcloud`**: User files, HTML root, and app data.
+* **`/db/nextcloud`**: MariaDB SQL storage.
+* **`/dind-data`**: Recursive storage for user-spawned containers.
 
----
+## 4. Project S Logs Directory (`/Project_S_Logs`)
 
-## 3. Data Persistence Architecture
-Project S uses a hierarchical volume mapping strategy:
-- **Host System** ──► **`dind-data/`** ──► **Internal DinD Environment**
-- Internal services map their `/config` and `/data` folders to the host's `./data` and `./config` directories to ensure that all user settings and media libraries survive container updates and re-deployments.
+1. **01-05**: Founding principles, roadmap, product definition, and design system.
+2. **06-07**: Technical reporting and security/integration audits.
+3. **08-12**: Detailed implementation logs for Docker, Jellyfin, Nextcloud, Storage, and Theia.
+4. **13**: This repository map.
 
----
+## 5. Credits & Licenses
 
-## 4. Credits & Licenses
-- **Tree Structure Visualization:** Generated using standard CLI `tree` utilities.
-- **Documentation Framework:** Inspired by the "Living Documentation" pattern for agile software development.
-- **Next.js:** Developed by Vercel (MIT License).
-- **Docker:** Developed by Docker, Inc. (Apache License 2.0).
+* **Repository Architecture:** Designed for modularity and "living documentation" standards.
+* **Tools:** Tree structure visualized via standard POSIX utilities.
+* **Maintenance:** Saad Shafique (@saadsh15).
