@@ -14,7 +14,7 @@ export function NextcloudSection() {
         )}
       >
         <iframe 
-          src="http://192.168.1.68:8081" 
+          src="http://localhost:8081" 
           className="w-full h-full border-0"
           title="Nextcloud"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

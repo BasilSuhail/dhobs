@@ -21,8 +21,8 @@ import {
 } from "lucide-react"
 
 const applications = [
-  { name: "Jellyfin", url: "http://192.168.1.68:8096", icon: Play },
-  { name: "Nextcloud", url: "http://192.168.1.68:8081", icon: Cloud },
+  { name: "Jellyfin", url: "http://localhost:8096", icon: Play },
+  { name: "Nextcloud", url: "http://localhost:8081", icon: Cloud },
   { name: "Code Server", url: "code.example.com", icon: Code },
   { name: "Matrix", url: "chat.example.com", icon: MessageCircle },
   { name: "Vaultwarden", url: "vault.example.com", icon: Key },

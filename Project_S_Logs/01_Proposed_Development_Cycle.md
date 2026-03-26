@@ -31,7 +31,7 @@ Initial Setup should be simple however it should be robust enough to set a stand
 
 * **NAS/Media:** Proposed Solution is JellyFin because it can Store Videos, Audio and Images — https://github.com/jellyfin/jellyfin.git
 * **Google Suite Replacement:** Proposed option is NextCloud because of its versatility — https://github.com/nextcloud/server.git
-* **CodeSpace:** VS Code is Suggested — https://github.com/microsoft/vscode.git — another suggestion for a CodeSpace IDE is Neovim — https://github.com/neovim/neovim.git
+* **CodeSpace:** Theia is suggested which is a VS code fork with a web-ui with complete featureset and MIT License https://github.com/eclipse-          theia/theia.git
 * **Deployment and Testing:** With the CodeSpace we also need to provide tools necessary for simulation for different devices
     * Selenium — https://github.com/SeleniumHQ/selenium.git
     * For Mobile Device Testing Expo with command line control — https://github.com/expo/expo.git
