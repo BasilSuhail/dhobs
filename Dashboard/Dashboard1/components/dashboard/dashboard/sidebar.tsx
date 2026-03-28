@@ -9,13 +9,13 @@ import {
   HardDrive,
   Cloud,
   Code,
+  MessageCircle,
+  Key,
   Activity,
   Settings,
   Palette,
   X,
   TerminalSquare,
-  MessageCircle,
-  Key,
 } from "lucide-react"
 import {
   Tooltip,
@@ -34,10 +34,10 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutGrid, label: "Home", id: "home" },
   { icon: Play, label: "Media", id: "media" },
-  { icon: Cloud, label: "Nextcloud", id: "nextcloud", url: "http://localhost:8081" },
-  { icon: Code, label: "Code Space", id: "codespace", url: "http://localhost:3030" },
-  { icon: MessageCircle, label: "Matrix", id: "matrix", url: "http://localhost:8082" },
-  { icon: Key, label: "Vaultwarden", id: "vaultwarden", url: "http://localhost:8083" },
+  { icon: Cloud, label: "Nextcloud", id: "nextcloud", url: "http://192.168.1.68:8081" },
+  { icon: Code, label: "Code Space", id: "codespace", url: "http://192.168.1.68:3030" },
+  { icon: MessageCircle, label: "Matrix", id: "matrix", url: "http://192.168.1.68:8082" },
+  { icon: Key, label: "Vaultwarden", id: "vaultwarden", url: "http://192.168.1.68:8083" },
   { icon: Activity, label: "Metrics", id: "metrics" },
 ]
 

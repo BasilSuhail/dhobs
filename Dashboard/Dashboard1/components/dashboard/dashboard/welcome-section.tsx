@@ -21,11 +21,12 @@ import {
 } from "lucide-react"
 
 const applications = [
-  { name: "Jellyfin", url: "http://localhost:8096", icon: Play },
-  { name: "Nextcloud", url: "http://localhost:8081", icon: Cloud },
-  { name: "Code Server", url: "http://localhost:3030", icon: Code },
-  { name: "Matrix", url: "http://localhost:8082", icon: MessageCircle },
-  { name: "Vaultwarden", url: "http://localhost:8083", icon: Key },
+  { name: "Jellyfin", url: "http://192.168.1.68:8096", icon: Play },
+  { name: "Nextcloud", url: "http://192.168.1.68:8081", icon: Cloud },
+  { name: "Code Server", url: "http://192.168.1.68:3030", icon: Code },
+  { name: "Matrix", url: "http://192.168.1.68:8082", icon: MessageCircle },
+  { name: "Vaultwarden", url: "http://192.168.1.68:8083", icon: Key },
+
   { name: "Home Assistant", url: "home.example.com", icon: Home },
   { name: "PostgreSQL", url: "db.example.com", icon: Database },
   { name: "Authelia", url: "auth.example.com", icon: Shield },
