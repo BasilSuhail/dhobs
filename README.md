@@ -24,12 +24,14 @@ Project S can be deployed using a standard Docker Compose setup (recommended for
    ```
 
 2. **Run the installation script:**
-   This script creates the necessary data directories, initializes configurations, and starts the environment:
+   First, ensure the script has execution permissions:
    ```bash
+   chmod +x install.sh
    ./install.sh
    ```
+   This script creates the necessary data directories, initializes configurations, and starts the environment.
 
-### Running with Docker-in-Docker (Alternative) for MAC
+### Running with Docker-in-Docker (Alternative)
 For isolated environments, use the provided runner script to build and launch the master container:
 ```bash
 ./run-dind.sh
