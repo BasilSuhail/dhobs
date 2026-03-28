@@ -13,6 +13,8 @@ sudo docker run -d \
   -p 8096:8096 \
   -p 8081:8081 \
   -p 3030:3030 \
+  -p 8008:8008 \
+  -p 8082:8082 \
   -v "$(pwd)/dind-data:/homeforge/data" \
   project-s-homeforge-dind
 
