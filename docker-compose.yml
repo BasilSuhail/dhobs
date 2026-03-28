@@ -10,6 +10,7 @@ services:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
       - ./data/media:/media
+      - .:/homeforge
     restart: 'unless-stopped'
 
   dashboard:
@@ -113,4 +114,15 @@ services:
     environment:
       - WEBSOCKET_ENABLED=true
       - DATA_FOLDER=/data
+    restart: unless-stopped
+
+  kiwix:
+    build:
+      context: ./Kiwix/kiwix-js
+      dockerfile: Dockerfile
+    container_name: project-s-kiwix-reader
+    ports:
+      - '8084:80'
+    volumes:
+      - ./data/kiwix:/usr/share/nginx/html/data
     restart: unless-stopped
