@@ -1,0 +1,11 @@
+{
+    "default_server_config": {
+        "m.homeserver": {
+            "base_url": "http://192.168.1.68:8008",
+            "server_name": "homeforge.local"
+        }
+    },
+    "brand": "HomeForge Matrix",
+    "show_labs_settings": true,
+    "default_theme": "dark"
+}
