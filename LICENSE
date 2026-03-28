@@ -1,0 +1,59 @@
+# Functional Source License, Version 1.1, Apache 2.0 Change License
+
+**Abbreviation:** FSL-1.1-Apache-2.0
+
+**Notice:** Copyright © 2026 Basil Suhail & Saad Shafique
+
+## Terms and Conditions
+
+### 1. Licensor
+The **Licensor** is the entity offering the Software under these Terms and Conditions.
+
+### 2. Software
+The **Software** is the particular software provided by the Licensor under these Terms and Conditions, including any source code, documentation, and other materials.
+
+### 3. License Grant
+Subject to your compliance with this License Grant and the Patents, Redistribution, and Trademark clauses below, we hereby grant you the right to use, copy, modify, create derivative works, publicly perform, publicly display, and redistribute the Software for any **Permitted Purpose** identified below.
+
+### 4. Permitted Purpose
+A **Permitted Purpose** is any purpose other than a **Competing Use**.
+
+### 5. Competing Use
+A **Competing Use** means making the Software available to others in a commercial product or service that:
+1. Substitutes for the Software;
+2. Substitutes for any other product or service we offer using the Software that exists as of the date we make the Software available; or
+3. Offers the same or substantially similar functionality as the Software.
+
+Permitted Purposes specifically include using the Software:
+* For your internal use and access;
+* For non-commercial education;
+* For non-commercial research; and
+* In connection with professional services that you provide to a licensee using the Software in accordance with these Terms and Conditions.
+
+### 6. Patents
+We hereby grant you a non-exclusive, worldwide, royalty-free patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Software, where such license applies only to those patent claims licensable by us that are necessarily infringed by the Software.
+
+### 7. Redistribution
+You may redistribute the Software and any derivative works you create, provided that:
+1. You include a copy of these Terms and Conditions with the Software;
+2. You do not remove any copyright, trademark, or other proprietary notices from the Software; and
+3. You do not use our trademarks, trade names, service marks, or product names except as permitted in the Trademarks section below.
+
+### 8. Trademarks
+Except for displaying the License Details and identifying us as the origin of the Software, you have no right under these Terms and Conditions to use our trademarks, trade names, service marks, or product names.
+
+### 9. Grant of Future License
+We hereby irrevocably grant you an additional license to use the Software under the **Apache License, Version 2.0** that is effective on the second anniversary of the date we make the Software available.
+
+On or after that date, you may use the Software under the Apache License, Version 2.0, in which case the following will apply:
+
+> Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
+> http://www.apache.org/licenses/LICENSE-2.0
+>
+> Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+### 10. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+### 11. Limitation of Liability
+IN NO EVENT WILL WE HAVE ANY LIABILITY TO YOU ARISING OUT OF OR RELATED TO THE SOFTWARE, INCLUDING INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, EVEN IF WE HAVE BEEN INFORMED OF THEIR POSSIBILITY IN ADVANCE. OUR TOTAL AGGREGATE LIABILITY TO YOU FOR ALL CLAIMS ARISING OUT OF OR RELATED TO THE SOFTWARE WILL NOT EXCEED $100.00 USD.
