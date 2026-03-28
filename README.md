@@ -31,9 +31,10 @@ Project S can be deployed using a standard Docker Compose setup (recommended for
    ```
    This script creates the necessary data directories, initializes configurations, and starts the environment.
 
-### Running with Docker-in-Docker (Alternative)
-For isolated environments, use the provided runner script to build and launch the master container:
+### Running with Docker-in-Docker (Mac Recommended)
+For Mac users or isolated environments, use the provided runner script:
 ```bash
+chmod +x run-dind.sh
 ./run-dind.sh
 ```
 
