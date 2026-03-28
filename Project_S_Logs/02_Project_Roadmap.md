@@ -125,8 +125,9 @@
 * Priority Medium
 * Duration 1 day
 * Owner Saad Shafique
-* Status Not Started
-* Notes Kiwix is GPL licensed so treat as an optional user module
+* Status: Completed
+* Notes: Kiwix Offline Knowledge Base integrated into Dashboard (Log 15).
+
 
 ### Task 13 Research Smart Home and IoT Layer
 * Category Research and Open Source Selection
@@ -145,8 +146,9 @@
 * Priority High
 * Duration 1 day
 * Owner Saad Shafique
-* Status Not Started
-* Notes Vaultwarden is AGPL so assess whether a wrapper approach satisfies integration policy
+* Status: Completed
+* Notes: Vaultwarden (Bitwarden) integrated with secure dashboard portal (Log 16).
+
 
 ### Task 15 Compile Final Open Source Stack Decision Document
 * Category Research and Open Source Selection
@@ -421,8 +423,9 @@
 * Priority Critical
 * Duration 3 days
 * Owner Saad Shafique
-* Status Not Started
-* Notes Users must be clearly informed that their Vaultwarden vault has a separate master password from Project S
+* Status: Completed
+* Notes: Vaultwarden deployed and integrated with dashboard shell (Log 16).
+
 
 ### Task 42 Build Docker in Docker Application Layer
 * Category Phase 1 The Basics
@@ -513,8 +516,9 @@
 * Priority Medium
 * Duration 3 days
 * Owner Saad Shafique
-* Status Not Started
-* Notes Kiwix ZIM files can be very large so surface storage impact clearly in the installer UI
+* Status: Completed
+* Notes: Kiwix offline server integrated into dashboard with ZIM browsing support (Log 15).
+
 
 ### Task 51 Phase 2 Integration Testing and Module Store Validation
 * Category Phase 2 Nice to Haves
