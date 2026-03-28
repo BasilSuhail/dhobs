@@ -18,6 +18,7 @@ import {
   Wifi,
   Monitor,
   Folder,
+  Book,
 } from "lucide-react"
 
 const applications = [
@@ -25,7 +26,8 @@ const applications = [
   { name: "Nextcloud", url: "http://localhost:8081", icon: Cloud },
   { name: "Code Server", url: "http://localhost:3030", icon: Code },
   { name: "Matrix", url: "http://localhost:8082", icon: MessageSquare },
-  { name: "Vaultwarden", url: "vault.example.com", icon: Key },
+  { name: "Vaultwarden", url: "http://localhost:8083", icon: Key },
+  { name: "Kiwix", url: "http://localhost:8084", icon: Book },
   { name: "Home Assistant", url: "home.example.com", icon: Home },
   { name: "PostgreSQL", url: "db.example.com", icon: Database },
   { name: "Authelia", url: "auth.example.com", icon: Shield },
@@ -122,7 +124,7 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {applications.map((app, index) => {
               const Icon = app.icon
-              const isInternal = app.name === "Jellyfin" || app.name === "Matrix"
+              const isInternal = ["Jellyfin", "Matrix", "Vaultwarden", "Kiwix"].includes(app.name)
               const sectionId = app.name.toLowerCase()
               const href = app.url.startsWith('http') ? app.url : `https://${app.url}`
               
