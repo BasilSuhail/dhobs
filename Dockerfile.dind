@@ -8,11 +8,17 @@ WORKDIR /homeforge
 # Copy project files into the container
 COPY . .
 
+# Ensure the workspace directory exists
+RUN mkdir -p /homeforge/workspace
+
+# Disable TLS for internal Docker to avoid cert generation issues in some environments
+ENV DOCKER_TLS_CERTDIR=""
+
 # Create the startup script
 RUN echo '#!/bin/bash' > /start.sh && \
-    echo 'dockerd-entrypoint.sh dockerd &' >> /start.sh && \
+    echo 'dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --tls=false & ' >> /start.sh && \
     echo 'echo "Waiting for Docker daemon to start..."' >> /start.sh && \
-    echo 'while ! docker info >/dev/null 2>&1; do sleep 1; done' >> /start.sh && \
+    echo 'timeout 30 bash -c "while ! docker info >/dev/null 2>&1; do sleep 1; done"' >> /start.sh && \
     echo 'echo "Docker started, launching services via docker compose..."' >> /start.sh && \
     echo 'cd /homeforge && docker compose up' >> /start.sh && \
     chmod +x /start.sh
