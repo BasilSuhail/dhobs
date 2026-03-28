@@ -53,7 +53,7 @@ services:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_HOST=db
-      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 192.168.1.68
 
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest
@@ -90,7 +90,6 @@ services:
       - '8008:8008'
     volumes:
       - ./data/matrix/synapse:/data
-      - ./config/matrix/homeserver.yaml:/data/homeserver.yaml
     environment:
       - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
     restart: unless-stopped
@@ -102,4 +101,16 @@ services:
       - '8082:80'
     volumes:
       - ./matrix/element-config.json:/app/config.json
+    restart: unless-stopped
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: project-s-vaultwarden
+    ports:
+      - '8083:80'
+    volumes:
+      - ./data/vaultwarden:/data
+    environment:
+      - WEBSOCKET_ENABLED=true
+      - DATA_FOLDER=/data
     restart: unless-stopped
