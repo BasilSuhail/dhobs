@@ -367,6 +367,7 @@ export function DashboardSection() {
               { name: "Pi-hole", desc: "Network ad blocking", status: "running", ping: "12ms" },
               { name: "TrueNAS", desc: "NAS", status: "running", ping: "20ms" },
               { name: "Plex", desc: "Media", status: "running", ping: "60ms" },
+              { name: "Matrix", desc: "Communication", status: "running", ping: "45ms" },
               { name: "Portainer", desc: "Docker controller", status: "running", ping: "10ms" },
               { name: "Uptime Kuma", desc: "Uptime monitoring", status: "healthy", ping: "10ms" },
             ].map((service) => (

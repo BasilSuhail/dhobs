@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { WelcomeSection } from "@/components/dashboard/welcome-section"
 import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MediaSection } from "@/components/dashboard/media-section"
+import { MatrixSection } from "@/components/dashboard/matrix-section"
 import { StorageSection } from "@/components/dashboard/storage-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { useTheme } from "@/components/theme-provider"
@@ -125,6 +126,7 @@ export default function HomePage() {
       ) : (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {(currentSection === "media" || currentSection === "jellyfin") && <MediaSection />}
+          {currentSection === "matrix" && <MatrixSection />}
           {currentSection === "storage" && <StorageSection />}
           {/* Add other sections here as needed */}
         </div>

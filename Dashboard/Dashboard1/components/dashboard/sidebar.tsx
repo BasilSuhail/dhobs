@@ -14,6 +14,7 @@ import {
   Palette,
   X,
   TerminalSquare,
+  MessageSquare,
 } from "lucide-react"
 import {
   Tooltip,
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { icon: LayoutGrid, label: "Home", id: "home" },
   { icon: Play, label: "Media", id: "media" },
   { icon: Cloud, label: "Nextcloud", id: "nextcloud", url: "http://localhost:8081" },
+  { icon: MessageSquare, label: "Matrix", id: "matrix" },
   { icon: Code, label: "Code Space", id: "codespace", url: "http://localhost:3030" },
   { icon: Activity, label: "Metrics", id: "metrics" },
 ]

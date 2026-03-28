@@ -5,7 +5,7 @@ import {
   Play,
   HardDrive,
   Code,
-  MessageCircle,
+  MessageSquare,
   Key,
   Home,
   Database,
@@ -24,7 +24,7 @@ const applications = [
   { name: "Jellyfin", url: "http://localhost:8096", icon: Play },
   { name: "Nextcloud", url: "http://localhost:8081", icon: Cloud },
   { name: "Code Server", url: "http://localhost:3030", icon: Code },
-  { name: "Matrix", url: "chat.example.com", icon: MessageCircle },
+  { name: "Matrix", url: "http://localhost:8082", icon: MessageSquare },
   { name: "Vaultwarden", url: "vault.example.com", icon: Key },
   { name: "Home Assistant", url: "home.example.com", icon: Home },
   { name: "PostgreSQL", url: "db.example.com", icon: Database },
@@ -122,7 +122,7 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {applications.map((app, index) => {
               const Icon = app.icon
-              const isInternal = app.name === "Jellyfin"
+              const isInternal = app.name === "Jellyfin" || app.name === "Matrix"
               const sectionId = app.name.toLowerCase()
               const href = app.url.startsWith('http') ? app.url : `https://${app.url}`
               

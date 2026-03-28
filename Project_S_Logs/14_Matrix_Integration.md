@@ -116,7 +116,7 @@ OpenSource HomeLabbing/
 
 ## 7. Next Steps
 
-- [ ] Implement a `matrix-section.tsx` in the Dashboard to embed the Element client.
+- [x] Implement a `matrix-section.tsx` in the Dashboard to embed the Element client.
 - [ ] Add Matrix room notifications for Docker system events (e.g., "Jellyfin container updated").
 - [ ] Configure Federation via Nginx to allow communication with external Matrix users (matrix.org).
 
