@@ -53,4 +53,18 @@ services:
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_HOST=db
-      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 192.168.1.68
+
+  theia:
+    image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest
+    container_name: project-s-theia
+    user: root
+    privileged: true
+    ports:
+      - '3030:3000'
+    volumes:
+      - .:/home/project/project-s
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SHELL=/bin/bash
+    restart: 'unless-stopped'
