@@ -1,8 +1,9 @@
 "use client"
 
+import { useEffect, useState, useRef } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Cpu, MemoryStick, HardDrive, Wifi, Activity, Server, AlertTriangle, Clock } from "lucide-react"
+import { Cpu, MemoryStick, HardDrive, Wifi, Activity, Server, AlertTriangle, Clock, Database } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -18,37 +19,36 @@ import {
   Bar,
 } from "recharts"
 
-// Mock data for charts
-const cpuHistory = [
-  { time: "00:00", value: 45 },
-  { time: "04:00", value: 38 },
-  { time: "08:00", value: 65 },
-  { time: "12:00", value: 78 },
-  { time: "16:00", value: 56 },
-  { time: "20:00", value: 42 },
-  { time: "Now", value: 52 },
-]
+interface ContainerStat {
+  name: string
+  status: string
+  cpu: string
+  mem: string
+}
 
-const networkActivity = [
-  { time: "00:00", upload: 120, download: 450 },
-  { time: "04:00", upload: 80, download: 320 },
-  { time: "08:00", upload: 250, download: 680 },
-  { time: "12:00", upload: 180, download: 520 },
-  { time: "16:00", upload: 320, download: 780 },
-  { time: "20:00", upload: 150, download: 420 },
-  { time: "Now", upload: 200, download: 550 },
-]
+interface StorageStat {
+  name: string
+  size: string
+  bytes: number
+}
 
-const systemLoad = [
-  { name: "1min", value: 1.15 },
-  { name: "5min", value: 0.89 },
-  { name: "15min", value: 0.72 },
-]
+interface StatsData {
+  cpu: string
+  memPerc: string
+  memBytes: string
+  netDown: string
+  netUp: string
+  storage: StorageStat[]
+  topContainers: ContainerStat[]
+  containers: ContainerStat[]
+}
 
-const alerts = [
-  { id: 1, type: "warning", message: "CPU_IOWAIT - 50.7%", time: "Tue Jan 4, 22 at 1:15 AM" },
-  { id: 2, type: "warning", message: "MEMORY - 69.2%", time: "Thur Jan 6, 22 at 6:26 AM" },
-]
+interface HistoryPoint {
+  time: string
+  value: number
+  upload?: number
+  download?: number
+}
 
 interface GlassCardProps {
   children: React.ReactNode
@@ -84,8 +84,8 @@ function GlassCard({ children, className, title, icon: Icon }: GlassCardProps) {
 function CpuGauge({ value }: { value: number }) {
   const { colorTheme } = useTheme()
   const data = [
-    { name: "used", value: value },
-    { name: "free", value: 100 - value },
+    { name: "used", value: value || 0.1 },
+    { name: "free", value: Math.max(0.1, 100 - value) },
   ]
 
   return (
@@ -102,6 +102,7 @@ function CpuGauge({ value }: { value: number }) {
             outerRadius={80}
             paddingAngle={2}
             dataKey="value"
+            stroke="none"
           >
             <Cell fill={colorTheme.accent} />
             <Cell fill="rgba(255,255,255,0.1)" />
@@ -110,7 +111,7 @@ function CpuGauge({ value }: { value: number }) {
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
         <span className="text-3xl font-bold" style={{ color: colorTheme.accent }}>
-          {value}%
+          {value.toFixed(1)}%
         </span>
         <span className="text-xs text-foreground/50">CPU Usage</span>
       </div>
@@ -121,8 +122,8 @@ function CpuGauge({ value }: { value: number }) {
 function MemoryGauge({ value }: { value: number }) {
   const { colorTheme } = useTheme()
   const data = [
-    { name: "used", value: value },
-    { name: "free", value: 100 - value },
+    { name: "used", value: value || 0.1 },
+    { name: "free", value: Math.max(0.1, 100 - value) },
   ]
 
   return (
@@ -139,6 +140,7 @@ function MemoryGauge({ value }: { value: number }) {
             outerRadius={80}
             paddingAngle={2}
             dataKey="value"
+            stroke="none"
           >
             <Cell fill="#22d3ee" />
             <Cell fill="rgba(255,255,255,0.1)" />
@@ -147,7 +149,7 @@ function MemoryGauge({ value }: { value: number }) {
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
         <span className="text-3xl font-bold" style={{ color: "#22d3ee" }}>
-          {value}%
+          {value.toFixed(1)}%
         </span>
         <span className="text-xs text-foreground/50">Memory</span>
       </div>
@@ -155,21 +157,55 @@ function MemoryGauge({ value }: { value: number }) {
   )
 }
 
+const STORAGE_COLORS = ['#d4e157', '#22d3ee', '#a855f7', '#fb923c', '#ec4899'];
+
 export function DashboardSection() {
   const { colorTheme } = useTheme()
+  const [stats, setStats] = useState<StatsData | null>(null)
+  const [cpuHistory, setCpuHistory] = useState<HistoryPoint[]>([])
+  const [netHistory, setNetHistory] = useState<HistoryPoint[]>([])
+  const isFetching = useRef(false)
+
+  const fetchStats = async () => {
+    if (isFetching.current) return
+    isFetching.current = true
+    try {
+      const res = await fetch('/api/stats')
+      const data = await res.json()
+      if (data && !data.error) {
+        setStats(data)
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        setCpuHistory(prev => [...prev, { time: now, value: parseFloat(data.cpu) }].slice(-15))
+        setNetHistory(prev => [...prev, { time: now, value: 0, upload: parseFloat(data.netUp), download: parseFloat(data.netDown) }].slice(-15))
+      }
+    } catch (err) {
+      console.error("Stats fetch failed")
+    } finally {
+      isFetching.current = false
+    }
+  }
+
+  useEffect(() => {
+    fetchStats()
+    const interval = setInterval(fetchStats, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <section className="min-h-screen px-8 py-16 pl-24">
+    <section className="min-h-screen px-8 py-16 pl-24 transition-colors duration-500 overflow-y-auto">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <header className="mb-8">
-          <h2 
-            className="text-3xl font-bold tracking-tight"
-            style={{ color: colorTheme.foreground }}
-          >
-            System Monitor
-          </h2>
-          <p className="text-foreground/50 mt-1">Real-time resource usage monitoring</p>
+        <header className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight" style={{ color: colorTheme.foreground }}>System Monitor</h2>
+            <p className="text-foreground/50 mt-1">Real-time resource usage monitoring</p>
+          </div>
+          {stats && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-green-500 uppercase">Live</span>
+            </div>
+          )}
         </header>
 
         {/* Quick Stats Bar */}
@@ -178,20 +214,20 @@ export function DashboardSection() {
         >
           <div className="flex items-center gap-2">
             <Cpu className="h-4 w-4" style={{ color: colorTheme.accent }} />
-            <span className="text-sm font-medium" style={{ color: colorTheme.foreground }}>4%</span>
+            <span className="text-sm font-medium" style={{ color: colorTheme.foreground }}>{stats?.cpu || "0"}%</span>
             <span className="text-xs text-foreground/50">CPU</span>
           </div>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
             <MemoryStick className="h-4 w-4" style={{ color: "#22d3ee" }} />
-            <span className="text-sm font-medium" style={{ color: colorTheme.foreground }}>1.8 GiB</span>
-            <span className="text-xs text-foreground/50">Free</span>
+            <span className="text-sm font-medium" style={{ color: colorTheme.foreground }}>{stats?.memBytes || "0"} GiB</span>
+            <span className="text-xs text-foreground/50">Used</span>
           </div>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
-            <HardDrive className="h-4 w-4" style={{ color: "#a855f7" }} />
-            <span className="text-sm font-medium" style={{ color: colorTheme.foreground }}>11 GB</span>
-            <span className="text-xs text-foreground/50">Free</span>
+            <Wifi className="h-4 w-4" style={{ color: "#34d399" }} />
+            <span className="text-sm font-medium" style={{ color: colorTheme.foreground }}>{stats?.netDown || "0"} MB/s</span>
+            <span className="text-xs text-foreground/50">Net In</span>
           </div>
         </div>
 
@@ -199,19 +235,15 @@ export function DashboardSection() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           {/* CPU Usage Gauge */}
           <GlassCard title="CPU Usage" icon={Cpu}>
-            <CpuGauge value={52} />
+            <CpuGauge value={parseFloat(stats?.cpu || "0")} />
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-foreground/50">User</span>
-                <span style={{ color: colorTheme.foreground }}>1.2%</span>
+                <span className="text-foreground/50">Containers</span>
+                <span style={{ color: colorTheme.foreground }}>{stats?.containers.length || 0} active</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-foreground/50">System</span>
-                <span style={{ color: colorTheme.foreground }}>1.1%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-foreground/50">Idle</span>
-                <span style={{ color: colorTheme.foreground }}>97.7%</span>
+                <span className="text-foreground/50">Sync Status</span>
+                <span style={{ color: colorTheme.foreground }}>Connected</span>
               </div>
             </div>
           </GlassCard>
@@ -237,7 +269,7 @@ export function DashboardSection() {
                     color: '#fff'
                   }} 
                 />
-                <Area type="monotone" dataKey="value" stroke={colorTheme.accent} fill="url(#cpuGradient)" strokeWidth={2} />
+                <Area type="monotone" dataKey="value" stroke={colorTheme.accent} fill="url(#cpuGradient)" strokeWidth={2} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </GlassCard>
@@ -246,14 +278,14 @@ export function DashboardSection() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           {/* Memory Gauge */}
           <GlassCard title="Memory Usage" icon={MemoryStick}>
-            <MemoryGauge value={12.7} />
-            <p className="text-center text-xs text-foreground/50 mt-2">Expand Details</p>
+            <MemoryGauge value={parseFloat(stats?.memPerc || "0")} />
+            <p className="text-center text-xs text-foreground/50 mt-2">{stats?.memBytes || "0"} GiB Allocated</p>
           </GlassCard>
 
           {/* Network Activity */}
           <GlassCard title="Network Activity" icon={Wifi} className="lg:col-span-2">
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={networkActivity}>
+              <AreaChart data={netHistory}>
                 <defs>
                   <linearGradient id="uploadGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
@@ -275,82 +307,90 @@ export function DashboardSection() {
                     color: '#fff'
                   }} 
                 />
-                <Area type="monotone" dataKey="download" stroke="#22d3ee" fill="url(#downloadGradient)" strokeWidth={2} />
-                <Area type="monotone" dataKey="upload" stroke="#a855f7" fill="url(#uploadGradient)" strokeWidth={2} />
+                <Area type="monotone" dataKey="download" stroke="#22d3ee" fill="url(#downloadGradient)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="monotone" dataKey="upload" stroke="#a855f7" fill="url(#uploadGradient)" strokeWidth={2} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
             <div className="flex justify-center gap-6 mt-2">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-[#22d3ee]" />
-                <span className="text-xs text-foreground/50">Download</span>
+                <span className="text-xs text-foreground/50">Down: {stats?.netDown}MB</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-[#a855f7]" />
-                <span className="text-xs text-foreground/50">Upload</span>
+                <span className="text-xs text-foreground/50">Up: {stats?.netUp}MB</span>
               </div>
             </div>
           </GlassCard>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* System Load */}
-          <GlassCard title="System Load" icon={Server}>
-            <ResponsiveContainer width="100%" height={150}>
-              <BarChart data={systemLoad}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(0,0,0,0.8)', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }} 
-                />
-                <Bar dataKey="value" fill={colorTheme.accent} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Storage Load */}
+          <GlassCard title="Storage Load" icon={Database}>
+            <div className="space-y-3 py-2">
+              {stats?.storage.map((s, i) => (
+                <div key={s.name} className="flex flex-col gap-1">
+                  <div className="flex justify-between text-[10px] uppercase font-bold opacity-40">
+                    <span style={{ color: colorTheme.foreground }}>{s.name}</span>
+                    <span>{s.size} MB</span>
+                  </div>
+                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full transition-all duration-700" 
+                      style={{ 
+                        width: `${Math.min(100, (s.bytes/10000000)*100)}%`, 
+                        backgroundColor: STORAGE_COLORS[i % STORAGE_COLORS.length] 
+                      }} 
+                    />
+                  </div>
+                </div>
+              ))}
+              {(!stats || stats.storage.length === 0) && (
+                <div className="text-[10px] opacity-20 uppercase font-black text-center py-4">Scanning Volumes...</div>
+              )}
+            </div>
           </GlassCard>
 
-          {/* Disk Space */}
-          <GlassCard title="Disk Space" icon={HardDrive}>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span style={{ color: colorTheme.foreground }}>/dev/root</span>
-                  <span className="text-foreground/50">5.64 GB / 119.88 GB</span>
+          {/* Disk Space - Repurposed for Project Data */}
+          <GlassCard title="Disk Volumes" icon={HardDrive}>
+            <div className="space-y-4 py-2">
+              {stats?.storage.slice(0, 2).map((s, i) => (
+                <div key={s.name}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span style={{ color: colorTheme.foreground }}>{s.name}</span>
+                    <span className="text-foreground/50">{s.size} MB</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${Math.min(100, (s.bytes/50000000)*100)}%`, 
+                        backgroundColor: i === 0 ? "#22c55e" : "#facc15" 
+                      }} 
+                    />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: "5%", backgroundColor: "#22c55e" }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span style={{ color: colorTheme.foreground }}>/user/home</span>
-                  <span className="text-foreground/50">914.56 GB / 1.82 TB</span>
-                </div>
-                <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: "50%", backgroundColor: "#facc15" }} />
-                </div>
-              </div>
+              ))}
+              {(!stats || stats.storage.length === 0) && (
+                <div className="text-[10px] opacity-20 uppercase font-black text-center py-4">Mapping Data...</div>
+              )}
             </div>
           </GlassCard>
 
           {/* System Alerts */}
-          <GlassCard title="System Alerts" icon={AlertTriangle}>
+          <GlassCard title="Node Alerts" icon={AlertTriangle}>
             <div className="space-y-3">
-              {alerts.map((alert) => (
-                <div key={alert.id} className="flex items-start gap-3 p-2 rounded-lg bg-white/[0.02]">
+              {(stats?.containers || []).slice(0, 3).map((c) => (
+                <div key={c.name} className="flex items-start gap-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.03]">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3 text-foreground/40" />
-                    <span className="text-[10px] text-foreground/40">{alert.time}</span>
+                    <Server className="h-3 w-3 text-foreground/40" />
                   </div>
-                  <div className="flex-1">
-                    <span className="text-xs" style={{ color: colorTheme.foreground }}>{alert.message}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold truncate block" style={{ color: colorTheme.foreground }}>{c.name.toUpperCase()}</span>
+                    <p className="text-[9px] opacity-40">CPU: {c.cpu} | MEM: {c.mem.split(' / ')[0]}</p>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 font-medium uppercase">
-                    Warning
+                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-500 font-bold uppercase shrink-0">
+                    Up
                   </span>
                 </div>
               ))}
@@ -359,40 +399,21 @@ export function DashboardSection() {
         </div>
 
         {/* Services Section */}
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-4" style={{ color: colorTheme.foreground }}>Services</h3>
+        <div className="mt-8 pb-8">
+          <h3 className="text-lg font-semibold mb-4" style={{ color: colorTheme.foreground }}>Active Infrastructure</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { name: "pfSense", desc: "Firewall", status: "running", ping: "15ms" },
-              { name: "Pi-hole", desc: "Network ad blocking", status: "running", ping: "12ms" },
-              { name: "TrueNAS", desc: "NAS", status: "running", ping: "20ms" },
-              { name: "Plex", desc: "Media", status: "running", ping: "60ms" },
-              { name: "Matrix", desc: "Communication", status: "running", ping: "45ms" },
-              { name: "Portainer", desc: "Docker controller", status: "running", ping: "10ms" },
-              { name: "Uptime Kuma", desc: "Uptime monitoring", status: "healthy", ping: "10ms" },
-            ].map((service) => (
+            {(stats?.containers || []).map((service) => (
               <div 
                 key={service.name}
-                className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl"
+                className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl transition-all"
               >
                 <div>
                   <p className="text-sm font-semibold" style={{ color: colorTheme.foreground }}>{service.name}</p>
-                  <p className="text-xs text-foreground/50">{service.desc}</p>
+                  <p className="text-[10px] text-foreground/50 uppercase tracking-tighter">Docker Container</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-foreground/40">{service.ping}</span>
-                  <span 
-                    className="text-[10px] px-2 py-0.5 rounded font-medium uppercase"
-                    style={{ 
-                      backgroundColor: service.status === "running" || service.status === "healthy" 
-                        ? "rgba(34, 197, 94, 0.2)" 
-                        : "rgba(239, 68, 68, 0.2)",
-                      color: service.status === "running" || service.status === "healthy" 
-                        ? "#22c55e" 
-                        : "#ef4444"
-                    }}
-                  >
-                    {service.status}
+                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-green-500/20 text-green-500">
+                    Running
                   </span>
                 </div>
               </div>

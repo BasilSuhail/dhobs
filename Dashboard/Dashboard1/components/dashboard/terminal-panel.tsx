@@ -266,7 +266,7 @@ ossssssssssNMMMNhssssssssssssssso  CPU: BCM2712 (4) @ 2.40GHz
 }
 
 export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
-  const { colorTheme } = useTheme()
+  const { colorTheme, mode } = useTheme()
   const [tabs, setTabs] = useState<TerminalTab[]>([{ id: "1", title: "bash" }])
   const [activeTab, setActiveTab] = useState("1")
   const [isMaximized, setIsMaximized] = useState(false)
@@ -537,22 +537,25 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
           className="h-1.5 cursor-ns-resize flex items-center justify-center group"
           style={{ background: "transparent" }}
         >
-          <div className="w-12 h-0.5 rounded-full bg-white/20 group-hover:bg-white/40 transition-colors" />
+          <div 
+            className="w-12 h-0.5 rounded-full transition-colors" 
+            style={{ backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }}
+          />
         </div>
       )}
 
       {/* Main Panel */}
       <div
-        className="flex-1 flex flex-col overflow-hidden border-t rounded-t-xl"
+        className="flex-1 flex flex-col overflow-hidden border-t rounded-t-xl transition-colors duration-500 shadow-2xl"
         style={{
-          background: "rgba(10, 10, 10, 0.95)",
+          backgroundColor: mode === 'dark' ? 'rgba(10, 10, 10, 0.95)' : 'rgba(255, 255, 255, 0.95)',
           backdropFilter: "blur(24px) saturate(120%)",
           WebkitBackdropFilter: "blur(24px) saturate(120%)",
-          borderColor: "rgba(255,255,255,0.08)",
+          borderColor: colorTheme.border,
         }}
       >
         {/* Tab Bar */}
-        <div className="flex items-center h-9 px-2 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center h-9 px-2 border-b shrink-0" style={{ borderColor: colorTheme.border }}>
           {/* Tabs */}
           <div className="flex items-center gap-0.5 flex-1 overflow-x-auto">
             {tabs.map((tab) => (
@@ -560,17 +563,21 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 h-7 rounded-md text-xs cursor-pointer transition-all group",
-                  activeTab === tab.id
-                    ? "bg-white/10 text-white"
-                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                  "flex items-center gap-1.5 px-3 h-7 rounded-md text-xs cursor-pointer transition-all group"
                 )}
+                style={activeTab === tab.id ? {
+                  backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                  color: colorTheme.foreground
+                } : {
+                  color: colorTheme.muted
+                }}
               >
                 <TerminalIcon className="h-3 w-3" strokeWidth={1.5} />
                 <span className="font-medium">{tab.title}</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
-                  className="ml-1 opacity-0 group-hover:opacity-100 text-white/30 hover:text-white/70 transition-all"
+                  className="ml-1 opacity-0 group-hover:opacity-100 transition-all"
+                  style={{ color: `${colorTheme.muted}80` }}
                 >
                   <X className="h-2.5 w-2.5" />
                 </button>
@@ -581,7 +588,8 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
                 <TooltipTrigger asChild>
                   <button
                     onClick={addTab}
-                    className="flex items-center justify-center h-6 w-6 rounded text-white/30 hover:text-white/70 hover:bg-white/[0.04] transition-all"
+                    className="flex items-center justify-center h-6 w-6 rounded transition-all"
+                    style={{ color: colorTheme.muted }}
                   >
                     <Plus className="h-3 w-3" />
                   </button>
@@ -597,7 +605,8 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
           <div className="flex items-center gap-1 ml-2">
             <button
               onClick={() => setIsMaximized(!isMaximized)}
-              className="flex items-center justify-center h-6 w-6 rounded text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all"
+              className="flex items-center justify-center h-6 w-6 rounded transition-all"
+              style={{ color: colorTheme.muted }}
             >
               {isMaximized
                 ? <Minimize2 className="h-3 w-3" />
@@ -606,7 +615,8 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
             </button>
             <button
               onClick={onClose}
-              className="flex items-center justify-center h-6 w-6 rounded text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all"
+              className="flex items-center justify-center h-6 w-6 rounded hover:bg-red-400/10 transition-all"
+              style={{ color: colorTheme.muted }}
             >
               <X className="h-3 w-3" />
             </button>
@@ -617,7 +627,7 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[13px] leading-relaxed"
-          style={{ color: "#e6edf3" }}
+          style={{ color: mode === 'dark' ? '#e6edf3' : '#1a1a1a' }}
         >
           {(lines[activeTab] || []).map((line, i) => renderLine(line, i))}
 
@@ -630,8 +640,11 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleCommand}
-              className="flex-1 bg-transparent outline-none border-none font-mono text-[13px] caret-white/70"
-              style={{ color: "#e6edf3" }}
+              className="flex-1 bg-transparent outline-none border-none font-mono text-[13px]"
+              style={{ 
+                color: mode === 'dark' ? '#e6edf3' : '#1a1a1a',
+                caretColor: colorTheme.accent
+              }}
               spellCheck={false}
               autoComplete="off"
               autoCorrect="off"

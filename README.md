@@ -10,53 +10,57 @@ This repository contains the implementation plan, product definition, technical 
 
 ## 1. 🚀 QUICK START (HOW TO STARTUP)
 
-To start the entire Project S ecosystem perfectly with a single command, use the **`boom.sh`** script located in the root directory:
+To build and start the entire Project S ecosystem with a single command, use the **`boom.sh`** script located in the root directory:
 
 ```bash
 ./boom.sh
 ```
 
 **What this script does:**
-1.  **Clean Up:** Automatically removes any old or conflicting containers to ensure a fresh state.
-2.  **Permissions:** Automatically fixes file permission issues (especially for Matrix/Synapse logging).
-3.  **Orchestration:** Starts all services (Proxy, Dashboard, Backends, Databases) in the correct order.
-4.  **Health Check:** Waits for the Dashboard to be fully ready and responding.
-5.  **Auto-Launch:** Automatically opens your default web browser to the dashboard.
+1.  **Clean Up:** Automatically removes any old or conflicting containers.
+2.  **Permissions:** Automatically fixes file permission issues.
+3.  **Build & Run:** Performs a fresh build of the dashboard and starts all services (Jellyfin, Nextcloud, Matrix, etc.).
+4.  **Health Check:** Waits for the Dashboard to be fully ready.
+5.  **Auto-Launch:** Automatically opens your default web browser to the dashboard at `http://localhost:3069`.
 
 ---
 
 ## 2. 📦 INTEGRATED SERVICES (WHAT IS ADDED)
 
-The following services are currently functional and fully integrated into the Project S Dashboard:
+The following services are currently functional and accessible via their own ports:
 
--   **Main Dashboard:** The central hub for all services (Port `:3069`).
--   **Jellyfin:** Media & Entertainment server.
--   **Nextcloud:** Cloud productivity and file management.
--   **Matrix (Element):** Secure, encrypted communication suite.
--   **Vaultwarden:** Enterprise-grade password management.
--   **Theia CodeSpace:** Integrated development environment (Port `:3030`).
-
----
-
-## 3. 🛠️ ADDING NEW SERVICES (SCALING & EXPANSION)
-
-To add more applications to the ecosystem in the future, follow this 4-step checklist:
-
-1.  **Docker:** Add the service to `docker-compose.yml`. (No need to expose host ports).
-2.  **Gateway:** Add a proxied location in `config/nginx/nginx.conf` to handle security headers.
-3.  **Launcher:** Add the app to the `applications` array in `welcome-section.tsx`.
-4.  **Windowing:** Define the window component in `app/page.tsx` so it opens as a draggable app.
-
-*Note: `boom.sh` will automatically detect and start any new services added to the compose file.*
+-   **Main Dashboard:** `http://localhost:3069`
+-   **Jellyfin:** `http://localhost:8096`
+-   **Nextcloud:** `http://localhost:8081`
+-   **Matrix (Element):** `http://localhost:8082`
+-   **Vaultwarden:** `http://localhost:8083`
+-   **Theia CodeSpace:** `http://localhost:3030`
 
 ---
 
-## 4. 📝 PROJECT DOCUMENTATION & LOGS
+## 3. 🛠️ THE DYNAMIC DOCK (RECENT APPS)
 
-Stay up to date with the development progress through our detailed logging system:
+The Project S Sidebar acts as a smart "Apple-style" dock:
+-   **Timed Persistence:** When you open an application from the Home grid, its icon appears in the dock.
+-   **Auto-Cleanup:** If an application is not used or focused for **5 minutes**, it will automatically vanish from the dock to keep your workspace clean.
+-   **State Management:** Minimized apps stay in the dock (grayed out) until they either time out or are closed manually.
+
+---
+
+## 4. 🛠️ ADDING NEW SERVICES (SCALING & EXPANSION)
+
+To add more applications to the ecosystem:
+
+1.  **Docker:** Add the service to `docker-compose.yml` and expose its host port.
+2.  **Launcher:** Add the app to the `applications` array in `welcome-section.tsx`.
+3.  **Windowing:** Define the window component in `app/page.tsx` and add its metadata to the `appMeta` object.
+
+---
+
+## 5. 📝 PROJECT DOCUMENTATION & LOGS
 
 -   **Technical Logs:** All research and implementation records are located in the **`Project_S_Logs/`** directory.
--   **Static UI Preview:** For a quick look at the interface without running Docker, open the **`Project_S_Logs/06_Dashboard_Technical_Report.html`** file in any browser. This is a functional, high-fidelity mirror of the dashboard frontend.
+-   **Static UI Preview:** Open **`Project_S_Logs/06_Dashboard_Technical_Report.html`** for a high-fidelity mirror of the dashboard frontend.
 
 ---
 

@@ -1,29 +1,11 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: project-s-proxy
-    ports:
-      - '3069:80'
-      - '8096:8096'
-      - '8081:8081'
-      - '8082:8082'
-      - '8083:8083'
-    volumes:
-      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - dashboard
-      - jellyfin
-      - nextcloud
-      - element
-      - vaultwarden
-    restart: unless-stopped
-
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: project-s-jellyfin
-    # ports: - '8096:8096' # INTERNAL ONLY (Proxied by Nginx)
+    ports:
+      - '8096:8096'
     volumes:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
@@ -36,6 +18,12 @@ services:
       context: ./Dashboard/Dashboard1
       dockerfile: Dockerfile
     container_name: project-s-dashboard
+    user: root
+    ports:
+      - '3069:3069'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data:ro
     environment:
       - PORT=3069
     restart: 'unless-stopped'
@@ -60,11 +48,13 @@ services:
     image: nextcloud:latest
     container_name: project-s-nextcloud
     restart: always
+    ports:
+      - '8081:80'
     links:
       - db
     volumes:
       - ./data/nextcloud/html:/var/www/html
-      - ./data/nextcloud/data:/var/www/html/data
+      - ./data/nextcloud/data:/var/www/nextcloud_data
     environment:
       - MYSQL_PASSWORD=nextcloud
       - MYSQL_DATABASE=nextcloud
@@ -72,6 +62,7 @@ services:
       - MYSQL_HOST=db
       - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 192.168.1.68
       - OVERWRITEHOST=localhost:8081
+      - NEXTCLOUD_DATA_DIR=/var/www/nextcloud_data
 
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest
@@ -79,7 +70,7 @@ services:
     user: root
     privileged: true
     ports:
-      - '3030:3000' # Corrected internal port
+      - '3030:3000'
     volumes:
       - .:/home/project/project-s
       - /var/run/docker.sock:/var/run/docker.sock
@@ -104,6 +95,8 @@ services:
     container_name: project-s-matrix-server
     depends_on:
       - synapse-db
+    ports:
+      - '8008:8008'
     volumes:
       - ./data/matrix/synapse:/data
       - ./config/matrix/homeserver.yaml:/data/homeserver.yaml:ro
@@ -112,7 +105,8 @@ services:
   element:
     image: vectorim/element-web:latest
     container_name: project-s-matrix-client
-    # ports: - '8082:80' # INTERNAL ONLY (Proxied by Nginx)
+    ports:
+      - '8082:80'
     volumes:
       - ./config/matrix/element-config.json:/app/config.json:ro
     restart: unless-stopped
@@ -120,10 +114,21 @@ services:
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: project-s-vaultwarden
-    # ports: - '8083:80' # INTERNAL ONLY (Proxied by Nginx)
+    ports:
+      - '8083:80'
     volumes:
       - ./data/vaultwarden:/data
     environment:
       - WEBSOCKET_ENABLED=true
       - DATA_FOLDER=/data
+    restart: unless-stopped
+
+  kiwix:
+    image: ghcr.io/kiwix/kiwix-serve:latest
+    container_name: project-s-kiwix-reader
+    ports:
+      - '8084:80'
+    volumes:
+      - ./data/kiwix:/data
+    command: sh -c "kiwix-serve --port=80 *.zim || (echo 'No ZIM files found. Please add .zim files to ./data/kiwix' && sleep infinity)"
     restart: unless-stopped

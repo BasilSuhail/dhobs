@@ -36,6 +36,18 @@ export const colorThemes: ColorTheme[] = [
     preview: { bg: "#1a1a1a", text: "#f5f5f7", accent: "#d4e157" },
   },
   {
+    id: "classic",
+    name: "Classic",
+    background: "#ffffff",
+    foreground: "#000000",
+    accent: "#000000",
+    accentForeground: "#ffffff",
+    card: "rgba(245, 245, 245, 0.8)",
+    muted: "#737373",
+    border: "rgba(0, 0, 0, 0.1)",
+    preview: { bg: "#ffffff", text: "#000000", accent: "#000000", border: "#e5e5e5" },
+  },
+  {
     id: "gazette",
     name: "Gazette",
     background: "#3d4654",
@@ -180,7 +192,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (theme) {
         setColorThemeState(theme)
         applyColorTheme(theme)
-        const isLightTheme = ["cloud", "chalk", "paper"].includes(theme.id)
+        const isLightTheme = ["classic", "cloud", "chalk", "paper"].includes(theme.id)
         setModeState(isLightTheme ? "light" : "dark")
         document.documentElement.classList.toggle("dark", !isLightTheme)
       }
@@ -214,7 +226,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setColorThemeState(theme)
     applyColorTheme(theme)
     localStorage.setItem("colorThemeId", theme.id)
-    const isLightTheme = ["cloud", "chalk", "paper"].includes(theme.id)
+    const isLightTheme = ["classic", "cloud", "chalk", "paper"].includes(theme.id)
     setMode(isLightTheme ? "light" : "dark")
   }
 

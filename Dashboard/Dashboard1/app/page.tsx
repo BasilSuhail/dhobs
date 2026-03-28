@@ -4,40 +4,10 @@ import { useEffect, useRef, useState } from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { WelcomeSection } from "@/components/dashboard/welcome-section"
 import { DashboardSection } from "@/components/dashboard/dashboard-section"
-import { MediaSection } from "@/components/dashboard/media-section"
-import { MatrixSection } from "@/components/dashboard/matrix-section"
-import { VaultwardenSection } from "@/components/dashboard/vaultwarden-section"
-import { NextcloudSection } from "@/components/dashboard/nextcloud-section"
-import { KiwixSection } from "@/components/dashboard/kiwix-section"
-import { StorageSection } from "@/components/dashboard/storage-section"
-import { CodeServerSection } from "@/components/dashboard/codeserver-section"
+import { MetricsSection } from "@/components/dashboard/metrics-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
-import { WindowWrapper } from "@/components/dashboard/window-wrapper"
 import { useTheme } from "@/components/theme-provider"
-import { Play, MessageSquare, Key, Cloud, Code, HardDrive, Book, LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-export interface OpenApp {
-  id: string
-  label: string
-  icon: LucideIcon
-  isMinimized: boolean
-}
-
-const appMeta: Record<string, { label: string, icon: LucideIcon }> = {
-  media: { label: "Jellyfin", icon: Play },
-  jellyfin: { label: "Jellyfin", icon: Play },
-  matrix: { label: "Matrix", icon: MessageSquare },
-  chat: { label: "Matrix", icon: MessageSquare },
-  vaultwarden: { label: "Vaultwarden", icon: Key },
-  passwords: { label: "Vaultwarden", icon: Key },
-  nextcloud: { label: "Nextcloud", icon: Cloud },
-  cloud: { label: "Nextcloud", icon: Cloud },
-  codespace: { label: "Code Server", icon: Code },
-  codeserver: { label: "Code Server", icon: Code },
-  storage: { label: "Storage", icon: HardDrive },
-  kiwix: { label: "Kiwix", icon: Book },
-}
 
 export default function HomePage() {
   const { colorTheme } = useTheme()
@@ -45,7 +15,6 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [currentSection, setCurrentSection] = useState("home")
-  const [openApps, setOpenApps] = useState<OpenApp[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -70,45 +39,10 @@ export default function HomePage() {
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
 
   const handleNavigate = (section: string) => {
-    if (section === "home" || section === "metrics") {
-      setCurrentSection(section)
-      if (section === "home") {
-        window.scrollTo({ top: 0, behavior: "smooth" })
-      }
-      return
+    setCurrentSection(section)
+    if (section === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
     }
-
-    // Check if app is already open
-    const existingApp = openApps.find(app => app.id === section)
-    if (existingApp) {
-      setOpenApps(openApps.map(app => 
-        app.id === section ? { ...app, isMinimized: false } : app
-      ))
-      setCurrentSection(section)
-    } else if (appMeta[section]) {
-      // Open new app
-      const newApp = {
-        id: section,
-        ...appMeta[section],
-        isMinimized: false
-      }
-      setOpenApps([...openApps, newApp])
-      setCurrentSection(section)
-    }
-  }
-
-  const closeApp = (id: string) => {
-    setOpenApps(prev => prev.filter(app => app.id !== id))
-    if (currentSection === id) {
-      setCurrentSection("home")
-    }
-  }
-
-  const minimizeApp = (id: string) => {
-    setOpenApps(prev => prev.map(app => 
-      app.id === id ? { ...app, isMinimized: true } : app
-    ))
-    setCurrentSection("home")
   }
 
   return (
@@ -156,17 +90,16 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Sidebar (Dock) */}
+      {/* Sidebar */}
       <Sidebar
         activeSection={currentSection}
         onNavigate={handleNavigate}
         terminalOpen={terminalOpen}
         onToggleTerminal={() => setTerminalOpen(prev => !prev)}
-        openApps={openApps}
       />
 
       <main className="relative z-10 h-full w-full">
-        {/* HOME VIEW (Static / Scrollable) */}
+        {/* HOME / METRICS VIEW (Static / Scrollable) */}
         <div className={cn(
           "h-full w-full transition-all duration-500",
           (currentSection === "home" || currentSection === "metrics") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
@@ -193,31 +126,9 @@ export default function HomePage() {
               </div>
             </>
           ) : (
-            <DashboardSection />
+            <MetricsSection />
           )}
         </div>
-
-        {/* APP WINDOWS */}
-        {openApps.map((app) => (
-          <WindowWrapper
-            key={app.id}
-            title={app.label}
-            isActive={currentSection === app.id}
-            onClose={() => closeApp(app.id)}
-            onMinimize={() => minimizeApp(app.id)}
-            onClick={() => setCurrentSection(app.id)}
-          >
-            <div className="w-full h-full bg-black/20">
-              {(app.id === "media" || app.id === "jellyfin") && <MediaSection isWindow />}
-              {(app.id === "matrix" || app.id === "chat") && <MatrixSection isWindow />}
-              {(app.id === "vaultwarden" || app.id === "passwords") && <VaultwardenSection isWindow />}
-              {(app.id === "nextcloud" || app.id === "cloud") && <NextcloudSection isWindow />}
-              {app.id === "kiwix" && <KiwixSection isWindow />}
-              {app.id === "storage" && <StorageSection isWindow />}
-              {(app.id === "codeserver" || app.id === "codespace") && <CodeServerSection isWindow />}
-            </div>
-          </WindowWrapper>
-        ))}
       </main>
 
       {/* Terminal Panel */}
