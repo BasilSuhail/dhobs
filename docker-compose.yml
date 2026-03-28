@@ -68,3 +68,37 @@ services:
     environment:
       - SHELL=/bin/bash
     restart: 'unless-stopped'
+
+  synapse-db:
+    image: postgres:15-alpine
+    container_name: project-s-matrix-db
+    environment:
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=synapse_password
+      - POSTGRES_DB=synapse
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - ./data/matrix/db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  synapse:
+    image: matrixdotorg/synapse:latest
+    container_name: project-s-matrix-server
+    depends_on:
+      - synapse-db
+    ports:
+      - '8008:8008'
+    volumes:
+      - ./data/matrix/synapse:/data
+    environment:
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+    restart: unless-stopped
+
+  element:
+    image: vectorim/element-web:latest
+    container_name: project-s-matrix-client
+    ports:
+      - '8082:80'
+    volumes:
+      - ./config/matrix/element-config.json:/app/config.json
+    restart: unless-stopped

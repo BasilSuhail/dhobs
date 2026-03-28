@@ -36,6 +36,7 @@ Project S is fully containerized using a **Docker-in-Docker (DinD)** setup, allo
    - **Nextcloud:** [http://localhost:8081](http://localhost:8081)
    - **Jellyfin:** [http://localhost:8096](http://localhost:8096)
    - **Theia CodeSpace:** [http://localhost:3030](http://localhost:3030)
+   - **Matrix (Element):** [http://localhost:8082](http://localhost:8082)
 
 ### Data Persistence
 Project data and configurations are persisted in the `./dind-data` directory on your host machine.
