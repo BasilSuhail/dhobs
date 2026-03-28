@@ -1,4 +1,4 @@
-# Project S — Jellyfin Media Integration Log
+# Project S — Jellyfin Media Integration Log (More Ocnfiguration needed)
 
 This document records the integration of the Jellyfin Media Server into the Project S dashboard, serving as the core of the HomeForge entertainment and NAS layer.
 
