@@ -110,16 +110,12 @@ services:
       - '9980:9980'
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      # CRITICAL: Collabora receives WOPISrc=http://localhost:8081/... from the browser.
-      # It then makes an HTTP callback to that URL to fetch the file (CheckFileInfo).
-      # Inside the container, "localhost" is the container itself — NOT the host machine.
-      # This mapping makes "localhost" resolve to the Docker host gateway IP,
-      # so Collabora can reach Nextcloud at localhost:8081 via the host's port mapping.
+      # Collabora does NOT rewrite WOPISrc callback URLs — it uses them as-is.
+      # When browser sends WOPISrc=http://localhost:8081/..., Collabora makes
+      # an HTTP GET to localhost:8081 to fetch the file. Inside this container,
+      # "localhost" must resolve to the host machine (where port 8081 is mapped).
       - "localhost:host-gateway"
     volumes:
-      # Mount WOPI config override — most reliable method, no env var parsing needed.
-      # This file defines allowed WOPI hosts via XML, including regex patterns for
-      # all private LAN ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
       - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
     environment:
       - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081
@@ -140,7 +136,8 @@ services:
         limits:
           memory: 1536m
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9980/"]
+      # Use 127.0.0.1 NOT localhost — extra_hosts remaps localhost to host-gateway
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9980/"]
       interval: 30s
       timeout: 10s
       retries: 3
