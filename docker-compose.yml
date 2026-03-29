@@ -110,7 +110,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - aliasgroup1=http://nextcloud:80
+      # aliasgroup1 lists ALL hostnames that appear in WOPISrc URLs.
+      # First entry (nextcloud:80) is the canonical host Collabora uses for callbacks.
+      # Additional entries are aliases: localhost:8081 (host access) and 127.0.0.1:8081 (fallback).
+      - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081
       - server_name=localhost:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
