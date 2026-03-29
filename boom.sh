@@ -23,30 +23,33 @@ mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden ./data/kiwix ./data/workspace
 mkdir -p ./config/matrix
 
-# Sync Synapse secrets and DB password (same logic as install.sh)
+# Sync Synapse secrets and DB password
+# Uses python3 for cross-platform file replacement (avoids sed -i differences)
+replace_in_file() {
+    local file="$1" old="$2" new="$3"
+    python3 -c "
+import sys
+with open(sys.argv[1], 'r') as f:
+    content = f.read()
+content = content.replace(sys.argv[2], sys.argv[3])
+with open(sys.argv[1], 'w') as f:
+    f.write(content)
+" "$file" "$old" "$new"
+}
+
 if grep -q "CHANGE_ME" ./config/matrix/homeserver.yaml 2>/dev/null; then
     echo "Generating random secrets for Matrix/Synapse..."
     REG_SECRET=$(openssl rand -hex 32)
     MAC_SECRET=$(openssl rand -hex 32)
     FORM_SECRET=$(openssl rand -hex 32)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
-        sed -i '' "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
-        sed -i '' "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
-    else
-        sed -i "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
-        sed -i "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
-        sed -i "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
-    fi
+    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_registration_secret_CHANGE_ME" "$REG_SECRET"
+    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_macaroon_CHANGE_ME" "$MAC_SECRET"
+    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_form_secret_CHANGE_ME" "$FORM_SECRET"
 fi
 if [ -f .env ]; then
     MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2)
     if [ -n "$MATRIX_PW" ] && grep -q "password: change_me_synapse_password" ./config/matrix/homeserver.yaml 2>/dev/null; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
-        else
-            sed -i "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
-        fi
+        replace_in_file ./config/matrix/homeserver.yaml "change_me_synapse_password" "$MATRIX_PW"
     fi
 fi
 
