@@ -9,6 +9,21 @@ This repository contains the implementation plan, product definition, technical 
 ## Note
 This will be the top version with all the described features there will be a different repository for a Business version and a lite version
 
+## Project Structure
+
+```text
+/home/saad/Projects/proj_s/ProjectS-HomeForge-main/
+├───Dashboard/           # Next.js Dashboard Source
+├───config/              # Service Configurations (Matrix, etc.)
+├───data/                # Persistent Data Volumes
+├───Project_S_Logs/      # Technical Documentation & Reports
+├───docker-compose.yml   # Main Service Orchestration
+├───Dockerfile.dind      # Master Container Definition
+├───install.sh           # Linux Installation Script
+├───run-dind.sh          # Mac/DinD Runner Script
+└───README.md            # Project Documentation
+```
+
 ## Deployment
 
 Project S can be deployed using a standard Docker Compose setup (recommended for Linux) or a **Docker-in-Docker (DinD)** setup.
