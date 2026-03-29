@@ -108,4 +108,12 @@ docker exec -u www-data project-s-nextcloud php occ app:install contacts || true
 docker exec -u www-data project-s-nextcloud php occ app:install mail || true
 docker exec -u www-data project-s-nextcloud php occ app:install spreed || true
 
+# Drain the background job queue via CLI before the user opens the browser.
+# Without this, Nextcloud runs all pending jobs through AJAX cron on first page
+# load, blocking the browser for up to an hour on a fresh install with many apps.
+# Running it here processes the full queue in the terminal — no browser required.
+echo "Running Nextcloud background jobs (this may take several minutes)..."
+docker exec -u www-data project-s-nextcloud php occ cron
+echo "Background jobs complete."
+
 echo "Configuration complete! You can view logs using: docker compose logs -f"
