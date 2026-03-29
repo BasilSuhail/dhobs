@@ -86,7 +86,10 @@ services:
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
     depends_on:
-      - db
+      db:
+        condition: service_started
+      collabora:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -118,8 +121,8 @@ services:
       - SYS_ADMIN
     security_opt:
       - seccomp=unconfined
-    depends_on:
-      - nextcloud
+    # No depends_on for nextcloud — aliasgroup1 is a config value, not a startup probe.
+    # Collabora must start BEFORE nextcloud (nextcloud depends_on collabora: service_healthy).
     deploy:
       resources:
         limits:

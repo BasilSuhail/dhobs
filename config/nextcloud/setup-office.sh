@@ -12,6 +12,23 @@
 #   wopi_url        - Nextcloud container → Collabora via Docker service name
 #   public_wopi_url - browser (on the host) → Collabora via localhost
 
+# Wait for Collabora to be reachable before configuring richdocuments.
+# Without this, the WOPI discovery URL fails and token generation returns 500.
+echo "Waiting for Collabora to be reachable..."
+RETRIES=0
+MAX_RETRIES=30
+while ! curl -sf http://collabora:9980/ > /dev/null 2>&1; do
+    RETRIES=$((RETRIES + 1))
+    if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+        echo "WARNING: Collabora not reachable after ${MAX_RETRIES} attempts. Configuring anyway (settings are stored, will work once Collabora starts)."
+        break
+    fi
+    sleep 2
+done
+if [ "$RETRIES" -lt "$MAX_RETRIES" ]; then
+    echo "Collabora is reachable. Configuring richdocuments..."
+fi
+
 php /var/www/html/occ app:enable richdocuments || true
 
 php /var/www/html/occ config:system:set allow_local_remote_servers \
