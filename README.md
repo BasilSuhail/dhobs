@@ -26,12 +26,6 @@ chmod +x install.sh
 ```
 *Creates data directories and starts standard Docker Compose.*
 
-### Option C: Docker-in-Docker (Mac Recommended)
-```bash
-chmod +x run-dind.sh
-./run-dind.sh
-```
-*Best for isolated environments where host-level Docker isn't ideal.*
 
 ---
 
