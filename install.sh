@@ -39,6 +39,7 @@ mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media
 mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
 mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden
+mkdir -p ./data/kiwix
 mkdir -p ./config/matrix
 
 # Ensure Nextcloud directories have correct permissions (UID 33 is www-data in the container)

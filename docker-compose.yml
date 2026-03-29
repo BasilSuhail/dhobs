@@ -99,7 +99,7 @@ services:
       start_period: 60s
 
   collabora:
-    image: collabora/code:24.04
+    image: collabora/code:24.04.10.2.1
     container_name: project-s-collabora
     restart: unless-stopped
     ports:
@@ -132,7 +132,7 @@ services:
       start_period: 30s
 
   theia:
-    image: ghcr.io/eclipse-theia/theia-ide/theia-ide:1.54.0
+    image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest  # Theia only publishes :latest on GHCR
     container_name: project-s-theia
     user: root
     privileged: true
@@ -158,7 +158,7 @@ services:
     restart: unless-stopped
 
   synapse:
-    image: matrixdotorg/synapse:v1.121.0
+    image: matrixdotorg/synapse:v1.120.0
     container_name: project-s-matrix-server
     depends_on:
       - synapse-db
