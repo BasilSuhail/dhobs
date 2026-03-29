@@ -54,7 +54,36 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
 fi
 
-# 4. Initialize Matrix Element configuration
+# 4. Generate Synapse secrets if not already customized
+if grep -q "CHANGE_ME" ./config/matrix/homeserver.yaml 2>/dev/null; then
+    echo "Generating random secrets for Matrix/Synapse..."
+    REG_SECRET=$(openssl rand -hex 32)
+    MAC_SECRET=$(openssl rand -hex 32)
+    FORM_SECRET=$(openssl rand -hex 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i '' "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i '' "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
+    else
+        sed -i "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
+    fi
+fi
+
+# Sync Matrix DB password from .env to homeserver.yaml
+if [ -f .env ]; then
+    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2)
+    if [ -n "$MATRIX_PW" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
+        else
+            sed -i "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
+        fi
+    fi
+fi
+
+# 5. Initialize Matrix Element configuration
 # This prevents Docker from creating a directory instead of a file during volume mounting
 if [ ! -f ./config/matrix/element-config.json ]; then
     echo "Initializing Matrix Element configuration..."

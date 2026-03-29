@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect, useMemo } from "react"
 import { useTheme } from "@/components/theme-provider"
 import {
   Play,
@@ -11,13 +12,13 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const applications = [
-  { name: "Jellyfin", url: "http://localhost:8096", icon: Play },
-  { name: "Nextcloud", url: "http://localhost:8081", icon: Cloud },
-  { name: "Theia IDE", url: "http://localhost:3030", icon: Code },
-  { name: "Matrix", url: "http://localhost:8082", icon: MessageSquare },
-  { name: "Vaultwarden", url: "http://localhost:8083", icon: Key },
-  { name: "Kiwix", url: "http://localhost:8084", icon: Book },
+const SERVICE_PORTS = [
+  { name: "Jellyfin", port: 8096, icon: Play },
+  { name: "Nextcloud", port: 8081, icon: Cloud },
+  { name: "Theia IDE", port: 3030, icon: Code },
+  { name: "Matrix", port: 8082, icon: MessageSquare },
+  { name: "Vaultwarden", port: 8083, icon: Key },
+  { name: "Kiwix", port: 8084, icon: Book },
 ]
 
 const bookmarks = {
@@ -60,6 +61,21 @@ interface WelcomeSectionProps {
 
 export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
   const { colorTheme } = useTheme()
+  const [hostname, setHostname] = useState("")
+
+  useEffect(() => {
+    setHostname(window.location.hostname)
+  }, [])
+
+  const applications = useMemo(
+    () =>
+      SERVICE_PORTS.map((svc) => ({
+        name: svc.name,
+        url: hostname ? `http://${hostname}:${svc.port}` : "",
+        icon: svc.icon,
+      })),
+    [hostname]
+  )
 
   return (
     <section className="min-h-screen px-8 py-16 pl-24 transition-colors duration-500">

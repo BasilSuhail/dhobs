@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
@@ -9,21 +10,28 @@ interface MediaSectionProps {
 
 export function MediaSection({ isWindow }: MediaSectionProps) {
   const { colorTheme } = useTheme()
+  const [serviceUrl, setServiceUrl] = useState("")
+
+  useEffect(() => {
+    setServiceUrl(`http://${window.location.hostname}:8096`)
+  }, [])
 
   const content = (
-    <div 
+    <div
       className={cn(
         "flex-1 w-full overflow-hidden relative",
         !isWindow && "rounded-2xl border border-white/[0.06] bg-black/40 backdrop-blur-xl"
       )}
     >
-      <iframe 
-        src="http://localhost:8096" 
-        className="w-full h-full border-0"
-        title="Jellyfin Media Server"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
+      {serviceUrl && (
+        <iframe
+          src={serviceUrl}
+          className="w-full h-full border-0"
+          title="Jellyfin Media Server"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      )}
       
       {/* Overlay to catch errors or show loading if needed */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">

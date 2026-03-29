@@ -167,6 +167,7 @@ services:
     volumes:
       - ./data/matrix/synapse:/data
       - ./config/matrix/homeserver.yaml:/data/homeserver.yaml:ro
+      - ./config/matrix/localhost.log.config:/data/localhost.log.config:ro
     restart: unless-stopped
     deploy:
       resources:

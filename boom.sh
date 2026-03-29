@@ -16,6 +16,40 @@ fi
 
 echo "🚀 Launching Project S (Build & Run Mode)..."
 
+# Ensure data directories exist (install.sh creates these, but boom.sh should too)
+mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media
+mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
+mkdir -p ./data/matrix/db ./data/matrix/synapse
+mkdir -p ./data/vaultwarden ./data/kiwix
+mkdir -p ./config/matrix
+
+# Sync Synapse secrets and DB password (same logic as install.sh)
+if grep -q "CHANGE_ME" ./config/matrix/homeserver.yaml 2>/dev/null; then
+    echo "Generating random secrets for Matrix/Synapse..."
+    REG_SECRET=$(openssl rand -hex 32)
+    MAC_SECRET=$(openssl rand -hex 32)
+    FORM_SECRET=$(openssl rand -hex 32)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i '' "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i '' "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
+    else
+        sed -i "s|homeforge_default_registration_secret_CHANGE_ME|$REG_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i "s|homeforge_default_macaroon_CHANGE_ME|$MAC_SECRET|" ./config/matrix/homeserver.yaml
+        sed -i "s|homeforge_default_form_secret_CHANGE_ME|$FORM_SECRET|" ./config/matrix/homeserver.yaml
+    fi
+fi
+if [ -f .env ]; then
+    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2)
+    if [ -n "$MATRIX_PW" ] && grep -q "password: change_me_synapse_password" ./config/matrix/homeserver.yaml 2>/dev/null; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
+        else
+            sed -i "s|password: change_me_synapse_password|password: $MATRIX_PW|" ./config/matrix/homeserver.yaml
+        fi
+    fi
+fi
+
 # 1. Clean up old containers
 echo "🧹 Cleaning up environment..."
 docker compose down --remove-orphans > /dev/null 2>&1
