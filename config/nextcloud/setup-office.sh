@@ -1,14 +1,17 @@
 #!/bin/sh
-# Configures Nextcloud Office (richdocuments) to use the external Collabora container.
+# Every-start hook: ensures Nextcloud Office (richdocuments) is enabled and correctly
+# configured. Runs before Apache starts on every container start.
 #
-# Why two URLs:
-#   wopi_url        - used server-side (inside the Nextcloud container) to reach Collabora
-#   public_wopi_url - used by the browser (on the host) to reach Collabora
+# app:install is NOT run here — that is the post-installation hook's job.
+# By the time this hook runs on any restart, the app is already installed.
 #
-# Without this, Nextcloud defaults to localhost:8081 (the host-mapped port), which
-# does not exist inside the container, causing the editor to load infinitely.
+# These config:app:set calls are idempotent — safe to re-apply on every boot.
+# They ensure WOPI URLs are never left in a broken state after a manual occ command.
 
 php /var/www/html/occ app:enable richdocuments || true
+
+php /var/www/html/occ config:system:set allow_local_remote_servers \
+    --value=true --type=boolean || true
 
 php /var/www/html/occ config:app:set richdocuments wopi_url \
     --value="http://host.docker.internal:9980" || true
