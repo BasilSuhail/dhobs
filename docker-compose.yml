@@ -134,16 +134,28 @@ services:
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest  # Theia only publishes :latest on GHCR
     container_name: project-s-theia
+    # Theia requires root + privileged for Docker integration features
+    # (container management, terminal with Docker access)
     user: root
     privileged: true
     ports:
       - '3030:3000'
     volumes:
-      - .:/home/project/project-s
+      - ./data/workspace:/home/project/workspace
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - SHELL=/bin/bash
     restart: 'unless-stopped'
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   synapse-db:
     image: postgres:16-alpine
