@@ -20,7 +20,7 @@ echo "🚀 Launching Project S (Build & Run Mode)..."
 mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media
 mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
 mkdir -p ./data/matrix/db ./data/matrix/synapse
-mkdir -p ./data/vaultwarden ./data/kiwix
+mkdir -p ./data/vaultwarden ./data/kiwix ./data/workspace
 mkdir -p ./config/matrix
 
 # Sync Synapse secrets and DB password (same logic as install.sh)
