@@ -18,8 +18,10 @@ php /var/www/html/occ config:system:set allow_local_remote_servers \
 php /var/www/html/occ config:app:set richdocuments wopi_url \
     --value="http://collabora:9980" || true
 
+# public_wopi_url: the URL the BROWSER uses to reach Collabora.
+PUBLIC_HOST="${HOMEFORGE_LAN_IP:-localhost}"
 php /var/www/html/occ config:app:set richdocuments public_wopi_url \
-    --value="http://localhost:9980" || true
+    --value="http://${PUBLIC_HOST}:9980" || true
 
 # Allow Collabora to be framed by Nextcloud
 php /var/www/html/occ config:system:set trusted_domains 3 \

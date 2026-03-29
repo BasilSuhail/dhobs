@@ -79,12 +79,13 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_HOST=db
       - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 ${HOMEFORGE_LAN_IP:-}
-      - OVERWRITEHOST=localhost:8081
+      - OVERWRITEHOST=${HOMEFORGE_LAN_IP:-localhost}:8081
       - OVERWRITEPROTOCOL=http
       - NEXTCLOUD_DATA_DIR=/var/www/nextcloud_data
       - NEXTCLOUD_INIT_HTACCESS=true
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - HOMEFORGE_LAN_IP=${HOMEFORGE_LAN_IP:-localhost}
     depends_on:
       db:
         condition: service_started
@@ -112,8 +113,8 @@ services:
     environment:
       # aliasgroup1 lists ALL hostnames that appear in WOPISrc URLs.
       # First entry (nextcloud:80) is the canonical host Collabora uses for callbacks.
-      # Additional entries are aliases: localhost:8081 (host access) and 127.0.0.1:8081 (fallback).
-      - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081
+      # Additional entries cover: localhost, loopback IP, and LAN IP access.
+      - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081,http://${HOMEFORGE_LAN_IP:-localhost}:8081
       - server_name=localhost:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}

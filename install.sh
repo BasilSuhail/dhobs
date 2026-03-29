@@ -21,6 +21,26 @@ if [ ! -f .env ]; then
     fi
 fi
 
+# Auto-detect LAN IP if not set in .env
+if [ -f .env ] && ! grep -q "^HOMEFORGE_LAN_IP=." .env; then
+    DETECTED_IP=""
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        DETECTED_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
+    else
+        DETECTED_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+    fi
+    if [ -n "$DETECTED_IP" ]; then
+        echo "Detected LAN IP: $DETECTED_IP"
+        python3 -c "
+import sys
+with open('.env', 'r') as f: content = f.read()
+content = content.replace('HOMEFORGE_LAN_IP=', 'HOMEFORGE_LAN_IP=' + sys.argv[1], 1)
+with open('.env', 'w') as f: f.write(content)
+" "$DETECTED_IP"
+        echo "Set HOMEFORGE_LAN_IP=$DETECTED_IP in .env"
+    fi
+fi
+
 # 1. Check for Docker
 if ! command -v docker &> /dev/null; then
     echo "Error: Docker is not installed. Please install Docker first: https://docs.docker.com/get-docker/"
@@ -88,7 +108,7 @@ fi
 
 # Sync Matrix DB password from .env to homeserver.yaml
 if [ -f .env ]; then
-    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2)
+    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2-)
     if [ -n "$MATRIX_PW" ] && grep -q "password: change_me_synapse_password" ./config/matrix/homeserver.yaml 2>/dev/null; then
         replace_in_file ./config/matrix/homeserver.yaml "change_me_synapse_password" "$MATRIX_PW"
     fi
@@ -98,7 +118,7 @@ fi
 # Use HOMEFORGE_LAN_IP from .env if set, otherwise fall back to localhost
 ELEMENT_HOST="localhost"
 if [ -f .env ]; then
-    LAN_IP=$(grep HOMEFORGE_LAN_IP .env | cut -d'=' -f2)
+    LAN_IP=$(grep HOMEFORGE_LAN_IP .env | cut -d'=' -f2-)
     if [ -n "$LAN_IP" ]; then
         ELEMENT_HOST="$LAN_IP"
     fi
