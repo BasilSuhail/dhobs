@@ -37,6 +37,10 @@ ENV NODE_ENV production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+# Add nextjs user to docker group so it can access /var/run/docker.sock
+# without requiring user: root in docker-compose.yml
+RUN addgroup --gid 999 docker || true
+RUN addgroup nextjs docker || true
 
 COPY --from=builder /app/public ./public
 

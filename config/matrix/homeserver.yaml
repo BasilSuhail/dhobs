@@ -1,0 +1,49 @@
+# Matrix Synapse Homeserver Configuration
+# Generated for Project S HomeForge
+# Docs: https://element-hq.github.io/synapse/latest/usage/configuration/config_documentation.html
+
+server_name: "localhost"
+pid_file: /data/homeserver.pid
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    # IMPORTANT: Must match MATRIX_DB_PASSWORD in your .env file
+    password: change_me_synapse_password
+    database: synapse
+    host: synapse-db
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+
+log_config: "/data/localhost.log.config"
+
+media_store_path: /data/media_store
+
+registration_shared_secret: "homeforge_default_registration_secret_CHANGE_ME"
+
+report_stats: false
+
+macaroon_secret_key: "homeforge_default_macaroon_CHANGE_ME"
+
+form_secret: "homeforge_default_form_secret_CHANGE_ME"
+
+signing_key_path: "/data/localhost.signing.key"
+
+trusted_key_servers:
+  - server_name: "matrix.org"
+
+enable_registration: true
+enable_registration_without_verification: true
+
+suppress_key_server_warning: true

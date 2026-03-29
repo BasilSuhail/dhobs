@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, main-debugging, main-debugging-issues]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Dashboard/Dashboard1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Dashboard/Dashboard1/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx eslint . --max-warnings 0 || true  # Don't fail on lint warnings yet
+
+  docker-build:
+    name: Docker Compose Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create .env from example
+        run: cp .env.example .env
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+      - name: Build all services
+        run: docker compose build dashboard
+        # Only build dashboard (our code) - other services are pre-built images
+
+  security-check:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Dashboard/Dashboard1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Dashboard/Dashboard1/package-lock.json
+      - run: npm ci
+      - name: Check for vulnerabilities
+        run: npm audit --audit-level=critical || true
+      - name: Check for hardcoded secrets
+        run: |
+          ! grep -rn "password=" docker-compose.yml | grep -v '${' | grep -v '#' || echo "WARNING: Possible hardcoded secrets found"
+          ! grep -rn "MYSQL_ROOT_PASSWORD=\|MYSQL_PASSWORD=\|NEXTCLOUD_ADMIN_PASSWORD=" docker-compose.yml | grep -v '${' || echo "WARNING: Hardcoded DB passwords found"

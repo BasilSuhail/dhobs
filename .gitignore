@@ -1,8 +1,9 @@
 # Docker data
-config/
-cache/
-db/
 data/
+db/
+
+# Cache files (Jellyfin fontconfig etc.)
+cache/
 
 # Next.js build
 .next/
@@ -12,9 +13,15 @@ Dashboard/Dashboard1/.next/
 node_modules/
 Dashboard/Dashboard1/node_modules/
 
-# Local env files
-.env*
-*.local
+# Environment files (NEVER commit real credentials)
+.env
+.env.local
+.env.*.local
+# Keep .env.example tracked
+!.env.example
+
+# Logs
+*.log
 
 # System files
 .DS_Store
