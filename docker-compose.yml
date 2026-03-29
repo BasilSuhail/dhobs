@@ -119,7 +119,10 @@ services:
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password=${COLLABORA_PASSWORD}
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=false
+      # --o:ssl.enable=false: no HTTPS (local dev)
+      # --o:storage.wopi.host[0..2]: explicit WOPI host allowlist — belt-and-suspenders with aliasgroup1
+      #   Lists the 3 hostnames allowed to make WOPI storage requests to Collabora
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=false --o:storage.wopi[@allow]=true --o:storage.wopi.host[0]=localhost --o:storage.wopi.host[0][@allow]=true --o:storage.wopi.host[1]=nextcloud --o:storage.wopi.host[1][@allow]=true --o:storage.wopi.host[2]=127.0.0.1 --o:storage.wopi.host[2][@allow]=true
     cap_add:
       - MKNOD
       - SYS_ADMIN

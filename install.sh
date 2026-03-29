@@ -220,6 +220,23 @@ docker exec -u www-data project-s-nextcloud php occ app:install contacts || true
 docker exec -u www-data project-s-nextcloud php occ app:install mail || true
 docker exec -u www-data project-s-nextcloud php occ app:install spreed || true
 
+# Force-configure richdocuments (Collabora Office) from the host side.
+# The container hooks (setup-office.sh) run at container start, but if Collabora
+# wasn't reachable at that point, or if stale config persists from a prior install,
+# this ensures the WOPI URLs are correct NOW.
+echo "Configuring Nextcloud Office (Collabora)..."
+docker exec -u www-data project-s-nextcloud php occ app:install richdocuments || true
+docker exec -u www-data project-s-nextcloud php occ app:enable richdocuments || true
+docker exec -u www-data project-s-nextcloud php occ config:system:set allow_local_remote_servers --value=true --type=boolean || true
+docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments wopi_url --value="http://collabora:9980" || true
+INSTALL_HOST="${HOMEFORGE_LAN_IP:-localhost}"
+if [ -f .env ]; then
+    ENV_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env | cut -d'=' -f2-)
+    [ -n "$ENV_LAN_IP" ] && INSTALL_HOST="$ENV_LAN_IP"
+fi
+docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments public_wopi_url --value="http://${INSTALL_HOST}:9980" || true
+echo "Nextcloud Office configured (wopi_url=http://collabora:9980, public_wopi_url=http://${INSTALL_HOST}:9980)"
+
 # Drain the background job queue via CLI before the user opens the browser.
 # Without this, Nextcloud runs all pending jobs through AJAX cron on first page
 # load, blocking the browser for up to an hour on a fresh install with many apps.
