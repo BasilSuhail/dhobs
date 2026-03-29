@@ -133,7 +133,16 @@ chmod +x ./config/nextcloud/setup-office-post-install.sh
 
 # 6. Build and start the containers
 echo "Building and starting containers in the background..."
-docker compose up -d --build
+if ! docker compose up -d --build; then
+    echo ""
+    echo "ERROR: Docker Compose failed to start. Common causes:"
+    echo "  - Image pull failure (check your internet connection)"
+    echo "  - Port conflict (another service on ports 3069, 8081, 8096, 9980, etc.)"
+    echo "  - Insufficient disk space"
+    echo ""
+    echo "Run 'docker compose logs' for details."
+    exit 1
+fi
 
 echo "--------------------------------------------------"
 echo "Installation complete! Your services are starting."
@@ -166,6 +175,21 @@ until docker exec -u www-data project-s-nextcloud php occ status 2>/dev/null | g
     sleep 5
 done
 echo "Nextcloud is ready."
+
+# Verify critical containers are running (checked here because all should be up by now)
+echo "Verifying container health..."
+FAILED=0
+for svc in project-s-nextcloud project-s-collabora project-s-nextcloud-db project-s-jellyfin project-s-dashboard; do
+    if docker ps --format '{{.Names}}' | grep -q "$svc"; then
+        echo "  OK: $svc"
+    else
+        echo "  WARNING: $svc is not running"
+        FAILED=$((FAILED + 1))
+    fi
+done
+if [ "$FAILED" -gt 0 ]; then
+    echo "WARNING: $FAILED container(s) not running. Check: docker compose logs"
+fi
 
 # Install the remaining Hub apps (Calendar, Contacts, Mail, Talk).
 # richdocuments (Nextcloud Office / Collabora) is intentionally excluded here —
