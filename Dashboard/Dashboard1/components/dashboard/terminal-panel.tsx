@@ -65,7 +65,7 @@ function TerminalInstance({ tabId, active, xtermTheme, onFitReady }: TerminalIns
       terminal.focus()
     }, 50)
 
-    const wsUrl = `ws://${window.location.host}/ws/terminal`
+    const wsUrl = `ws://${window.location.hostname}:3070`
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {

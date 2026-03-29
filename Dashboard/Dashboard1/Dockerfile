@@ -62,11 +62,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/custom-server.js ./
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/ws ./node_modules/ws
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/node-pty ./node_modules/node-pty
 
+# Startup script: runs WS server + Next.js standalone together
+COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./
+RUN chmod +x /app/start.sh
+
 USER nextjs
 
 EXPOSE 3069
+EXPOSE 3070
 
 ENV PORT 3069
+ENV WS_PORT 3070
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "custom-server.js"]
+CMD ["/bin/sh", "/app/start.sh"]
