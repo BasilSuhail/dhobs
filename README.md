@@ -6,72 +6,67 @@ A collaborative project building a unified, self-hosted digital hub platform.
 
 This repository contains the implementation plan, product definition, technical feasibility analysis, and documentation for Project S — a self-hosted operating system for the home server that integrates the best open-source tools into a single, easy-to-manage interface.
 
-## Note
-This will be the top version with all the described features there will be a different repository for a Business version and a lite version
+---
 
-## Project Structure
+## 1. 🚀 QUICK START (HOW TO STARTUP)
 
-```text
-/home/saad/Projects/proj_s/ProjectS-HomeForge-main/
-├───Dashboard/           # Next.js Dashboard Source
-├───config/              # Service Configurations (Matrix, etc.)
-├───data/                # Persistent Data Volumes
-├───Project_S_Logs/      # Technical Documentation & Reports
-├───docker-compose.yml   # Main Service Orchestration
-├───Dockerfile.dind      # Master Container Definition
-├───install.sh           # Linux Installation Script
-├───run-dind.sh          # Mac/DinD Runner Script
-└───README.md            # Project Documentation
+To start the entire Project S ecosystem perfectly with a single command, you can use the **`boom.sh`** script (recommended for Mac) or the specialized installation scripts:
+
+### Option A: The "Boom" Script (Mac / Local)
+```bash
+chmod +x boom.sh
+./boom.sh
 ```
+*Automatically cleans up, builds, starts all services, and launches your browser.*
 
-## Deployment
+### Option B: The "Install" Script (Linux / Standard)
+```bash
+chmod +x install.sh
+./install.sh
+```
+*Creates data directories and starts standard Docker Compose.*
 
-Project S can be deployed using a standard Docker Compose setup (recommended for Linux) or a **Docker-in-Docker (DinD)** setup.
-
-### Prerequisites
-- Docker and Docker Compose installed on your host machine.
-
-### Installation (Linux Recommended)
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/BasilSuhail/ProjectS-HomeForge.git
-   cd ProjectS-HomeForge
-   ```
-
-2. **Run the installation script:**
-   First, ensure the script has execution permissions:
-   ```bash
-   chmod +x install.sh
-   ./install.sh
-   ```
-   This script creates the necessary data directories, initializes configurations, and starts the environment.
-
-### Running with Docker-in-Docker (Mac Recommended)
-For Mac users or isolated environments, use the provided runner script:
+### Option C: Docker-in-Docker (Mac Recommended)
 ```bash
 chmod +x run-dind.sh
 ./run-dind.sh
 ```
+*Best for isolated environments where host-level Docker isn't ideal.*
 
-### Access Services
-Once the containers are running, you can access the following services:
-- **Main Dashboard:** [http://localhost:3069](http://localhost:3069)
-- **Nextcloud:** [http://localhost:8081](http://localhost:8081)
-- **Jellyfin:** [http://localhost:8096](http://localhost:8096)
-- **Code Server (Theia):** [http://localhost:3030](http://localhost:3030)
-- **Matrix (Element):** [http://localhost:8082](http://localhost:8082)
-- **Vaultwarden:** [http://localhost:8083](http://localhost:8083)
+---
 
-> **Note:** For security and performance, services like Nextcloud, Matrix, and Vaultwarden open in a new browser tab when accessed from the dashboard.
+## 2. 📦 INTEGRATED SERVICES (WHAT IS ADDED)
 
-### Data Persistence
-Project data and configurations are persisted in the `./data` directory (for standard install) or `./dind-data` (for DinD) on your host machine.
+The following services are currently functional and accessible via their own ports:
 
-### Developer CodeSpace (Theia IDE)
-The integrated Theia CodeSpace provides a professional development environment:
-- **Persistent Workspace:** All code and files created in the IDE are stored in the `./workspace` directory on the host.
-- **Docker Integration:** You can run `docker` commands directly from the Theia terminal to manage the Project S ecosystem or build new containers.
-- **Native Experience:** Full filesystem access within the workspace allows for a seamless, VS Code-like experience.
+-   **Main Dashboard:** `http://localhost:3069`
+-   **Jellyfin:** Media & Entertainment server (`:8096`).
+-   **Nextcloud:** Cloud productivity and file management (`:8081`).
+-   **Theia IDE:** Integrated development environment (`:3030`).
+-   **Matrix (Element):** Secure, encrypted communication suite (`:8082`).
+-   **Vaultwarden:** Enterprise-grade password management (`:8083`).
+-   **Kiwix:** Offline knowledge base (`:8084`).
+
+---
+
+## 3. 🛠️ ADDING NEW SERVICES (SCALING & EXPANSION)
+
+To add more applications to the ecosystem:
+
+1.  **Docker:** Add the service to `docker-compose.yml` and expose its host port.
+2.  **Launcher:** Add the app to the `applications` array in `welcome-section.tsx`.
+3.  **Metrics:** Add the app's metadata to the `appMeta` object in `app/page.tsx` if you want it tracked in the metrics tab.
+
+---
+
+## 4. 📝 PROJECT DOCUMENTATION & LOGS
+
+Stay up to date with the development progress through our detailed logging system:
+
+-   **Technical Logs:** All research and implementation records are located in the **`Project_S_Logs/`** directory.
+-   **Static UI Preview:** Open **`Project_S_Logs/06_Dashboard_Technical_Report.html`** in any browser for a functional, high-fidelity mirror of the dashboard frontend.
+
+---
 
 ## Contributors
 
