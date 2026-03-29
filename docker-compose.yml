@@ -58,6 +58,7 @@ services:
       - ./data/nextcloud/html:/var/www/html
       - ./data/nextcloud/data:/var/www/nextcloud_data
       - ./config/nextcloud/setup-office.sh:/docker-entrypoint-hooks.d/before-starting/setup-office.sh:ro
+      - ./config/nextcloud/setup-office-post-install.sh:/docker-entrypoint-hooks.d/post-installation/setup-office-post-install.sh:ro
     environment:
       - MYSQL_PASSWORD=nextcloud
       - MYSQL_DATABASE=nextcloud
