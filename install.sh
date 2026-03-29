@@ -33,6 +33,13 @@ if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/
     exit 1
 fi
 
+# 3. Check for python3 (used for cross-platform config file updates)
+if ! command -v python3 &> /dev/null; then
+    echo "Error: python3 is required but not installed."
+    echo "Install it: https://www.python.org/ or use your package manager (apt install python3)"
+    exit 1
+fi
+
 # 3. Create necessary data and config directories
 echo "Creating data and configuration directories..."
 mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media

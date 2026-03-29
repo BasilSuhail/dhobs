@@ -1,7 +1,18 @@
 #!/bin/bash
+set -e
 
 # Project S "BOOM" Startup Script
 # One-click to BUILD and START the entire ecosystem
+
+# Check for required tools
+if ! command -v docker &> /dev/null; then
+    echo "Error: Docker is not installed. Please install Docker first."
+    exit 1
+fi
+if ! command -v python3 &> /dev/null; then
+    echo "Error: python3 is required but not installed."
+    exit 1
+fi
 
 # Load .env if it exists, create from example if not
 if [ ! -f .env ]; then
