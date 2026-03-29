@@ -2,25 +2,25 @@
 # Every-start hook: ensures Nextcloud Office (richdocuments) is enabled and correctly
 # configured. Runs before Apache starts on every container start.
 #
-# app:install is NOT run here — that is the post-installation hook's job.
-# By the time this hook runs on any restart, the app is already installed.
+# WOPI URL routing (3 URLs, each serves a different purpose):
+#   wopi_url          - Nextcloud → Collabora (how NC reaches Collabora for discovery)
+#   wopi_callback_url - Collabora → Nextcloud (how Collabora fetches/saves files)
+#   public_wopi_url   - Browser → Collabora (the editor iframe URL)
 #
-# These config:app:set calls are idempotent — safe to re-apply on every boot.
-# They ensure WOPI URLs are never left in a broken state after a manual occ command.
-#
-# WOPI URL routing:
-#   wopi_url        - Nextcloud container → Collabora via Docker service name
-#   public_wopi_url - browser (on the host) → Collabora via localhost
+# The critical insight: Collabora does NOT rewrite WOPISrc callback URLs.
+# When the browser sends WOPISrc=http://localhost:8081/..., Collabora tries
+# to HTTP GET that URL as-is. Inside the container, "localhost" is itself.
+# wopi_callback_url overrides this — telling richdocuments to use the
+# Docker-internal hostname (http://nextcloud:80) for all WOPI callbacks.
 
 # Wait for Collabora to be reachable before configuring richdocuments.
-# Without this, the WOPI discovery URL fails and token generation returns 500.
 echo "Waiting for Collabora to be reachable..."
 RETRIES=0
 MAX_RETRIES=30
 while ! curl -sf http://collabora:9980/ > /dev/null 2>&1; do
     RETRIES=$((RETRIES + 1))
     if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-        echo "WARNING: Collabora not reachable after ${MAX_RETRIES} attempts. Configuring anyway (settings are stored, will work once Collabora starts)."
+        echo "WARNING: Collabora not reachable after ${MAX_RETRIES} attempts. Configuring anyway."
         break
     fi
     sleep 2
@@ -34,15 +34,24 @@ php /var/www/html/occ app:enable richdocuments || true
 php /var/www/html/occ config:system:set allow_local_remote_servers \
     --value=true --type=boolean || true
 
+# wopi_url: Nextcloud → Collabora (Docker-internal, for WOPI discovery XML)
 php /var/www/html/occ config:app:set richdocuments wopi_url \
     --value="http://collabora:9980" || true
 
-# public_wopi_url: the URL the BROWSER uses to reach Collabora.
-# Uses HOMEFORGE_LAN_IP env var if set (passed from docker-compose), else localhost.
+# wopi_callback_url: THE KEY SETTING for Docker bridge networks.
+# Tells richdocuments to override the browser-derived WOPISrc hostname
+# with this Docker-internal URL for all Collabora→Nextcloud callbacks
+# (CheckFileInfo, GetFile, PutFile). Without this, Collabora tries to
+# reach http://localhost:8081 which is unreachable from inside its container.
+# Requires richdocuments v8.0+ (PR #3315, Dec 2023).
+php /var/www/html/occ config:app:set richdocuments wopi_callback_url \
+    --value="http://nextcloud:80" || true
+
+# public_wopi_url: Browser → Collabora (the editor iframe URL)
 PUBLIC_HOST="${HOMEFORGE_LAN_IP:-localhost}"
 php /var/www/html/occ config:app:set richdocuments public_wopi_url \
     --value="http://${PUBLIC_HOST}:9980" || true
 
-# Allow Collabora to be framed by Nextcloud
+# Trust Collabora hostname in Nextcloud
 php /var/www/html/occ config:system:set trusted_domains 3 \
     --value="collabora" || true
