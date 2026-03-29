@@ -56,7 +56,14 @@ if [ ! -f ./config/matrix/element-config.json ]; then
 EOF
 fi
 
-# 5. Build and start the containers
+# 5. Ensure hook scripts are executable
+# Git does not reliably preserve the executable bit on all platforms.
+# Docker volume-mounts the scripts as-is from the host, and the Nextcloud
+# entrypoint skips any hook that lacks the executable flag — silently.
+chmod +x ./config/nextcloud/setup-office.sh
+chmod +x ./config/nextcloud/setup-office-post-install.sh
+
+# 6. Build and start the containers
 echo "Building and starting containers in the background..."
 docker compose up -d --build
 
