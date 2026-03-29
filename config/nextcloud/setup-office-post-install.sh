@@ -6,14 +6,9 @@
 #   On a fresh clone, richdocuments has never been downloaded. app:enable on a
 #   non-existent app is a silent no-op. app:install downloads it from the app store.
 #
-# Why two WOPI URLs:
-#   wopi_url        - Nextcloud container (server-side) → Collabora via host gateway
+# WOPI URL routing (Collabora on Docker bridge network, NOT host network):
+#   wopi_url        - Nextcloud container → Collabora via Docker service name
 #   public_wopi_url - browser (on the host) → Collabora via localhost
-#
-# Why nextcloud_url is NOT set:
-#   Collabora runs with network_mode: host. It reaches Nextcloud at localhost:8081.
-#   Nextcloud's own OVERWRITEHOST already reflects this. Setting nextcloud_url to
-#   the Docker service name "nextcloud" would make it unresolvable from host network.
 
 php /var/www/html/occ app:install richdocuments || true
 
@@ -21,7 +16,15 @@ php /var/www/html/occ config:system:set allow_local_remote_servers \
     --value=true --type=boolean || true
 
 php /var/www/html/occ config:app:set richdocuments wopi_url \
-    --value="http://host.docker.internal:9980" || true
+    --value="http://collabora:9980" || true
 
 php /var/www/html/occ config:app:set richdocuments public_wopi_url \
     --value="http://localhost:9980" || true
+
+# Allow Collabora to be framed by Nextcloud
+php /var/www/html/occ config:system:set trusted_domains 3 \
+    --value="collabora" || true
+
+# CSP: allow Collabora frames from localhost:9980
+php /var/www/html/occ config:system:set trusted_proxies 0 \
+    --value="collabora" || true

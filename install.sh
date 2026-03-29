@@ -1,11 +1,25 @@
 #!/bin/bash
 
-# Project S: HomeForge Installation Script for Linux
+# Project S: HomeForge Installation Script
+# Supports Linux and macOS
 # --------------------------------------------------
 
 set -e
 
 echo "Starting Project S HomeForge installation..."
+
+# 0. Create .env from example if it doesn't exist
+if [ ! -f .env ]; then
+    if [ -f .env.example ]; then
+        echo "Creating .env from .env.example..."
+        cp .env.example .env
+        echo "IMPORTANT: Edit .env to set your passwords before continuing!"
+        echo "Press Enter to continue or Ctrl+C to edit first..."
+        read
+    else
+        echo "Warning: No .env or .env.example found. Continuing without environment file."
+    fi
+fi
 
 # 1. Check for Docker
 if ! command -v docker &> /dev/null; then
@@ -28,8 +42,16 @@ mkdir -p ./data/vaultwarden
 mkdir -p ./config/matrix
 
 # Ensure Nextcloud directories have correct permissions (UID 33 is www-data in the container)
-echo "Setting permissions for Nextcloud..."
-sudo chown -R 33:33 ./data/nextcloud/html ./data/nextcloud/data
+# On macOS, Docker Desktop runs in a VM and handles file ownership automatically.
+# On Linux, we need to set ownership to UID 33 (www-data) for the Nextcloud container.
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo "Setting permissions for Nextcloud..."
+    if command -v sudo &> /dev/null; then
+        sudo chown -R 33:33 ./data/nextcloud/html ./data/nextcloud/data 2>/dev/null || true
+    else
+        chown -R 33:33 ./data/nextcloud/html ./data/nextcloud/data 2>/dev/null || true
+    fi
+fi
 
 # 4. Initialize Matrix Element configuration
 # This prevents Docker from creating a directory instead of a file during volume mounting
@@ -117,3 +139,12 @@ docker exec -u www-data project-s-nextcloud php /var/www/html/cron.php
 echo "Background jobs complete."
 
 echo "Configuration complete! You can view logs using: docker compose logs -f"
+
+# Open dashboard in default browser (cross-platform)
+if command -v xdg-open &> /dev/null; then
+    xdg-open http://localhost:3069
+elif command -v open &> /dev/null; then
+    open http://localhost:3069
+else
+    echo "Open http://localhost:3069 in your browser"
+fi
