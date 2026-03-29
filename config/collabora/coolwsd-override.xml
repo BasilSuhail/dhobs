@@ -1,0 +1,29 @@
+<!-- Collabora CODE WOPI configuration override for Project S HomeForge.
+     Mounted into /etc/coolwsd/coolwsd.xml via Docker volume.
+     This file DIRECTLY configures the WOPI host allowlist — bypassing
+     aliasgroup1 env var parsing which is unreliable across Collabora versions.
+-->
+<config>
+  <storage>
+    <wopi allow="true">
+      <!-- alias_groups mode="groups" enables the group-based allowlist -->
+      <alias_groups mode="groups" replace="true">
+        <group>
+          <!-- Canonical host: Docker-internal Nextcloud (used for WOPI callbacks) -->
+          <host allow="true">nextcloud</host>
+          <!-- Aliases: all other hostnames that appear in WOPISrc URLs -->
+          <alias>localhost</alias>
+          <alias>127\.0\.0\.1</alias>
+          <!-- Catch-all for any LAN IP (e.g. 192.168.x.x, 10.x.x.x) -->
+          <alias>192\.168\.\d+\.\d+</alias>
+          <alias>10\.\d+\.\d+\.\d+</alias>
+          <alias>172\.1[6-9]\.\d+\.\d+</alias>
+          <alias>172\.2[0-9]\.\d+\.\d+</alias>
+          <alias>172\.3[0-1]\.\d+\.\d+</alias>
+        </group>
+      </alias_groups>
+      <!-- Allow any host pattern — broadest safety net for homelab -->
+      <host desc="Any host" allow="true">.*</host>
+    </wopi>
+  </storage>
+</config>

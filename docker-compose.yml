@@ -110,19 +110,24 @@ services:
       - '9980:9980'
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      # CRITICAL: Collabora receives WOPISrc=http://localhost:8081/... from the browser.
+      # It then makes an HTTP callback to that URL to fetch the file (CheckFileInfo).
+      # Inside the container, "localhost" is the container itself — NOT the host machine.
+      # This mapping makes "localhost" resolve to the Docker host gateway IP,
+      # so Collabora can reach Nextcloud at localhost:8081 via the host's port mapping.
+      - "localhost:host-gateway"
+    volumes:
+      # Mount WOPI config override — most reliable method, no env var parsing needed.
+      # This file defines allowed WOPI hosts via XML, including regex patterns for
+      # all private LAN ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
+      - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
     environment:
-      # aliasgroup1 lists ALL hostnames that appear in WOPISrc URLs.
-      # First entry (nextcloud:80) is the canonical host Collabora uses for callbacks.
-      # Additional entries cover: localhost, loopback IP, and LAN IP access.
-      - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081,http://${HOMEFORGE_LAN_IP:-localhost}:8081
+      - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081
       - server_name=localhost:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password=${COLLABORA_PASSWORD}
-      # --o:ssl.enable=false: no HTTPS (local dev)
-      # --o:storage.wopi.host[0..2]: explicit WOPI host allowlist — belt-and-suspenders with aliasgroup1
-      #   Lists the 3 hostnames allowed to make WOPI storage requests to Collabora
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=false --o:storage.wopi[@allow]=true --o:storage.wopi.host[0]=localhost --o:storage.wopi.host[0][@allow]=true --o:storage.wopi.host[1]=nextcloud --o:storage.wopi.host[1][@allow]=true --o:storage.wopi.host[2]=127.0.0.1 --o:storage.wopi.host[2][@allow]=true
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=false
     cap_add:
       - MKNOD
       - SYS_ADMIN
