@@ -17,14 +17,16 @@ To start the entire Project S ecosystem perfectly with a single command, you can
 chmod +x boom.sh
 ./boom.sh
 ```
-*Automatically cleans up, builds, starts all services, and launches your browser.*
+*Cleans up, builds, starts all services, and launches your browser. Use this for day-to-day restarts.*
 
-### Option B: The "Install" Script (Linux / Standard)
+### Option B: The "Install" Script (Linux / First-Time Setup)
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
-*Creates data directories and starts standard Docker Compose.*
+*Creates data directories, starts all containers, installs Nextcloud Hub apps (Calendar, Contacts, Office, Talk), and configures Nextcloud Office (Collabora). Run this once on a fresh clone.*
+
+> **Nextcloud Office** is auto-configured on every subsequent container start via `config/nextcloud/setup-office.sh` (mounted as a Docker entrypoint hook). No manual steps needed after the first install.
 
 
 ---
@@ -36,6 +38,7 @@ The following services are currently functional and accessible via their own por
 -   **Main Dashboard:** `http://localhost:3069`
 -   **Jellyfin:** Media & Entertainment server (`:8096`).
 -   **Nextcloud:** Cloud productivity and file management (`:8081`).
+-   **Nextcloud Office (Collabora):** Document editing server (`:9980`) — auto-configured on container start.
 -   **Theia IDE:** Integrated development environment (`:3030`).
 -   **Matrix (Element):** Secure, encrypted communication suite (`:8082`).
 -   **Vaultwarden:** Enterprise-grade password management (`:8083`).
@@ -50,6 +53,7 @@ To add more applications to the ecosystem:
 1.  **Docker:** Add the service to `docker-compose.yml` and expose its host port.
 2.  **Launcher:** Add the app to the `applications` array in `welcome-section.tsx`.
 3.  **Metrics:** Add the app's metadata to the `appMeta` object in `app/page.tsx` if you want it tracked in the metrics tab.
+4.  **Startup config:** If the service requires Nextcloud app settings (e.g. a WOPI URL), add an `occ` command to `config/nextcloud/setup-office.sh` — it runs automatically on every container start via the `before-starting` hook.
 
 ---
 
