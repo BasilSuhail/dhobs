@@ -8,6 +8,8 @@
 # Without this, Nextcloud defaults to localhost:8081 (the host-mapped port), which
 # does not exist inside the container, causing the editor to load infinitely.
 
+php /var/www/html/occ app:enable richdocuments || true
+
 php /var/www/html/occ config:app:set richdocuments wopi_url \
     --value="http://host.docker.internal:9980" || true
 
