@@ -74,28 +74,31 @@ echo "--------------------------------------------------"
 # 6. Post-Installation Configuration
 echo "Finalizing Nextcloud Hub configuration (this may take a moment)..."
 
-# Give Nextcloud a moment to fully initialize its internal services
-sleep 15
+# Wait for Nextcloud to be fully initialised before running occ commands.
+# The post-installation and before-starting hooks inside the container handle
+# richdocuments (Collabora Office) automatically. This loop simply waits until
+# Nextcloud reports it is ready, then installs the remaining Hub apps.
+echo "Waiting for Nextcloud to be ready..."
+RETRIES=0
+MAX_RETRIES=40
+until docker exec -u www-data project-s-nextcloud php occ status 2>/dev/null | grep -q "installed: true"; do
+    RETRIES=$((RETRIES + 1))
+    if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+        echo "Timed out waiting for Nextcloud. Check logs: docker compose logs nextcloud"
+        exit 1
+    fi
+    echo "  Not ready yet, retrying in 5 seconds... ($RETRIES/$MAX_RETRIES)"
+    sleep 5
+done
+echo "Nextcloud is ready."
 
-# Ensure the core Hub apps are installed (Calendar, Contacts, Mail, Talk, Office)
+# Install the remaining Hub apps (Calendar, Contacts, Mail, Talk).
+# richdocuments (Nextcloud Office / Collabora) is intentionally excluded here —
+# it is installed and configured by the post-installation container hook.
 echo "Installing Nextcloud Hub app suite..."
 docker exec -u www-data project-s-nextcloud php occ app:install calendar || true
 docker exec -u www-data project-s-nextcloud php occ app:install contacts || true
 docker exec -u www-data project-s-nextcloud php occ app:install mail || true
 docker exec -u www-data project-s-nextcloud php occ app:install spreed || true
-docker exec -u www-data project-s-nextcloud php occ app:install richdocuments || true
-
-# Allow Nextcloud to make requests to local/internal network addresses (needed for Collabora)
-docker exec -u www-data project-s-nextcloud php occ config:system:set allow_local_remote_servers --value=true --type=boolean || true
-
-# --- Collabora Online (Office) Configuration ---
-# Collabora runs with network_mode: host, so:
-#   wopi_url:        Nextcloud PHP → Collabora via host.docker.internal (host-gateway)
-#   public_wopi_url: Browser → Collabora via localhost (host port)
-#   Collabora → Nextcloud WOPI: uses localhost:8081 directly (host network)
-docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments wopi_url --value="http://host.docker.internal:9980" || true
-docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments public_wopi_url --value="http://localhost:9980" || true
-docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments nextcloud_url --value="http://nextcloud" || true
-docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments disable_certificate_verification --value="yes" || true
 
 echo "Configuration complete! You can view logs using: docker compose logs -f"
