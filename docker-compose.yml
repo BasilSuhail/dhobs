@@ -110,15 +110,12 @@ services:
       - '9980:9980'
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      # Collabora does NOT rewrite WOPISrc callback URLs — it uses them as-is.
-      # When browser sends WOPISrc=http://localhost:8081/..., Collabora makes
-      # an HTTP GET to localhost:8081 to fetch the file. Inside this container,
-      # "localhost" must resolve to the host machine (where port 8081 is mapped).
-      - "localhost:host-gateway"
     volumes:
       - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
     environment:
-      - aliasgroup1=http://nextcloud:80,http://localhost:8081,http://127.0.0.1:8081
+      # Only the Docker-internal hostname needed — Collabora callbacks use
+      # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
+      - aliasgroup1=http://nextcloud:80
       - server_name=localhost:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
@@ -129,15 +126,12 @@ services:
       - SYS_ADMIN
     security_opt:
       - seccomp=unconfined
-    # No depends_on for nextcloud — aliasgroup1 is a config value, not a startup probe.
-    # Collabora must start BEFORE nextcloud (nextcloud depends_on collabora: service_healthy).
     deploy:
       resources:
         limits:
           memory: 1536m
     healthcheck:
-      # Use 127.0.0.1 NOT localhost — extra_hosts remaps localhost to host-gateway
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9980/"]
+      test: ["CMD", "curl", "-f", "http://localhost:9980/"]
       interval: 30s
       timeout: 10s
       retries: 3
