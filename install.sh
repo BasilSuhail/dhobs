@@ -27,6 +27,10 @@ mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden
 mkdir -p ./config/matrix
 
+# Ensure Nextcloud directories have correct permissions (UID 33 is www-data in the container)
+echo "Setting permissions for Nextcloud..."
+sudo chown -R 33:33 ./data/nextcloud/html ./data/nextcloud/data
+
 # 4. Initialize Matrix Element configuration
 # This prevents Docker from creating a directory instead of a file during volume mounting
 if [ ! -f ./config/matrix/element-config.json ]; then
