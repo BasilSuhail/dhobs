@@ -601,6 +601,11 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
             </TooltipProvider>
           </div>
 
+          {/* Demo indicator */}
+          <span className="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border opacity-40" style={{ borderColor: colorTheme.border, color: colorTheme.muted }}>
+            Demo
+          </span>
+
           {/* Window Controls */}
           <div className="flex items-center gap-1 ml-2">
             <button
