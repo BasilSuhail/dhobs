@@ -21,7 +21,13 @@ export async function GET() {
     // 1. Get Docker Stats
     const { stdout } = await execAsync("docker stats --no-stream --format '{{json .}}'")
     const lines = stdout.trim().split('\n')
-    const containers = lines.filter(l => l.trim()).map(line => JSON.parse(line))
+    const containers = lines.filter(l => l.trim()).map(line => {
+      try {
+        return JSON.parse(line)
+      } catch {
+        return null
+      }
+    }).filter(Boolean)
     const projectContainers = containers.filter(c => c.Name.includes('project-s'))
     
     // 2. Get Storage Stats (Mounted at /data in the container)
@@ -60,13 +66,11 @@ export async function GET() {
       totalNetIO.up += parseNet(netParts[1])
     })
 
-    // Jitter for vibe
-    const jitter = () => (Math.random() * 1.5)
-    const cpuVal = totalCpu < 2 ? (3.5 + jitter()) : totalCpu
-    const memPercVal = totalMemPerc < 5 ? (8.2 + jitter()) : totalMemPerc
-    const memBytesVal = totalMemBytes < 1000000 ? (0.45 + (jitter() / 10)) : (totalMemBytes / (1024 * 1024 * 1024))
-    const netDownVal = totalNetIO.down < 1000 ? (0.2 + (jitter() / 5)) : (totalNetIO.down / (1024 * 1024))
-    const netUpVal = totalNetIO.up < 1000 ? (0.1 + (jitter() / 10)) : (totalNetIO.up / (1024 * 1024))
+    const cpuVal = totalCpu
+    const memPercVal = totalMemPerc
+    const memBytesVal = totalMemBytes / (1024 * 1024 * 1024)
+    const netDownVal = totalNetIO.down / (1024 * 1024)
+    const netUpVal = totalNetIO.up / (1024 * 1024)
 
     const result = {
       cpu: cpuVal.toFixed(1),
@@ -89,8 +93,8 @@ export async function GET() {
         })),
       containers: projectContainers.map(c => ({
         name: c.Name.replace('project-s-', ''),
-        status: 'running',
-        cpu: c.CPUPerc === '0.00%' ? `${(0.2 + jitter()).toFixed(2)}%` : c.CPUPerc,
+        status: 'running', // docker stats only returns running containers
+        cpu: c.CPUPerc,
         mem: c.MemUsage
       }))
     }
