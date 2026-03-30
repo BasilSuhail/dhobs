@@ -1,16 +1,19 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import "@xterm/xterm/css/xterm.css"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
+import { Terminal, ITheme } from "@xterm/xterm"
+import { FitAddon } from "@xterm/addon-fit"
+import { WebLinksAddon } from "@xterm/addon-web-links"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
-import { X, Minus, Maximize2, Minimize2, Plus, Terminal as TerminalIcon } from "lucide-react"
+import { X, Maximize2, Minimize2, Plus, Terminal as TerminalIcon } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { processCommand, type ShellState } from "@/lib/terminal-engine"
 
 interface TerminalTab {
   id: string
@@ -22,56 +25,173 @@ interface TerminalPanelProps {
   onClose: () => void
 }
 
+// Per-tab terminal instance — mounts once, stays alive until tab is closed
+interface TerminalInstanceProps {
+  tabId: string
+  active: boolean
+  xtermTheme: ITheme
+  onFitReady: (fit: () => void) => void
+}
+
+function TerminalInstance({ tabId, active, xtermTheme, onFitReady }: TerminalInstanceProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const termRef = useRef<Terminal | null>(null)
+  const fitRef = useRef<FitAddon | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+
+  // Initialize terminal + WebSocket on mount
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const terminal = new Terminal({
+      fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+      fontSize: 13,
+      lineHeight: 1.4,
+      theme: xtermTheme,
+      cursorBlink: true,
+      scrollback: 2000,
+      allowTransparency: true,
+    })
+
+    const fitAddon = new FitAddon()
+    terminal.loadAddon(fitAddon)
+    terminal.loadAddon(new WebLinksAddon())
+    terminal.open(container)
+
+    // Fit after paint so container has dimensions
+    const fitTimer = setTimeout(() => {
+      fitAddon.fit()
+      terminal.focus()
+    }, 50)
+
+    const wsUrl = `ws://${window.location.hostname}:3070`
+    const ws = new WebSocket(wsUrl)
+
+    ws.onopen = () => {
+      const dims = fitAddon.proposeDimensions()
+      if (dims) {
+        ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
+      }
+    }
+
+    ws.onmessage = (e: MessageEvent) => {
+      terminal.write(e.data)
+    }
+
+    ws.onerror = () => {
+      terminal.write('\r\n\x1b[31mWebSocket connection failed. Is the server running?\x1b[0m\r\n')
+    }
+
+    ws.onclose = () => {
+      terminal.write('\r\n\x1b[33m[Session closed]\x1b[0m\r\n')
+    }
+
+    terminal.onData((data: string) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'input', data }))
+      }
+    })
+
+    termRef.current = terminal
+    fitRef.current = fitAddon
+    wsRef.current = ws
+
+    // Expose fit function to parent for resize handling
+    onFitReady(() => {
+      if (fitRef.current && wsRef.current) {
+        fitRef.current.fit()
+        const dims = fitRef.current.proposeDimensions()
+        if (dims && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
+        }
+      }
+    })
+
+    return () => {
+      clearTimeout(fitTimer)
+      ws.close()
+      terminal.dispose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // When tab becomes active, re-fit and focus
+  useEffect(() => {
+    if (!active) return
+    const timer = setTimeout(() => {
+      if (fitRef.current && wsRef.current && termRef.current) {
+        fitRef.current.fit()
+        termRef.current.focus()
+        const dims = fitRef.current.proposeDimensions()
+        if (dims && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
+        }
+      }
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [active])
+
+  // Update xterm theme when dashboard theme changes
+  useEffect(() => {
+    if (termRef.current) {
+      termRef.current.options.theme = xtermTheme
+    }
+  }, [xtermTheme])
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0"
+      style={{
+        display: active ? 'block' : 'none',
+        padding: '6px 8px',
+      }}
+    />
+  )
+}
+
 export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
   const { colorTheme, mode } = useTheme()
   const [tabs, setTabs] = useState<TerminalTab[]>([{ id: "1", title: "bash" }])
   const [activeTab, setActiveTab] = useState("1")
   const [isMaximized, setIsMaximized] = useState(false)
   const [height, setHeight] = useState(320)
-  const [lines, setLines] = useState<Record<string, string[]>>({
-    "1": [
-      "\x1b[1;32mroot@project-s-server\x1b[0m:\x1b[1;34m~\x1b[0m$ Welcome to Project S Terminal",
-      "Type 'help' for available commands.\n",
-    ],
-  })
-  const [inputValue, setInputValue] = useState("")
-  const [shellStates, setShellStates] = useState<Record<string, ShellState>>({
-    "1": {
-      cwd: "/home/user",
-      env: {
-        HOME: "/home/user",
-        USER: "root",
-        SHELL: "/bin/bash",
-        PATH: "/usr/local/bin:/usr/bin:/bin",
-        TERM: "xterm-256color",
-        HOSTNAME: "project-s-server",
-        EDITOR: "nvim",
-        LANG: "en_US.UTF-8",
-      },
-      history: [],
-    },
-  })
-  const [historyIndex, setHistoryIndex] = useState(-1)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+
   const resizeRef = useRef<HTMLDivElement>(null)
   const tabCounter = useRef(1)
+  // Stores fit+resize functions per tab so parent can trigger on panel resize
+  const fitFns = useRef<Map<string, () => void>>(new Map())
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [lines, activeTab])
+  const xtermTheme = useMemo<ITheme>(() => ({
+    background:    mode === 'dark' ? '#0a0a0a' : '#f5f5f5',
+    foreground:    mode === 'dark' ? '#e6edf3' : '#1a1a1a',
+    cursor:        colorTheme.accent,
+    cursorAccent:  mode === 'dark' ? '#0a0a0a' : '#ffffff',
+    selectionBackground: `${colorTheme.accent}55`,
+    black:         '#0d1117',
+    red:           '#ff7b72',
+    green:         '#3fb950',
+    yellow:        '#d29922',
+    blue:          '#58a6ff',
+    magenta:       '#bc8cff',
+    cyan:          '#39c5cf',
+    white:         '#b1bac4',
+    brightBlack:   '#6e7681',
+    brightRed:     '#ffa198',
+    brightGreen:   '#56d364',
+    brightYellow:  '#e3b341',
+    brightBlue:    '#79c0ff',
+    brightMagenta: '#d2a8ff',
+    brightCyan:    '#56d4dd',
+    brightWhite:   '#f0f6fc',
+  }), [colorTheme.accent, mode])
 
-  // Focus input when opened
-  useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100)
-    }
-  }, [open, activeTab])
+  const handleFitReady = useCallback((tabId: string) => (fn: () => void) => {
+    fitFns.current.set(tabId, fn)
+  }, [])
 
-  // Resize handler
+  // Resize handle drag
   useEffect(() => {
     const resizeEl = resizeRef.current
     if (!resizeEl) return
@@ -81,8 +201,8 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
 
     const onMouseMove = (e: MouseEvent) => {
       const delta = startY - e.clientY
-      const newHeight = Math.min(Math.max(startHeight + delta, 200), window.innerHeight - 100)
-      setHeight(newHeight)
+      const newH = Math.min(Math.max(startHeight + delta, 200), window.innerHeight - 100)
+      setHeight(newH)
     }
 
     const onMouseUp = () => {
@@ -90,6 +210,7 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
       document.removeEventListener("mouseup", onMouseUp)
       document.body.style.cursor = ""
       document.body.style.userSelect = ""
+      fitFns.current.get(activeTab)?.()
     }
 
     const onMouseDown = (e: MouseEvent) => {
@@ -103,172 +224,31 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
 
     resizeEl.addEventListener("mousedown", onMouseDown)
     return () => resizeEl.removeEventListener("mousedown", onMouseDown)
-  }, [height])
+  }, [height, activeTab])
 
-  const getPrompt = useCallback((tabId: string) => {
-    const state = shellStates[tabId]
-    if (!state) return "$ "
-    const dir = state.cwd === "/home/user" ? "~" : state.cwd.replace("/home/user", "~")
-    return `\x1b[1;32mroot@project-s-server\x1b[0m:\x1b[1;34m${dir}\x1b[0m$ `
-  }, [shellStates])
+  // Re-fit on maximize toggle
+  useEffect(() => {
+    const timer = setTimeout(() => fitFns.current.get(activeTab)?.(), 100)
+    return () => clearTimeout(timer)
+  }, [isMaximized, activeTab])
 
-  const handleCommand = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp") {
-      e.preventDefault()
-      const state = shellStates[activeTab]
-      if (!state || state.history.length === 0) return
-      const newIndex = historyIndex === -1 ? state.history.length - 1 : Math.max(0, historyIndex - 1)
-      setHistoryIndex(newIndex)
-      setInputValue(state.history[newIndex])
-      return
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault()
-      const state = shellStates[activeTab]
-      if (!state || historyIndex === -1) return
-      const newIndex = historyIndex + 1
-      if (newIndex >= state.history.length) {
-        setHistoryIndex(-1)
-        setInputValue("")
-      } else {
-        setHistoryIndex(newIndex)
-        setInputValue(state.history[newIndex])
-      }
-      return
-    }
-    if (e.key !== "Enter") return
-
-    const cmd = inputValue.trim()
-    setInputValue("")
-    setHistoryIndex(-1)
-
-    const state = shellStates[activeTab] || { cwd: "/home/user", env: {}, history: [] }
-    const prompt = getPrompt(activeTab)
-
-    if (cmd === "clear") {
-      setLines(prev => ({ ...prev, [activeTab]: [] }))
-      return
-    }
-
-    if (cmd === "exit") {
-      if (tabs.length === 1) {
-        onClose()
-        return
-      }
-      const remaining = tabs.filter(t => t.id !== activeTab)
-      setTabs(remaining)
-      setActiveTab(remaining[0].id)
-      const newLines = { ...lines }
-      delete newLines[activeTab]
-      setLines(newLines)
-      const newStates = { ...shellStates }
-      delete newStates[activeTab]
-      setShellStates(newStates)
-      return
-    }
-
-    const { output, newCwd } = processCommand(cmd, state)
-
-    setShellStates(prev => ({
-      ...prev,
-      [activeTab]: { ...state, cwd: newCwd },
-    }))
-
-    setLines(prev => {
-      const current = prev[activeTab] || []
-      const newLines = [...current, `${prompt}${cmd}`]
-      if (output) newLines.push(output)
-      return { ...prev, [activeTab]: newLines }
-    })
-  }, [inputValue, activeTab, shellStates, lines, tabs, getPrompt, historyIndex, onClose])
-
-  const addTab = () => {
+  const addTab = useCallback(() => {
     tabCounter.current += 1
     const id = String(tabCounter.current)
     setTabs(prev => [...prev, { id, title: "bash" }])
-    setLines(prev => ({
-      ...prev,
-      [id]: [
-        "\x1b[1;32mroot@project-s-server\x1b[0m:\x1b[1;34m~\x1b[0m$ Welcome to Project S Terminal",
-        "Type 'help' for available commands.\n",
-      ],
-    }))
-    setShellStates(prev => ({
-      ...prev,
-      [id]: {
-        cwd: "/home/user",
-        env: {
-          HOME: "/home/user",
-          USER: "root",
-          SHELL: "/bin/bash",
-          PATH: "/usr/local/bin:/usr/bin:/bin",
-          TERM: "xterm-256color",
-          HOSTNAME: "project-s-server",
-          EDITOR: "nvim",
-          LANG: "en_US.UTF-8",
-        },
-        history: [],
-      },
-    }))
     setActiveTab(id)
-  }
+  }, [])
 
-  const closeTab = (tabId: string) => {
-    if (tabs.length === 1) {
+  const closeTab = useCallback((tabId: string, currentTabs: TerminalTab[]) => {
+    fitFns.current.delete(tabId)
+    if (currentTabs.length === 1) {
       onClose()
       return
     }
-    const remaining = tabs.filter(t => t.id !== tabId)
+    const remaining = currentTabs.filter(t => t.id !== tabId)
     setTabs(remaining)
-    if (activeTab === tabId) setActiveTab(remaining[0].id)
-    const newLines = { ...lines }
-    delete newLines[tabId]
-    setLines(newLines)
-  }
-
-  // Parse ANSI-like color codes for display
-  const renderLine = (line: string, index: number) => {
-    const parts: React.ReactNode[] = []
-    let remaining = line
-    let key = 0
-
-    const colorMap: Record<string, string> = {
-      "1;32": "#22c55e",  // bold green
-      "1;34": "#58a6ff",  // bold blue
-      "0": "",            // reset
-    }
-
-    while (remaining.length > 0) {
-      const escIndex = remaining.indexOf("\x1b[")
-      if (escIndex === -1) {
-        parts.push(<span key={key++}>{remaining}</span>)
-        break
-      }
-      if (escIndex > 0) {
-        parts.push(<span key={key++}>{remaining.slice(0, escIndex)}</span>)
-      }
-      const mIndex = remaining.indexOf("m", escIndex)
-      if (mIndex === -1) {
-        parts.push(<span key={key++}>{remaining.slice(escIndex)}</span>)
-        break
-      }
-      const code = remaining.slice(escIndex + 2, mIndex)
-      const color = colorMap[code]
-      remaining = remaining.slice(mIndex + 1)
-
-      // Find next escape or end
-      const nextEsc = remaining.indexOf("\x1b[")
-      const text = nextEsc === -1 ? remaining : remaining.slice(0, nextEsc)
-      if (text && color) {
-        parts.push(<span key={key++} style={{ color, fontWeight: code.startsWith("1") ? 600 : 400 }}>{text}</span>)
-      } else if (text) {
-        parts.push(<span key={key++}>{text}</span>)
-      }
-      remaining = nextEsc === -1 ? "" : remaining.slice(nextEsc)
-    }
-
-    return <div key={index} className="whitespace-pre-wrap break-all">{parts}</div>
-  }
+    setActiveTab(prev => prev === tabId ? remaining[0].id : prev)
+  }, [onClose])
 
   if (!open) return null
 
@@ -285,17 +265,16 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
         height: panelHeight,
         marginLeft: isMaximized ? 0 : "72px",
       }}
-      onClick={() => inputRef.current?.focus()}
     >
       {/* Resize Handle */}
       {!isMaximized && (
         <div
           ref={resizeRef}
-          className="h-1.5 cursor-ns-resize flex items-center justify-center group"
+          className="h-1.5 cursor-ns-resize flex items-center justify-center"
           style={{ background: "transparent" }}
         >
-          <div 
-            className="w-12 h-0.5 rounded-full transition-colors" 
+          <div
+            className="w-12 h-0.5 rounded-full"
             style={{ backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }}
           />
         </div>
@@ -303,9 +282,9 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
 
       {/* Main Panel */}
       <div
-        className="flex-1 flex flex-col overflow-hidden border-t rounded-t-xl transition-colors duration-500 shadow-2xl"
+        className="flex-1 flex flex-col overflow-hidden border-t rounded-t-xl shadow-2xl"
         style={{
-          backgroundColor: mode === 'dark' ? 'rgba(10, 10, 10, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: mode === 'dark' ? 'rgba(10, 10, 10, 0.97)' : 'rgba(245, 245, 245, 0.97)',
           backdropFilter: "blur(24px) saturate(120%)",
           WebkitBackdropFilter: "blur(24px) saturate(120%)",
           borderColor: colorTheme.border,
@@ -313,15 +292,12 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
       >
         {/* Tab Bar */}
         <div className="flex items-center h-9 px-2 border-b shrink-0" style={{ borderColor: colorTheme.border }}>
-          {/* Tabs */}
           <div className="flex items-center gap-0.5 flex-1 overflow-x-auto">
             {tabs.map((tab) => (
               <div
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 h-7 rounded-md text-xs cursor-pointer transition-all group"
-                )}
+                className="flex items-center gap-1.5 px-3 h-7 rounded-md text-xs cursor-pointer transition-all group"
                 style={activeTab === tab.id ? {
                   backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                   color: colorTheme.foreground
@@ -332,7 +308,7 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
                 <TerminalIcon className="h-3 w-3" strokeWidth={1.5} />
                 <span className="font-medium">{tab.title}</span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
+                  onClick={(e) => { e.stopPropagation(); closeTab(tab.id, tabs) }}
                   className="ml-1 opacity-0 group-hover:opacity-100 transition-all"
                   style={{ color: `${colorTheme.muted}80` }}
                 >
@@ -358,22 +334,14 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
             </TooltipProvider>
           </div>
 
-          {/* Demo indicator */}
-          <span className="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border opacity-40" style={{ borderColor: colorTheme.border, color: colorTheme.muted }}>
-            Demo
-          </span>
-
           {/* Window Controls */}
           <div className="flex items-center gap-1 ml-2">
             <button
-              onClick={() => setIsMaximized(!isMaximized)}
+              onClick={() => setIsMaximized(v => !v)}
               className="flex items-center justify-center h-6 w-6 rounded transition-all"
               style={{ color: colorTheme.muted }}
             >
-              {isMaximized
-                ? <Minimize2 className="h-3 w-3" />
-                : <Maximize2 className="h-3 w-3" />
-              }
+              {isMaximized ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
             </button>
             <button
               onClick={onClose}
@@ -385,34 +353,17 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
           </div>
         </div>
 
-        {/* Terminal Output */}
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[13px] leading-relaxed"
-          style={{ color: mode === 'dark' ? '#e6edf3' : '#1a1a1a' }}
-        >
-          {(lines[activeTab] || []).map((line, i) => renderLine(line, i))}
-
-          {/* Input Line */}
-          <div className="flex items-center whitespace-pre-wrap">
-            {renderLine(getPrompt(activeTab), -1)}
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleCommand}
-              className="flex-1 bg-transparent outline-none border-none font-mono text-[13px]"
-              style={{ 
-                color: mode === 'dark' ? '#e6edf3' : '#1a1a1a',
-                caretColor: colorTheme.accent
-              }}
-              spellCheck={false}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
+        {/* Terminal instances — all mounted, only active one shown */}
+        <div className="flex-1 overflow-hidden relative">
+          {tabs.map((tab) => (
+            <TerminalInstance
+              key={tab.id}
+              tabId={tab.id}
+              active={activeTab === tab.id}
+              xtermTheme={xtermTheme}
+              onFitReady={handleFitReady(tab.id)}
             />
-          </div>
+          ))}
         </div>
       </div>
     </div>

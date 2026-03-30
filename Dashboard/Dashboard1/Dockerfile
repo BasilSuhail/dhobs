@@ -1,8 +1,9 @@
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# Install build tools required for native modules (node-pty)
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Install dependencies
@@ -26,21 +27,23 @@ COPY . .
 
 RUN npm run build
 
+# Compile the custom WebSocket server
+RUN npx tsc --project tsconfig.server.json
+
 # Production image, copy all the files and run next
 FROM base AS runner
-RUN apk add --no-cache docker-cli
+RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 ENV NODE_ENV production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid nodejs -m nextjs
 # Add nextjs user to docker group so it can access /var/run/docker.sock
-# without requiring user: root in docker-compose.yml
-RUN addgroup --gid 999 docker || true
-RUN addgroup nextjs docker || true
+RUN groupadd --gid 999 docker || true
+RUN usermod -aG docker nextjs
 
 COPY --from=builder /app/public ./public
 
@@ -48,17 +51,28 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
+# Copy Next.js standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy compiled custom server
+COPY --from=builder --chown=nextjs:nodejs /app/custom-server.js ./
+
+# Copy server-side deps not bundled by standalone (ws has no deps; node-pty is native)
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/ws ./node_modules/ws
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/node-pty ./node_modules/node-pty
+
+# Startup script: runs WS server + Next.js standalone together
+COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./
+RUN chmod +x /app/start.sh
 
 USER nextjs
 
 EXPOSE 3069
+EXPOSE 3070
 
 ENV PORT 3069
-# set hostname to localhost
+ENV WS_PORT 3070
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["/bin/sh", "/app/start.sh"]
