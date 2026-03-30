@@ -235,6 +235,7 @@ services:
       - '11434:11434'
     volumes:
       - ./data/ollama:/root/.ollama
+      - ./data/workspace:/workspace
     restart: unless-stopped
     deploy:
       resources:
