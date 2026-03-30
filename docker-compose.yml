@@ -1,6 +1,6 @@
 services:
   jellyfin:
-    image: jellyfin/jellyfin:10.10.6
+    image: jellyfin/jellyfin:10.10
     container_name: project-s-jellyfin
     ports:
       - '8096:8096'
@@ -63,7 +63,7 @@ services:
           memory: 512m
 
   nextcloud:
-    image: nextcloud:30
+    image: nextcloud:33
     container_name: project-s-nextcloud
     restart: always
     ports:

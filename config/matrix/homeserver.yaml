@@ -18,8 +18,7 @@ database:
   name: psycopg2
   args:
     user: synapse
-    # IMPORTANT: Must match MATRIX_DB_PASSWORD in your .env file
-    password: change_me_synapse_password
+    password: "change_me_synapse_password"
     database: synapse
     host: synapse-db
     port: 5432
@@ -30,13 +29,13 @@ log_config: "/data/localhost.log.config"
 
 media_store_path: /data/media_store
 
-registration_shared_secret: "homeforge_default_registration_secret_CHANGE_ME"
+registration_shared_secret: "09b8396c8ad8a7f50bc07213de2304105458cf29632ffc76a05b79f356181339"
 
 report_stats: false
 
-macaroon_secret_key: "homeforge_default_macaroon_CHANGE_ME"
+macaroon_secret_key: "1805e6f411b8112bec95c53577c486c6ae689f157aad79f434de7108f768afb6"
 
-form_secret: "homeforge_default_form_secret_CHANGE_ME"
+form_secret: "1cea09921de1fd4ae69933f4ba9be072cc6fbdf589a29ade1e8dd69f34830ff6"
 
 signing_key_path: "/data/localhost.signing.key"
 
