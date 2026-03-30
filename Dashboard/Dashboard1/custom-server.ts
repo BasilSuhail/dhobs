@@ -77,6 +77,13 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
     return
   }
 
+  // Inject ollama alias into Theia shell so 'ollama' works natively without relying on .bashrc timing
+  if (shellType !== 'ollama') {
+    setTimeout(() => {
+      if (shell) shell.write("alias ollama='docker exec -it project-s-ollama ollama'\n")
+    }, 300)
+  }
+
   // pty output → WebSocket
   shell.onData((data: string) => {
     if (ws.readyState === WebSocket.OPEN) {
