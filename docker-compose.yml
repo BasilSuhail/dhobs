@@ -228,6 +228,29 @@ services:
       retries: 3
       start_period: 15s
 
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:0.6.5
+    container_name: project-s-open-webui
+    ports:
+      - '8085:8080'
+    volumes:
+      - ./data/open-webui:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   ollama:
     image: ollama/ollama:0.6.5
     container_name: project-s-ollama
