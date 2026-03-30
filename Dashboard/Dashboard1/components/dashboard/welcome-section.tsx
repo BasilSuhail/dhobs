@@ -10,7 +10,6 @@ import {
   Cloud,
   Book,
   BrainCircuit,
-  Bot,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -21,8 +20,7 @@ const SERVICE_PORTS = [
   { name: "Matrix", port: 8082, icon: MessageSquare },
   { name: "Vaultwarden", port: 8083, icon: Key },
   { name: "Kiwix", port: 8084, icon: Book },
-  { name: "Open WebUI", port: 8085, icon: Bot },
-  { name: "Ollama", port: 11434, icon: BrainCircuit },
+  { name: "Ollama", port: 8085, icon: BrainCircuit },
 ]
 
 const bookmarks = {
