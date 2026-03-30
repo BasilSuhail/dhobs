@@ -77,7 +77,22 @@ mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media
 mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
 mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden ./data/kiwix ./data/workspace
+mkdir -p ./data/ollama ./data/open-webui
 mkdir -p ./config/matrix
+
+# Check for native Ollama process holding port 11434 (common on macOS)
+if lsof -i :11434 -sTCP:LISTEN &>/dev/null 2>&1; then
+    echo "⚠️  Port 11434 is already in use (native Ollama running)."
+    echo "   The Docker Ollama container will fail to bind this port."
+    echo -n "   Stop native Ollama now and continue? [y/N] "
+    read -r KILL_OLLAMA
+    if [[ "$KILL_OLLAMA" =~ ^[Yy]$ ]]; then
+        pkill -x ollama 2>/dev/null && echo "   ✅ Native Ollama stopped." || echo "   ⚠️  Could not stop Ollama — kill it manually and re-run."
+        sleep 1
+    else
+        echo "   Skipping — Ollama container may not start correctly."
+    fi
+fi
 
 # Sync Synapse secrets and DB password
 # Uses python3 for cross-platform file replacement (avoids sed -i differences)

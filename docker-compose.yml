@@ -260,6 +260,7 @@ services:
     volumes:
       - ./data/ollama:/root/.ollama
       - ./data/workspace:/workspace
+      - ./config/ollama:/modelfiles:ro
     restart: unless-stopped
     deploy:
       resources:
