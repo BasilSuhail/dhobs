@@ -28,6 +28,22 @@ chmod +x install.sh
 
 > **Nextcloud Office** is auto-configured on every subsequent container start via `config/nextcloud/setup-office.sh` (mounted as a Docker entrypoint hook). No manual steps needed after the first install.
 
+### Option C: Manual Docker Setup
+
+If you are building and running manually with `docker compose`, you **must** create your `.env` file first — otherwise all services will start with blank credentials and crash.
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill in your passwords before starting:
+
+```bash
+docker compose up -d
+```
+
+> `boom.sh` and `install.sh` handle this automatically. Only do this step if you are running `docker compose` directly.
+
 
 ---
 
