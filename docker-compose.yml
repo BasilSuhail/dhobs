@@ -251,6 +251,7 @@ services:
       retries: 3
       start_period: 30s
 
+
   ollama:
     image: ollama/ollama:0.6.5
     container_name: project-s-ollama
