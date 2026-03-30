@@ -2,21 +2,23 @@
 // No Next.js import: avoids webpack-lib MODULE_NOT_FOUND in standalone mode.
 import { createServer } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
+import { execFileSync } from 'child_process'
 import * as pty from 'node-pty'
 
 const WS_PORT = parseInt(process.env.WS_PORT || '3070', 10)
 const hostname = '0.0.0.0'
 
-/** Returns true if the project-s-theia container is running. */
-function isTheiaRunning(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const { spawn } = require('child_process')
-    const proc = spawn('docker', ['inspect', '--format', '{{.State.Running}}', 'project-s-theia'])
-    let out = ''
-    proc.stdout.on('data', (d: Buffer) => { out += d.toString() })
-    proc.on('close', () => resolve(out.trim() === 'true'))
-    proc.on('error', () => resolve(false))
-  })
+/** Synchronous check — returns true if project-s-theia is running. */
+function isTheiaRunning(): boolean {
+  try {
+    const out = execFileSync('docker', ['inspect', '--format', '{{.State.Running}}', 'project-s-theia'], {
+      encoding: 'utf8',
+      timeout: 2000,
+    })
+    return out.trim() === 'true'
+  } catch {
+    return false
+  }
 }
 
 const server = createServer((_req, res) => {
@@ -26,13 +28,11 @@ const server = createServer((_req, res) => {
 
 const wss = new WebSocketServer({ server })
 
-wss.on('connection', async (ws: WebSocket) => {
+wss.on('connection', (ws: WebSocket) => {
   let shell: pty.IPty | null = null
 
-  // Try to exec into the Theia container for a full dev environment.
-  // If Theia isn't running, fall back to the dashboard's own shell.
-  const useTheia = await isTheiaRunning()
-  const spawnArgs: [string, string[]] = useTheia
+  const useTheia = isTheiaRunning()
+  const [cmd, args] = useTheia
     ? ['docker', ['exec', '-i', 'project-s-theia', '/bin/bash']]
     : ['/bin/bash', []]
 
@@ -41,7 +41,7 @@ wss.on('connection', async (ws: WebSocket) => {
   }
 
   try {
-    shell = pty.spawn(spawnArgs[0], spawnArgs[1], {
+    shell = pty.spawn(cmd, args, {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
