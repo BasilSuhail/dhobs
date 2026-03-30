@@ -14,6 +14,7 @@ To start the entire Project S ecosystem perfectly with a single command, you can
 
 ### Option A: The "Boom" Script (Mac / Local)
 ```bash
+cp .env.example .env
 chmod +x boom.sh
 ./boom.sh
 ```
