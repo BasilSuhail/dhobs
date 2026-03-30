@@ -227,6 +227,25 @@ services:
       retries: 3
       start_period: 15s
 
+  ollama:
+    image: ollama/ollama:0.6.5
+    container_name: project-s-ollama
+    ports:
+      - '11434:11434'
+    volumes:
+      - ./data/ollama:/root/.ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader

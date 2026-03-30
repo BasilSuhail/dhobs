@@ -7,6 +7,18 @@ import * as pty from 'node-pty'
 const WS_PORT = parseInt(process.env.WS_PORT || '3070', 10)
 const hostname = '0.0.0.0'
 
+/** Returns true if the project-s-theia container is running. */
+function isTheiaRunning(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const { spawn } = require('child_process')
+    const proc = spawn('docker', ['inspect', '--format', '{{.State.Running}}', 'project-s-theia'])
+    let out = ''
+    proc.stdout.on('data', (d: Buffer) => { out += d.toString() })
+    proc.on('close', () => resolve(out.trim() === 'true'))
+    proc.on('error', () => resolve(false))
+  })
+}
+
 const server = createServer((_req, res) => {
   res.writeHead(200)
   res.end('Project S Terminal WS Server\n')
@@ -14,16 +26,27 @@ const server = createServer((_req, res) => {
 
 const wss = new WebSocketServer({ server })
 
-wss.on('connection', (ws: WebSocket) => {
+wss.on('connection', async (ws: WebSocket) => {
   let shell: pty.IPty | null = null
 
+  // Try to exec into the Theia container for a full dev environment.
+  // If Theia isn't running, fall back to the dashboard's own shell.
+  const useTheia = await isTheiaRunning()
+  const spawnArgs: [string, string[]] = useTheia
+    ? ['docker', ['exec', '-i', 'project-s-theia', '/bin/bash']]
+    : ['/bin/bash', []]
+
+  if (useTheia) {
+    ws.send('\x1b[2m[connected to theia]\x1b[0m\r\n')
+  }
+
   try {
-    shell = pty.spawn('/bin/bash', [], {
+    shell = pty.spawn(spawnArgs[0], spawnArgs[1], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
       cwd: process.env.HOME || '/root',
-      env: process.env as Record<string, string>,
+      env: { ...process.env, TERM: 'xterm-256color' } as Record<string, string>,
     })
   } catch (err) {
     ws.send('\r\n\x1b[31mFailed to spawn shell: ' + String(err) + '\x1b[0m\r\n')
