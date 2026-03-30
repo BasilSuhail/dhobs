@@ -7,7 +7,7 @@ import { FitAddon } from "@xterm/addon-fit"
 import { WebLinksAddon } from "@xterm/addon-web-links"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
-import { X, Maximize2, Minimize2, Plus, Terminal as TerminalIcon } from "lucide-react"
+import { X, Maximize2, Minimize2, Plus, Terminal as TerminalIcon, BrainCircuit } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +18,7 @@ import {
 interface TerminalTab {
   id: string
   title: string
+  shell?: 'ollama'
 }
 
 interface TerminalPanelProps {
@@ -29,11 +30,12 @@ interface TerminalPanelProps {
 interface TerminalInstanceProps {
   tabId: string
   active: boolean
+  shell?: 'ollama'
   xtermTheme: ITheme
   onFitReady: (fit: () => void) => void
 }
 
-function TerminalInstance({ tabId, active, xtermTheme, onFitReady }: TerminalInstanceProps) {
+function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: TerminalInstanceProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -65,7 +67,9 @@ function TerminalInstance({ tabId, active, xtermTheme, onFitReady }: TerminalIns
       terminal.focus()
     }, 50)
 
-    const wsUrl = `ws://${window.location.hostname}:3070`
+    const wsUrl = shell === 'ollama'
+      ? `ws://${window.location.hostname}:3070?shell=ollama`
+      : `ws://${window.location.hostname}:3070`
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
@@ -239,6 +243,13 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
     setActiveTab(id)
   }, [])
 
+  const addOllamaTab = useCallback(() => {
+    tabCounter.current += 1
+    const id = String(tabCounter.current)
+    setTabs(prev => [...prev, { id, title: "ollama", shell: 'ollama' as const }])
+    setActiveTab(id)
+  }, [])
+
   const closeTab = useCallback((tabId: string, currentTabs: TerminalTab[]) => {
     fitFns.current.delete(tabId)
     if (currentTabs.length === 1) {
@@ -305,7 +316,10 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
                   color: colorTheme.muted
                 }}
               >
-                <TerminalIcon className="h-3 w-3" strokeWidth={1.5} />
+                {tab.shell === 'ollama'
+                  ? <BrainCircuit className="h-3 w-3" strokeWidth={1.5} />
+                  : <TerminalIcon className="h-3 w-3" strokeWidth={1.5} />
+                }
                 <span className="font-medium">{tab.title}</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); closeTab(tab.id, tabs) }}
@@ -329,6 +343,22 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={8}>
                   <p>New tab</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={addOllamaTab}
+                    className="flex items-center justify-center h-6 w-6 rounded transition-all"
+                    style={{ color: colorTheme.muted }}
+                  >
+                    <BrainCircuit className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={8}>
+                  <p>New Ollama shell</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -360,6 +390,7 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
               key={tab.id}
               tabId={tab.id}
               active={activeTab === tab.id}
+              shell={tab.shell}
               xtermTheme={xtermTheme}
               onFitReady={handleFitReady(tab.id)}
             />

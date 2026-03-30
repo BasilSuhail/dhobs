@@ -1,6 +1,6 @@
 // Standalone WebSocket terminal server — runs alongside Next.js standalone (server.js).
 // No Next.js import: avoids webpack-lib MODULE_NOT_FOUND in standalone mode.
-import { createServer, get as httpGet } from 'http'
+import { createServer, get as httpGet, IncomingMessage } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import * as pty from 'node-pty'
 
@@ -37,16 +37,30 @@ const server = createServer((_req, res) => {
 
 const wss = new WebSocketServer({ server })
 
-wss.on('connection', async (ws: WebSocket) => {
+wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
   let shell: pty.IPty | null = null
 
-  const useTheia = await isTheiaRunning()
-  const [cmd, args] = useTheia
-    ? ['docker', ['exec', '-it', '-w', '/home/project/workspace', 'project-s-theia', '/bin/bash']]
-    : ['/bin/bash', []]
+  // Parse shell type from query string (?shell=ollama → exec into ollama container)
+  const url = new URL(req.url || '/', `http://localhost:${WS_PORT}`)
+  const shellType = url.searchParams.get('shell') // 'ollama' | null
 
-  if (useTheia) {
-    ws.send('\x1b[2m[connected to theia]\x1b[0m\r\n')
+  let cmd: string
+  let args: string[]
+
+  if (shellType === 'ollama') {
+    cmd = 'docker'
+    args = ['exec', '-it', 'project-s-ollama', '/bin/sh']
+    ws.send('\x1b[2m[connected to ollama]\x1b[0m\r\n')
+  } else {
+    const useTheia = await isTheiaRunning()
+    if (useTheia) {
+      cmd = 'docker'
+      args = ['exec', '-it', '-w', '/home/project/workspace', 'project-s-theia', '/bin/bash']
+      ws.send('\x1b[2m[connected to theia]\x1b[0m\r\n')
+    } else {
+      cmd = '/bin/bash'
+      args = []
+    }
   }
 
   try {
@@ -61,6 +75,13 @@ wss.on('connection', async (ws: WebSocket) => {
     ws.send('\r\n\x1b[31mFailed to spawn shell: ' + String(err) + '\x1b[0m\r\n')
     ws.close()
     return
+  }
+
+  // Inject ollama alias into Theia shell so 'ollama' works natively without relying on .bashrc timing
+  if (shellType !== 'ollama') {
+    setTimeout(() => {
+      if (shell) shell.write("alias ollama='docker exec -it project-s-ollama ollama'\n")
+    }, 300)
   }
 
   // pty output → WebSocket

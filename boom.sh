@@ -77,7 +77,22 @@ mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media
 mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
 mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden ./data/kiwix ./data/workspace
+mkdir -p ./data/ollama ./data/open-webui
 mkdir -p ./config/matrix
+
+# Check for native Ollama process holding port 11434 (common on macOS)
+if lsof -i :11434 -sTCP:LISTEN &>/dev/null 2>&1; then
+    echo "⚠️  Port 11434 is already in use (native Ollama running)."
+    echo "   The Docker Ollama container will fail to bind this port."
+    echo -n "   Stop native Ollama now and continue? [y/N] "
+    read -r KILL_OLLAMA
+    if [[ "$KILL_OLLAMA" =~ ^[Yy]$ ]]; then
+        pkill -x ollama 2>/dev/null && echo "   ✅ Native Ollama stopped." || echo "   ⚠️  Could not stop Ollama — kill it manually and re-run."
+        sleep 1
+    else
+        echo "   Skipping — Ollama container may not start correctly."
+    fi
+fi
 
 # Sync Synapse secrets and DB password
 # Uses python3 for cross-platform file replacement (avoids sed -i differences)
@@ -121,6 +136,34 @@ chmod 666 data/matrix/synapse/homeserver.log > /dev/null 2>&1
 # 3. Build and Start services
 echo "📦 Building and Starting Docker containers..."
 docker compose up -d --build
+
+# Inject ollama alias into Theia so 'ollama' works natively in the dashboard terminal
+echo "🤖 Configuring ollama alias in Theia..."
+docker exec project-s-theia bash -c \
+  "grep -q 'alias ollama' /root/.bashrc 2>/dev/null || echo \"alias ollama='docker exec -it project-s-ollama ollama'\" >> /root/.bashrc" \
+  2>/dev/null || echo "   ⚠️  Theia not ready yet — alias will be added on next boom.sh run."
+
+# Auto-build Ollama Modelfiles from config/ollama/
+if ls ./config/ollama/*.Modelfile 1>/dev/null 2>&1; then
+    echo "🧠 Building Ollama Modelfiles..."
+    # Wait briefly for Ollama to be ready
+    OLLAMA_RETRIES=0
+    until docker exec project-s-ollama ollama list &>/dev/null || [ "$OLLAMA_RETRIES" -ge 15 ]; do
+        OLLAMA_RETRIES=$((OLLAMA_RETRIES + 1))
+        printf '.'
+        sleep 2
+    done
+    echo ""
+    for mf in ./config/ollama/*.Modelfile; do
+        model_name=$(basename "$mf" .Modelfile)
+        echo "   Building: $model_name"
+        docker exec project-s-ollama ollama create "$model_name" -f "/modelfiles/$(basename "$mf")" \
+            && echo "   ✅ $model_name built" \
+            || echo "   ⚠️  Failed to build $model_name — base model may not be pulled yet. Run: docker exec project-s-ollama ollama create $model_name -f /modelfiles/$(basename "$mf")"
+    done
+else
+    echo "ℹ️  No Modelfiles found in config/ollama/ — skipping."
+fi
 
 # 4. Wait for Dashboard (with timeout)
 echo "⏳ Waiting for dashboard to be ready..."
