@@ -27,3 +27,8 @@ Dashboard/Dashboard1/node_modules/
 .DS_Store
 Thumbs.db
 dind-data/
+
+# AI tooling (Claude Code superpowers)
+docs/superpowers/
+Dashboard/Dashboard1/docs/superpowers/
+Dashboard/Dashboard1/tsconfig.tsbuildinfo
