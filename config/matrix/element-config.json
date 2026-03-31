@@ -1,7 +1,7 @@
 {
     "default_server_config": {
         "m.homeserver": {
-            "base_url": "http://localhost:8008",
+            "base_url": "http://192.168.178.108:8008",
             "server_name": "localhost"
         },
         "m.identity_server": {
