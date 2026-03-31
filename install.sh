@@ -151,6 +151,15 @@ EOF
 chmod +x ./config/nextcloud/setup-office.sh
 chmod +x ./config/nextcloud/setup-office-post-install.sh
 
+# Verify HOMEFORGE_LAN_IP is set before starting — Collabora's server_name
+# depends on it and will mismatch if empty, causing "Document loading failed".
+FINAL_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
+if [ -z "$FINAL_LAN_IP" ]; then
+    echo "Error: HOMEFORGE_LAN_IP could not be detected and is not set in .env"
+    echo "Please set it manually: echo 'HOMEFORGE_LAN_IP=<your-machine-ip>' >> .env"
+    exit 1
+fi
+
 # 6. Build and start the containers
 echo "Building and starting containers in the background..."
 if ! docker compose up -d --build; then
