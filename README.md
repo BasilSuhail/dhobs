@@ -47,6 +47,12 @@ chmod +x boom.sh
 
 Cleans up, builds, starts all services, and launches your browser. Use this for day-to-day restarts.
 
+To stop all services:
+
+```bash
+docker compose down
+```
+
 **Option B: The "Install" Script (Linux / First-Time Setup)**
 
 ```bash
