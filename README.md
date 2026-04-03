@@ -40,12 +40,11 @@ To start the entire Project S ecosystem with a single command, use the `boom.sh`
 **Option A: The "Boom" Script (Mac / Local)**
 
 ```bash
-cp .env.example .env
 chmod +x boom.sh
 ./boom.sh
 ```
 
-Cleans up, builds, starts all services, and launches your browser. Use this for day-to-day restarts.
+Creates `.env` automatically, detects your LAN IP, builds, starts all services, and launches your browser. Use this for day-to-day restarts.
 
 To stop all services:
 
@@ -56,12 +55,11 @@ docker compose down
 **Option B: The "Install" Script (Linux / First-Time Setup)**
 
 ```bash
-cp .env.example .env
 chmod +x install.sh
 ./install.sh
 ```
 
-Creates data directories, starts all containers, installs Nextcloud Hub apps (Calendar, Contacts, Office, Talk), and configures Nextcloud Office (Collabora). Run this once on a fresh clone.
+Creates `.env` automatically, detects your LAN IP, starts all containers, installs Nextcloud Hub apps (Calendar, Contacts, Office, Talk), and configures Nextcloud Office (Collabora). Run this once on a fresh clone.
 
 > Nextcloud Office is auto-configured on every subsequent container start via `config/nextcloud/setup-office.sh`. No manual steps needed after the first install.
 
