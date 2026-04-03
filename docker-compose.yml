@@ -291,7 +291,7 @@ services:
     restart: unless-stopped
 
   kiwix-manager:
-    image: filebrowser/filebrowser:latest
+    image: filebrowser/filebrowser:v2.31.2
     container_name: project-s-kiwix-manager
     user: "${UID:-1000}:${GID:-1000}"
     ports:
@@ -299,4 +299,5 @@ services:
     volumes:
       - ./data/kiwix:/srv
       - ./data/filebrowser/database.db:/database.db
+    command: ["--database", "/database.db", "--noauth", "--root", "/srv"]
     restart: unless-stopped
