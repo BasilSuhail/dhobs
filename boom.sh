@@ -25,8 +25,9 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# Auto-detect LAN IP if not set in .env
-if [ -f .env ] && ! grep -q "^HOMEFORGE_LAN_IP=." .env; then
+# Auto-detect LAN IP if not set or set to placeholder 'localhost' in .env
+CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
+if [ -f .env ] && { [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; }; then
     DETECTED_IP=""
     if [[ "$OSTYPE" == "darwin"* ]]; then
         DETECTED_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
@@ -36,9 +37,9 @@ if [ -f .env ] && ! grep -q "^HOMEFORGE_LAN_IP=." .env; then
     if [ -n "$DETECTED_IP" ]; then
         echo "Detected LAN IP: $DETECTED_IP"
         python3 -c "
-import sys
+import sys, re
 with open('.env', 'r') as f: content = f.read()
-content = content.replace('HOMEFORGE_LAN_IP=', 'HOMEFORGE_LAN_IP=' + sys.argv[1], 1)
+content = re.sub(r'^HOMEFORGE_LAN_IP=.*', 'HOMEFORGE_LAN_IP=' + sys.argv[1], content, flags=re.MULTILINE)
 with open('.env', 'w') as f: f.write(content)
 " "$DETECTED_IP"
     fi
