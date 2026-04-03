@@ -74,6 +74,12 @@ mkdir -p ./data/filebrowser
 # Remove it if so, then create it as a proper empty file.
 [ -d ./data/filebrowser/database.db ] && rm -rf ./data/filebrowser/database.db
 touch ./data/filebrowser/database.db
+mkdir -p ./data/vpn/{pki,clients,config,staticclients,log,db}
+# Copy VPN seed configs only on first run — never overwrite a live PKI
+if [ ! -f ./data/vpn/server.conf ]; then
+    cp -r ./config/vpn/. ./data/vpn/
+    echo "VPN seed configs copied to ./data/vpn/"
+fi
 mkdir -p ./config/matrix
 
 # Ensure Nextcloud directories have correct permissions (UID 33 is www-data in the container)
