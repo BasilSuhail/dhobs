@@ -141,7 +141,7 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
                       {app.name}
                     </p>
                     <p className="text-[10px] truncate uppercase tracking-widest opacity-40" style={{ color: colorTheme.foreground }}>
-                      External
+                      {app.route ? "Internal" : "External"}
                     </p>
                   </div>
                 </>
