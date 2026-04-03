@@ -276,8 +276,27 @@ services:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader
     ports:
-      - '8084:80'
+      - '8084:8080'
     volumes:
       - ./data/kiwix:/data
-    command: sh -c "kiwix-serve --port=80 *.zim || (echo 'No ZIM files found. Please add .zim files to ./data/kiwix' && sleep infinity)"
+    entrypoint: ["sh", "-c"]
+    command: >
+      "rm -f /data/library.xml &&
+      if ls /data/*.zim >/dev/null 2>&1; then
+        kiwix-manage /data/library.xml add /data/*.zim &&
+        kiwix-serve --port=8080 --library /data/library.xml;
+      else
+        echo 'No ZIM files found. Add .zim files to ./data/kiwix and click Refresh.' && sleep infinity;
+      fi"
+    restart: unless-stopped
+
+  kiwix-manager:
+    image: filebrowser/filebrowser:latest
+    container_name: project-s-kiwix-manager
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - '8086:80'
+    volumes:
+      - ./data/kiwix:/srv
+      - ./data/filebrowser/database.db:/database.db
     restart: unless-stopped

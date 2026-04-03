@@ -79,6 +79,7 @@ mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
 mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden ./data/kiwix ./data/workspace
 mkdir -p ./data/ollama ./data/open-webui
+mkdir -p ./data/filebrowser && touch ./data/filebrowser/database.db
 mkdir -p ./config/matrix
 
 # Check for native Ollama process holding port 11434 (common on macOS)
