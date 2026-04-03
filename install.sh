@@ -69,7 +69,11 @@ mkdir -p ./data/matrix/db ./data/matrix/synapse
 mkdir -p ./data/vaultwarden
 mkdir -p ./data/kiwix
 mkdir -p ./data/workspace
-mkdir -p ./data/filebrowser && touch ./data/filebrowser/database.db
+mkdir -p ./data/filebrowser
+# Docker can create database.db as a directory if the file didn't exist at mount time.
+# Remove it if so, then create it as a proper empty file.
+[ -d ./data/filebrowser/database.db ] && rm -rf ./data/filebrowser/database.db
+touch ./data/filebrowser/database.db
 mkdir -p ./config/matrix
 
 # Ensure Nextcloud directories have correct permissions (UID 33 is www-data in the container)
