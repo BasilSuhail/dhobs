@@ -58,6 +58,19 @@ The fallback in `docker-compose.yml` was a **hardcoded Mac IP** (`192.168.178.10
 
 `components/metrics/system-chart.tsx` line 1 had a stray `w` character: `w"use client"`. This caused a Turbopack parse error that failed the entire dashboard Docker build, preventing `./boom.sh` from completing.
 
+### Critical: the CSP is generated from `public_wopi_url`
+
+Nextcloud's `richdocuments` app generates a `Content-Security-Policy` header on every page load that explicitly whitelists the `public_wopi_url` value for `frame-src` and `form-action`. If `public_wopi_url=http://localhost:9980`, the CSP reads:
+
+```
+frame-src 'self' nc: http://localhost:9980
+form-action 'self' http://localhost:9980
+```
+
+Any attempt to load Collabora from a different hostname (e.g. `192.168.178.108:9980`) is **blocked by the browser** with a CSP violation — even if the container is healthy and the WOPI URLs look correct.
+
+`setup-office.sh` runs as a `before-starting` hook on **every Nextcloud container start**. This means manually fixing `public_wopi_url` via `occ` is overwritten the next time Nextcloud restarts. The only reliable fix is ensuring `HOMEFORGE_LAN_IP` is correct in `.env` **before** containers start.
+
 ---
 
 ## 3. The Fix (PR #60)
@@ -104,13 +117,23 @@ Find your LAN IP on Mac:
 ipconfig getifaddr en0
 ```
 
-**Step 3 — Re-sync WOPI config into the running containers:**
+**Step 3 — Fix `.env` then recreate both Nextcloud and Collabora:**
 ```bash
-./fix-office.sh
-docker compose up -d collabora   # recreates with new server_name (restart alone is not enough)
+# Fix the IP in .env first
+python3 -c "
+import re
+with open('.env', 'r') as f: content = f.read()
+content = re.sub(r'^HOMEFORGE_LAN_IP=.*', 'HOMEFORGE_LAN_IP=$(ipconfig getifaddr en0)', content, flags=re.MULTILINE)
+with open('.env', 'w') as f: f.write(content)
+"
+
+# Recreate both containers so setup-office.sh re-runs with the correct IP
+docker compose up -d nextcloud collabora
 ```
 
-> **Important:** `docker compose restart collabora` does NOT pick up `.env` changes. You must use `docker compose up -d collabora` to recreate the container.
+> **Critical:** You must recreate **Nextcloud** (not just Collabora) — `setup-office.sh` runs on every Nextcloud start and sets the CSP-generating `public_wopi_url`. Manually patching via `occ` is overwritten on the next restart.
+>
+> `docker compose restart` does NOT pick up `.env` changes. Always use `docker compose up -d` to recreate.
 
 ---
 
