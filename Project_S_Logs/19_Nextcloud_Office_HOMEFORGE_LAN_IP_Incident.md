@@ -119,4 +119,4 @@ docker compose up -d collabora   # recreates with new server_name (restart alone
 1. **All hostname fallbacks in `docker-compose.yml` must use `localhost`**, not a hardcoded IP. The only place a real IP belongs is in `.env`.
 2. **`fix-office.sh` must never hardcode `localhost`** — it should always read `HOMEFORGE_LAN_IP` from the live container.
 3. **After changing `.env`, use `docker compose up -d <service>`** (not `restart`) to apply env changes to a running container.
-4. **`cp .env.example .env` resets all your values.** Always set `HOMEFORGE_LAN_IP` to your LAN IP after copying the example.
+4. **Do not run `cp .env.example .env` manually.** Both `boom.sh` and `install.sh` create `.env` automatically on first run and detect your LAN IP. Running the copy command manually resets all your values and bypasses auto-detection.
