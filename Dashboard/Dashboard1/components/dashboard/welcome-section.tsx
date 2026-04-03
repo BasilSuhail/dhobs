@@ -11,6 +11,7 @@ import {
   Cloud,
   Book,
   BrainCircuit,
+  Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +23,7 @@ const SERVICE_PORTS = [
   { name: "Vaultwarden", port: 8083, icon: Key },
   { name: "Kiwix", port: 8087, icon: Book, route: "/kiwix" },
   { name: "Ollama", port: 8085, icon: BrainCircuit },
+  { name: "VPN Manager", port: 8090, icon: Shield },
 ]
 
 const bookmarks = {
