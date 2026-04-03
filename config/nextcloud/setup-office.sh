@@ -48,7 +48,15 @@ php /var/www/html/occ config:app:set richdocuments wopi_callback_url \
     --value="http://nextcloud:80" || true
 
 # public_wopi_url: Browser → Collabora (the editor iframe URL)
+# IMPORTANT: this value is baked into Nextcloud's Content Security Policy on
+# every page load. If it is 'localhost', the browser will block Collabora from
+# loading on any device that is not the server itself.
 PUBLIC_HOST="${HOMEFORGE_LAN_IP:-localhost}"
+if [ "$PUBLIC_HOST" = "localhost" ]; then
+    echo "WARNING: HOMEFORGE_LAN_IP is not set or is 'localhost'."
+    echo "  Nextcloud Office will only work on the server machine itself."
+    echo "  To fix: set HOMEFORGE_LAN_IP to your LAN IP in .env and recreate containers."
+fi
 php /var/www/html/occ config:app:set richdocuments public_wopi_url \
     --value="http://${PUBLIC_HOST}:9980" || true
 
