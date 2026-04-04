@@ -242,6 +242,7 @@ services:
       - WEBUI_AUTH=true
       - JWT_EXPIRES_IN=7d
       - ENABLE_PASSWORD_VALIDATION=true
+      - ENABLE_WEBSOCKET_SUPPORT=false
     depends_on:
       ollama:
         condition: service_healthy
