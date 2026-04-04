@@ -229,7 +229,7 @@ services:
       start_period: 15s
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:0.8.6
+    image: ghcr.io/open-webui/open-webui:0.8.12
     container_name: project-s-open-webui
     ports:
       - '8085:8080'
