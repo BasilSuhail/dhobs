@@ -237,19 +237,25 @@ services:
       - ./data/open-webui:/app/backend/data
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - CORS_ALLOW_ORIGIN=http://localhost:8085,http://localhost:3069,http://${HOMEFORGE_LAN_IP:-localhost}:8085,http://${HOMEFORGE_LAN_IP:-localhost}:3069
+      - WEBUI_AUTH=true
+      - JWT_EXPIRES_IN=7d
+      - ENABLE_PASSWORD_VALIDATION=true
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 2g
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
   ollama:
     image: ollama/ollama:0.6.5
