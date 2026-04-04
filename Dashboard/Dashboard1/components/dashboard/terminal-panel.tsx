@@ -177,11 +177,8 @@ export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: Ter
   const resizeRef = useRef<HTMLDivElement>(null)
   const tabCounter = useRef(1)
   const fitFns = useRef<Map<string, () => void>>(new Map())
-
-  // Fix #4: keep panel in DOM after first open so sessions survive close/reopen
+  // Fix #4: track whether the panel has ever been opened
   const hasEverOpened = useRef(false)
-  if (open) hasEverOpened.current = true
-  if (!hasEverOpened.current) return null
 
   const xtermTheme = useMemo<ITheme>(() => ({
     background:    mode === 'dark' ? '#0a0a0a' : '#f5f5f5',
@@ -301,6 +298,10 @@ export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: Ter
       return remaining
     })
   }, [onClose])
+
+  // Fix #4: guard AFTER all hooks — Rules of Hooks satisfied
+  if (open) hasEverOpened.current = true
+  if (!hasEverOpened.current) return null
 
   const panelHeight = isMaximized ? "100vh" : `${height}px`
 
