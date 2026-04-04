@@ -31,7 +31,8 @@ services:
       - '3070:3070'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/data:ro
+      - ./data:/data
+      - .:/homelab
     environment:
       - PORT=3069
       - WS_PORT=3070
@@ -152,8 +153,10 @@ services:
     volumes:
       - ./data/workspace:/home/project/workspace
       - /var/run/docker.sock:/var/run/docker.sock
+      - .:/homelab
+      - ./config/terminal/homelab-shell:/usr/local/bin/homelab-shell:ro
     environment:
-      - SHELL=/bin/bash
+      - SHELL=/usr/local/bin/homelab-shell
     restart: 'unless-stopped'
     deploy:
       resources:
