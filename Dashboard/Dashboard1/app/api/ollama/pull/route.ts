@@ -1,51 +1,33 @@
 import { NextRequest } from 'next/server'
-import { request as httpRequest } from 'http'
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
 
+/**
+ * Streaming proxy for Ollama pull — pipes NDJSON progress directly to the browser.
+ * Uses fetch() instead of Node http.request so Next.js App Router can stream
+ * the response body without buffering it.
+ */
 export async function POST(req: NextRequest) {
   const { name } = await req.json()
-  const payload = JSON.stringify({ name, stream: true })
-  const url = new URL(`${OLLAMA_BASE}/api/pull`)
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const options = {
-        hostname: url.hostname,
-        port: Number(url.port) || 11434,
-        path: '/api/pull',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-      }
+  let ollamaRes: Response
+  try {
+    ollamaRes = await fetch(`${OLLAMA_BASE}/api/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, stream: true }),
+    })
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: String(err) }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
 
-      const ollamaReq = httpRequest(options, (res) => {
-        res.on('data', (chunk: Buffer) => {
-          controller.enqueue(chunk)
-        })
-        res.on('end', () => {
-          controller.close()
-        })
-        res.on('error', (err) => {
-          controller.error(err)
-        })
-      })
-
-      ollamaReq.on('error', (err) => {
-        controller.error(err)
-      })
-
-      ollamaReq.write(payload)
-      ollamaReq.end()
-    },
-  })
-
-  return new Response(stream, {
+  return new Response(ollamaRes.body, {
+    status: ollamaRes.status,
     headers: {
       'Content-Type': 'application/x-ndjson',
-      'Transfer-Encoding': 'chunked',
       'Cache-Control': 'no-cache',
     },
   })

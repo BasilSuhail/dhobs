@@ -111,20 +111,22 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
     return () => clearInterval(id)
   }, [])
 
-  // Remove 'success' pull progress entries after 3s
+  // Remove terminal pull progress entries after a delay (success after 3s, error after 6s)
   useEffect(() => {
-    const successKeys = Object.entries(pullProgress)
-      .filter(([, v]) => v.status === 'success')
-      .map(([k]) => k)
-    if (successKeys.length === 0) return
-    const id = setTimeout(() => {
-      setPullProgress(prev => {
-        const next = { ...prev }
-        successKeys.forEach(k => delete next[k])
-        return next
-      })
-    }, 3000)
-    return () => clearTimeout(id)
+    const terminalKeys = Object.entries(pullProgress)
+      .filter(([, v]) => v.status === 'success' || v.status === 'error')
+      .map(([k, v]) => ({ k, delay: v.status === 'success' ? 3000 : 6000 }))
+    if (terminalKeys.length === 0) return
+    const timers = terminalKeys.map(({ k, delay }) =>
+      setTimeout(() => {
+        setPullProgress(prev => {
+          const next = { ...prev }
+          delete next[k]
+          return next
+        })
+      }, delay)
+    )
+    return () => timers.forEach(clearTimeout)
   }, [pullProgress])
 
   // Abort any in-progress pull on unmount
@@ -156,6 +158,7 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+      let hadError = false
 
       while (true) {
         const { done, value } = await reader.read()
@@ -170,26 +173,25 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
             const msg = JSON.parse(line)
             const total = msg.total ?? 0
             const completed = msg.completed ?? 0
+            // Treat Ollama-level errors (returned in the NDJSON) as failures
+            const status = msg.error ? 'error' : (msg.status ?? 'pulling')
+            if (status === 'error') hadError = true
             setPullProgress(prev => ({
               ...prev,
-              [name]: {
-                status: msg.status ?? 'pulling',
-                total,
-                completed,
-                percent: total > 0 ? Math.round((completed / total) * 100) : 0,
-                error: msg.error,
-              },
+              [name]: { status, total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0, error: msg.error },
             }))
           } catch { /* malformed NDJSON chunk, skip */ }
         }
       }
 
-      await fetchModels()
-      setPullInput('')
-      setPullProgress(prev => ({
-        ...prev,
-        [name]: { status: 'success', total: 1, completed: 1, percent: 100 },
-      }))
+      if (!hadError) {
+        await fetchModels()
+        setPullInput('')
+        setPullProgress(prev => ({
+          ...prev,
+          [name]: { status: 'success', total: 1, completed: 1, percent: 100 },
+        }))
+      }
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') return
       setPullProgress(prev => ({
