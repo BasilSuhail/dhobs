@@ -23,17 +23,19 @@ function formatSize(bytes: number): string {
 
 export function OllamaSection({ isWindow }: OllamaSectionProps) {
   const { colorTheme, mode } = useTheme()
-  const [ollamaUrl, setOllamaUrl] = useState("")
   const [models, setModels] = useState<OllamaModel[]>([])
   const [healthy, setHealthy] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchModels = useCallback(async (baseUrl: string) => {
+  // Proxy through /api/ollama — never hits port 11434 directly from the browser.
+  // Works regardless of how HomeForge is accessed (localhost, LAN IP, domain, reverse proxy).
+  const fetchModels = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${baseUrl}/api/tags`)
+      const res = await fetch('/api/ollama')
       if (!res.ok) throw new Error('not ok')
       const data = await res.json()
+      if (data.error) throw new Error(data.error)
       setModels(data.models || [])
       setHealthy(true)
     } catch {
@@ -45,9 +47,7 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
   }, [])
 
   useEffect(() => {
-    const base = `http://${window.location.hostname}:11434`
-    setOllamaUrl(base)
-    fetchModels(base)
+    fetchModels()
   }, [fetchModels])
 
   const content = (
@@ -86,7 +86,7 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
           </div>
         </div>
         <button
-          onClick={() => ollamaUrl && fetchModels(ollamaUrl)}
+          onClick={() => fetchModels()}
           disabled={loading}
           className="p-1.5 rounded-lg transition-opacity opacity-40 hover:opacity-100 disabled:opacity-20"
           style={{ color: colorTheme.foreground }}
@@ -107,7 +107,7 @@ export function OllamaSection({ isWindow }: OllamaSectionProps) {
               </p>
               <p className="text-xs opacity-40 max-w-xs" style={{ color: colorTheme.foreground }}>
                 Make sure the Ollama container is running. It should be accessible at{' '}
-                <code className="font-mono">{ollamaUrl}</code>.
+                <code className="font-mono">project-s-ollama:11434</code>.
               </p>
             </div>
           </div>
