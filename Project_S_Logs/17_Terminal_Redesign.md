@@ -1,4 +1,4 @@
-# Terminal Redesign: HomeForge (COMPLETED)
+# Terminal Redesign: HomeForge
 
 ## Architecture
 Browser (xterm.js) ←──WebSocket──→ Custom server (ws + node-pty) ←──PTY──→ /bin/bash
@@ -53,3 +53,68 @@ Rebuild and launch with:
 docker compose build dashboard
 docker compose up -d dashboard
 ```
+
+---
+
+## Phase 2: Terminal Integration & Unity (PR #90 — Issue #89)
+
+**Date:** 2026-04-04
+
+### Problems Fixed
+
+| # | Issue | Root Cause |
+|---|-------|------------|
+| 1 | `ws://` hardcoded — breaks over HTTPS | No protocol detection |
+| 2 | Ollama tab showed no context about which container was connected | Server sent no banner or title |
+| 3 | Stale closure in `closeTab` | `tabs` state passed as a workaround param instead of functional updater |
+| 4 | Sessions destroyed on panel close/reopen | `if (!open) return null` unmounted entire component tree |
+| 5 | No way to exec into a container from the dashboard | No integration between service tiles and terminal |
+| 6 | Tab titles static — never updated from the shell | `onTitleChange` not wired |
+
+### Solutions
+
+**Fix 1 — Protocol detection**
+`terminal-panel.tsx` now checks `window.location.protocol` and uses `wss://` when served over HTTPS.
+
+**Fix 2 — Context clarity for shell tabs**
+`custom-server.ts` sends an OSC title sequence (`\x1b]0;<name>\x07`) on connect so xterm.js picks it up as the tab title automatically. A `[connected to <container>]` banner is also written to the terminal.
+
+**Fix 3 — Stale closure**
+`closeTab` now uses a functional `setTabs(prev => ...)` updater. No longer requires `tabs` to be passed as a parameter from the render.
+
+**Fix 4 — Session persistence**
+Added a `hasEverOpened` ref. Once the panel opens for the first time, it stays in the DOM permanently. Closing the panel now uses `transform: translateY(100%)` (CSS off-screen) instead of unmounting — WebSocket connections and pty sessions survive.
+
+**Fix 5 — Exec into container from tiles**
+- Each container card in the "Active Infrastructure" section of the Dashboard now has a terminal icon button.
+- Clicking it sets `execTarget` in `page.tsx`, opens the terminal panel, and `TerminalPanel` opens a new tab with `?shell=container&container=<name>` connecting to that container via `docker exec -it`.
+- `custom-server.ts` validates the container is running before spawning. Returns an error message if not.
+- New `container` shell type with a distinct `<Container />` icon in the tab bar.
+
+**Fix 6 — Dynamic tab titles**
+`TerminalInstance` wires `terminal.onTitleChange` (xterm.js built-in) to a callback that updates tab title state in the parent. Works for all tab types.
+
+### Updated Architecture
+
+```
+Browser (xterm.js) ←─ ws/wss ─→ Custom WS server ←─ PTY ─→ shell context
+                                       │
+                              ?shell=ollama    → docker exec -it project-s-ollama /bin/sh
+                              ?shell=container → docker exec -it <container> /bin/sh
+                              (default)        → docker exec -it project-s-theia /bin/bash
+                                                 (fallback: /bin/bash on host)
+```
+
+Panel lifecycle:
+- First open → mount, create WS + pty
+- Close → `translateY(100%)`, sessions stay alive
+- Reopen → slide back, re-fit active terminal, sessions intact
+
+### Modified Files
+
+| File | Change |
+|------|--------|
+| `custom-server.ts` | Add `?shell=container&container=<name>` support, container running check, OSC title on connect |
+| `components/dashboard/terminal-panel.tsx` | All 6 fixes above |
+| `components/dashboard/dashboard-section.tsx` | Terminal exec button on each container tile |
+| `app/page.tsx` | `execTarget` state wired between `DashboardSection` and `TerminalPanel` |
