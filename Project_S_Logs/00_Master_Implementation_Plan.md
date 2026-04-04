@@ -621,6 +621,30 @@
 
 ---
 
+## Master Version Log & Project History
+
+### Versioning Nomenclature (1.2.3.4.5)
+To maintain a clear status of project maturity, we use a 5-part semantic versioning system as defined by Shaheer:
+1. **Released / Production Version** (e.g., `1` = Live)
+2. **Major Updates / Production Upgrades**
+3. **Major Bug Fixes**
+4. **Minor Updates / Features**
+5. **Minor Bug Fixes**
+
+*Pre-release Example:* `v0.0.0.3.3` indicates 3 minor updates and 3 minor bug fixes have been implemented prior to a major release.
+
+### Project History Log
+
+| Version | Date | Description | Author |
+| :--- | :--- | :--- | :--- |
+| **v0.0.0.4.0** | 2026-04-04 | **Current State:** Integrated Ollama, Open WebUI, and Terminal Theia exec. | Basil |
+| **v0.0.0.3.3** | 2026-04-01 | **Nextcloud Stability Fix:** Reverted Nextcloud to v30 due to v33 instability. | Basil |
+| **v0.0.0.3.2** | 2026-03-28 | **Service Integration:** Added Matrix Synapse and Element Web client. | Basil |
+| **v0.0.0.3.1** | 2026-03-25 | **CodeSpace Update:** Eclipse Theia integration and Docker socket mount. | Basil |
+| **v0.1.0 (Initial)**| 2026-03-23 | Initial Dashboard scaffolding and core service definitions. | Basil |
+
+---
+
 ## Project S: The Self-Hosted Digital Hub
 
 ### Document Purpose

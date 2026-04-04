@@ -8,7 +8,7 @@ Your homelab includes:
 - Nextcloud (file storage + Collabora Office, port 8081)
 - Vaultwarden (Bitwarden-compatible password manager, port 8083)
 - Matrix/Synapse + Element (self-hosted chat, ports 8008/8082)
-- Kiwix (offline Wikipedia/docs reader, port 8084)
+- Kiwix (offline Wikipedia/docs reader, port 8087)
 - Open-WebUI (AI chat interface, port 8085)
 - Ollama (local LLM runtime, port 11434)
 - Theia IDE (browser-based code editor, port 3030)
