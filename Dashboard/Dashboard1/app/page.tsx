@@ -14,6 +14,7 @@ export default function HomePage() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [execTarget, setExecTarget] = useState<string | undefined>()
   const [currentSection, setCurrentSection] = useState("home")
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -122,7 +123,7 @@ export default function HomePage() {
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
                 }}
               >
-                <DashboardSection />
+                <DashboardSection onExecContainer={(name) => { setExecTarget(name); setTerminalOpen(true) }} />
               </div>
             </>
           ) : (
@@ -132,7 +133,12 @@ export default function HomePage() {
       </main>
 
       {/* Terminal Panel */}
-      <TerminalPanel open={terminalOpen} onClose={() => setTerminalOpen(false)} />
+      <TerminalPanel
+        open={terminalOpen}
+        onClose={() => setTerminalOpen(false)}
+        execTarget={execTarget}
+        onExecConsumed={() => setExecTarget(undefined)}
+      />
 
       {/* Global Styles for Aurora Animation */}
       <style jsx global>{`

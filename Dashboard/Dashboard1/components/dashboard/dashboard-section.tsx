@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Cpu, MemoryStick, HardDrive, Wifi, Activity, Server, AlertTriangle, Clock, Database } from "lucide-react"
+import { Cpu, MemoryStick, HardDrive, Wifi, Activity, Server, AlertTriangle, Clock, Database, Terminal } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -159,7 +159,11 @@ function MemoryGauge({ value }: { value: number }) {
 
 const STORAGE_COLORS = ['#d4e157', '#22d3ee', '#a855f7', '#fb923c', '#ec4899'];
 
-export function DashboardSection() {
+interface DashboardSectionProps {
+  onExecContainer?: (containerName: string) => void
+}
+
+export function DashboardSection({ onExecContainer }: DashboardSectionProps) {
   const { colorTheme } = useTheme()
   const [stats, setStats] = useState<StatsData | null>(null)
   const [cpuHistory, setCpuHistory] = useState<HistoryPoint[]>([])
@@ -403,7 +407,7 @@ export function DashboardSection() {
           <h3 className="text-lg font-semibold mb-4" style={{ color: colorTheme.foreground }}>Active Infrastructure</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(stats?.containers || []).map((service) => (
-              <div 
+              <div
                 key={service.name}
                 className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl transition-all"
               >
@@ -412,6 +416,16 @@ export function DashboardSection() {
                   <p className="text-[10px] text-foreground/50 uppercase tracking-tighter">Docker Container</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {onExecContainer && (
+                    <button
+                      onClick={() => onExecContainer(`project-s-${service.name}`)}
+                      className="flex items-center justify-center h-6 w-6 rounded transition-all opacity-30 hover:opacity-100"
+                      style={{ color: colorTheme.foreground }}
+                      title={`Open terminal in ${service.name}`}
+                    >
+                      <Terminal className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                   <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-green-500/20 text-green-500">
                     Running
                   </span>
