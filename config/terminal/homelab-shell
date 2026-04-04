@@ -1,0 +1,10 @@
+#!/bin/sh
+# HomeForge unified shell — bridges Theia terminal into the dashboard container
+# so both Theia and the dashboard share one environment.
+# Falls back to local bash if the dashboard container is unavailable.
+if docker exec -it project-s-dashboard /bin/bash "$@" 2>/dev/null; then
+  exit $?
+else
+  echo "[dashboard unavailable — running local shell]"
+  exec /bin/bash "$@"
+fi

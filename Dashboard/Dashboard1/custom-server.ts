@@ -77,7 +77,7 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
-      cwd: process.env.HOME || '/root',
+      cwd: '/homelab',
       env: { ...process.env, TERM: 'xterm-256color' } as Record<string, string>,
     })
   } catch (err) {
