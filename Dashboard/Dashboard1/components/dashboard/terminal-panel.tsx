@@ -7,7 +7,7 @@ import { FitAddon } from "@xterm/addon-fit"
 import { WebLinksAddon } from "@xterm/addon-web-links"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme-provider"
-import { X, Maximize2, Minimize2, Plus, Terminal as TerminalIcon, BrainCircuit } from "lucide-react"
+import { X, Maximize2, Minimize2, Plus, Terminal as TerminalIcon, BrainCircuit, Container } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -18,30 +18,33 @@ import {
 interface TerminalTab {
   id: string
   title: string
-  shell?: 'ollama'
+  shell?: 'ollama' | 'container'
+  containerName?: string
 }
 
 interface TerminalPanelProps {
   open: boolean
   onClose: () => void
+  execTarget?: string         // full container name to exec into (e.g. 'project-s-jellyfin')
+  onExecConsumed?: () => void // called after execTarget has been consumed
 }
 
-// Per-tab terminal instance — mounts once, stays alive until tab is closed
 interface TerminalInstanceProps {
   tabId: string
   active: boolean
-  shell?: 'ollama'
+  shell?: 'ollama' | 'container'
+  containerName?: string
   xtermTheme: ITheme
   onFitReady: (fit: () => void) => void
+  onTitleChange?: (title: string) => void
 }
 
-function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: TerminalInstanceProps) {
+function TerminalInstance({ tabId, active, shell, containerName, xtermTheme, onFitReady, onTitleChange }: TerminalInstanceProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
 
-  // Initialize terminal + WebSocket on mount
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -61,15 +64,27 @@ function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: Term
     terminal.loadAddon(new WebLinksAddon())
     terminal.open(container)
 
-    // Fit after paint so container has dimensions
     const fitTimer = setTimeout(() => {
       fitAddon.fit()
       terminal.focus()
     }, 50)
 
-    const wsUrl = shell === 'ollama'
-      ? `ws://${window.location.hostname}:3070?shell=ollama`
-      : `ws://${window.location.hostname}:3070`
+    // Fix #6: dynamic tab title via OSC escape sequences from the pty
+    terminal.onTitleChange((title: string) => {
+      if (title) onTitleChange?.(title)
+    })
+
+    // Fix #1: detect ws vs wss based on page protocol
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    let wsUrl: string
+    if (shell === 'container' && containerName) {
+      wsUrl = `${proto}://${window.location.hostname}:3070?shell=container&container=${encodeURIComponent(containerName)}`
+    } else if (shell === 'ollama') {
+      wsUrl = `${proto}://${window.location.hostname}:3070?shell=ollama`
+    } else {
+      wsUrl = `${proto}://${window.location.hostname}:3070`
+    }
+
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
@@ -101,7 +116,6 @@ function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: Term
     fitRef.current = fitAddon
     wsRef.current = ws
 
-    // Expose fit function to parent for resize handling
     onFitReady(() => {
       if (fitRef.current && wsRef.current) {
         fitRef.current.fit()
@@ -120,7 +134,6 @@ function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: Term
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // When tab becomes active, re-fit and focus
   useEffect(() => {
     if (!active) return
     const timer = setTimeout(() => {
@@ -136,7 +149,6 @@ function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: Term
     return () => clearTimeout(timer)
   }, [active])
 
-  // Update xterm theme when dashboard theme changes
   useEffect(() => {
     if (termRef.current) {
       termRef.current.options.theme = xtermTheme
@@ -155,7 +167,7 @@ function TerminalInstance({ tabId, active, shell, xtermTheme, onFitReady }: Term
   )
 }
 
-export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
+export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: TerminalPanelProps) {
   const { colorTheme, mode } = useTheme()
   const [tabs, setTabs] = useState<TerminalTab[]>([{ id: "1", title: "bash" }])
   const [activeTab, setActiveTab] = useState("1")
@@ -164,8 +176,12 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
 
   const resizeRef = useRef<HTMLDivElement>(null)
   const tabCounter = useRef(1)
-  // Stores fit+resize functions per tab so parent can trigger on panel resize
   const fitFns = useRef<Map<string, () => void>>(new Map())
+
+  // Fix #4: keep panel in DOM after first open so sessions survive close/reopen
+  const hasEverOpened = useRef(false)
+  if (open) hasEverOpened.current = true
+  if (!hasEverOpened.current) return null
 
   const xtermTheme = useMemo<ITheme>(() => ({
     background:    mode === 'dark' ? '#0a0a0a' : '#f5f5f5',
@@ -194,6 +210,29 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
   const handleFitReady = useCallback((tabId: string) => (fn: () => void) => {
     fitFns.current.set(tabId, fn)
   }, [])
+
+  // Fix #6: dynamic tab title updates from OSC sequences
+  const handleTitleChange = useCallback((tabId: string) => (title: string) => {
+    setTabs(prev => prev.map(t => t.id === tabId ? { ...t, title } : t))
+  }, [])
+
+  // Fix #4: re-fit when panel slides back into view
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(() => fitFns.current.get(activeTab)?.(), 100)
+    return () => clearTimeout(timer)
+  }, [open, activeTab])
+
+  // Fix #5: open a new exec tab when a container tile triggers it
+  useEffect(() => {
+    if (!execTarget) return
+    tabCounter.current += 1
+    const id = String(tabCounter.current)
+    const shortName = execTarget.replace('project-s-', '')
+    setTabs(prev => [...prev, { id, title: shortName, shell: 'container', containerName: execTarget }])
+    setActiveTab(id)
+    onExecConsumed?.()
+  }, [execTarget, onExecConsumed])
 
   // Resize handle drag
   useEffect(() => {
@@ -230,7 +269,6 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
     return () => resizeEl.removeEventListener("mousedown", onMouseDown)
   }, [height, activeTab])
 
-  // Re-fit on maximize toggle
   useEffect(() => {
     const timer = setTimeout(() => fitFns.current.get(activeTab)?.(), 100)
     return () => clearTimeout(timer)
@@ -250,31 +288,30 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
     setActiveTab(id)
   }, [])
 
-  const closeTab = useCallback((tabId: string, currentTabs: TerminalTab[]) => {
+  // Fix #3: stale closure fix — use functional state updater, no more passing tabs as param
+  const closeTab = useCallback((tabId: string) => {
     fitFns.current.delete(tabId)
-    if (currentTabs.length === 1) {
-      onClose()
-      return
-    }
-    const remaining = currentTabs.filter(t => t.id !== tabId)
-    setTabs(remaining)
-    setActiveTab(prev => prev === tabId ? remaining[0].id : prev)
+    setTabs(prev => {
+      if (prev.length === 1) {
+        onClose()
+        return prev
+      }
+      const remaining = prev.filter(t => t.id !== tabId)
+      setActiveTab(a => a === tabId ? remaining[0].id : a)
+      return remaining
+    })
   }, [onClose])
-
-  if (!open) return null
 
   const panelHeight = isMaximized ? "100vh" : `${height}px`
 
   return (
+    // Fix #4: use CSS transform to hide instead of unmounting — sessions stay alive
     <div
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-[60] flex flex-col",
-        "transition-transform duration-300 ease-out",
-        open ? "translate-y-0" : "translate-y-full"
-      )}
+      className="fixed bottom-0 left-0 right-0 z-[60] flex flex-col transition-transform duration-300 ease-out"
       style={{
         height: panelHeight,
         marginLeft: isMaximized ? 0 : "72px",
+        transform: open ? 'translateY(0)' : 'translateY(100%)',
       }}
     >
       {/* Resize Handle */}
@@ -318,11 +355,13 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
               >
                 {tab.shell === 'ollama'
                   ? <BrainCircuit className="h-3 w-3" strokeWidth={1.5} />
+                  : tab.shell === 'container'
+                  ? <Container className="h-3 w-3" strokeWidth={1.5} />
                   : <TerminalIcon className="h-3 w-3" strokeWidth={1.5} />
                 }
                 <span className="font-medium">{tab.title}</span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); closeTab(tab.id, tabs) }}
+                  onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
                   className="ml-1 opacity-0 group-hover:opacity-100 transition-all"
                   style={{ color: `${colorTheme.muted}80` }}
                 >
@@ -342,7 +381,7 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={8}>
-                  <p>New tab</p>
+                  <p>New bash tab</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -391,8 +430,10 @@ export function TerminalPanel({ open, onClose }: TerminalPanelProps) {
               tabId={tab.id}
               active={activeTab === tab.id}
               shell={tab.shell}
+              containerName={tab.containerName}
               xtermTheme={xtermTheme}
               onFitReady={handleFitReady(tab.id)}
+              onTitleChange={handleTitleChange(tab.id)}
             />
           ))}
         </div>

@@ -30,6 +30,29 @@ function isTheiaRunning(): Promise<boolean> {
   })
 }
 
+/** Check if a named container is running via Docker socket. */
+function isContainerRunning(name: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = httpGet({
+      socketPath: '/var/run/docker.sock',
+      path: `/containers/${name}/json`,
+    }, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data)
+          resolve(json?.State?.Running === true)
+        } catch {
+          resolve(false)
+        }
+      })
+    })
+    req.on('error', () => resolve(false))
+    req.setTimeout(2000, () => { req.destroy(); resolve(false) })
+  })
+}
+
 const server = createServer((_req, res) => {
   res.writeHead(200)
   res.end('Project S Terminal WS Server\n')
@@ -40,9 +63,9 @@ const wss = new WebSocketServer({ server })
 wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
   let shell: pty.IPty | null = null
 
-  // Parse shell type from query string (?shell=ollama → exec into ollama container)
   const url = new URL(req.url || '/', `http://localhost:${WS_PORT}`)
-  const shellType = url.searchParams.get('shell') // 'ollama' | null
+  const shellType = url.searchParams.get('shell') // 'ollama' | 'container' | null
+  const containerName = url.searchParams.get('container') // e.g. 'project-s-jellyfin'
 
   let cmd: string
   let args: string[]
@@ -50,7 +73,20 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
   if (shellType === 'ollama') {
     cmd = 'docker'
     args = ['exec', '-it', 'project-s-ollama', '/bin/sh']
-    ws.send('\x1b[2m[connected to ollama]\x1b[0m\r\n')
+    ws.send('\x1b]0;ollama\x07') // set tab title via OSC
+    ws.send('\x1b[2m[connected to project-s-ollama]\x1b[0m\r\n')
+  } else if (shellType === 'container' && containerName) {
+    const running = await isContainerRunning(containerName)
+    if (!running) {
+      ws.send(`\r\n\x1b[31mContainer '${containerName}' is not running.\x1b[0m\r\n`)
+      ws.close()
+      return
+    }
+    cmd = 'docker'
+    args = ['exec', '-it', containerName, '/bin/sh']
+    const shortName = containerName.replace('project-s-', '')
+    ws.send(`\x1b]0;${shortName}\x07`) // set tab title via OSC
+    ws.send(`\x1b[2m[connected to ${containerName}]\x1b[0m\r\n`)
   } else {
     const useTheia = await isTheiaRunning()
     if (useTheia) {
@@ -77,8 +113,8 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
     return
   }
 
-  // Inject ollama alias into Theia shell so 'ollama' works natively without relying on .bashrc timing
-  if (shellType !== 'ollama') {
+  // Inject ollama alias into Theia/bash shell so 'ollama' works natively
+  if (shellType !== 'ollama' && shellType !== 'container') {
     setTimeout(() => {
       if (shell) shell.write("alias ollama='docker exec -it project-s-ollama ollama'\n")
     }, 300)
