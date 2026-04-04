@@ -101,8 +101,8 @@ Browser (xterm.js) ←─ ws/wss ─→ Custom WS server ←─ PTY ─→ shell
                                        │
                               ?shell=ollama    → docker exec -it project-s-ollama /bin/sh
                               ?shell=container → docker exec -it <container> /bin/sh
-                              (default)        → docker exec -it project-s-theia /bin/bash
-                                                 (fallback: /bin/bash on host)
+                              (default)        → /bin/bash in dashboard container (docker.io installed)
+                                                 aliases: ollama, theia
 ```
 
 Panel lifecycle:
@@ -114,7 +114,42 @@ Panel lifecycle:
 
 | File | Change |
 |------|--------|
-| `custom-server.ts` | Add `?shell=container&container=<name>` support, container running check, OSC title on connect |
+| `custom-server.ts` | Add `?shell=container&container=<name>` support, container running check, OSC title on connect, unified default shell |
 | `components/dashboard/terminal-panel.tsx` | All 6 fixes above |
 | `components/dashboard/dashboard-section.tsx` | Terminal exec button on each container tile |
 | `app/page.tsx` | `execTarget` state wired between `DashboardSection` and `TerminalPanel` |
+
+---
+
+## Phase 3: Unified Terminal Shell (closes #91)
+
+**Date:** 2026-04-04
+
+### Problem
+The default terminal tab exec'd into the Theia container, which doesn't have the Docker CLI installed. This meant `ollama` and all `docker` commands failed from the default shell. Users had to switch to a dedicated Ollama tab or container tab to run anything docker-related.
+
+### Solution
+Removed the `isTheiaRunning()` check and Theia exec routing entirely. The default shell is now `/bin/bash` running inside the **dashboard container**, which already has `docker.io` installed.
+
+On shell start, two aliases are injected automatically:
+```bash
+alias ollama='docker exec -it project-s-ollama ollama'
+alias theia='docker exec -it project-s-theia /bin/bash'
+```
+
+This gives one unified terminal where you can:
+- Run `docker ps`, `docker compose logs <service>`, `docker exec` — all natively
+- Run `ollama list`, `ollama run llama3.2` — via alias
+- Jump into Theia workspace with `theia` — via alias
+- Use dedicated Ollama/container tabs as optional shortcuts
+
+Theia IDE remains accessible at `localhost:3030` in the browser for workspace use.
+
+### What was removed
+- `isTheiaRunning()` function — no longer needed
+- Theia exec routing in the default shell path
+
+### Modified Files
+| File | Change |
+|------|--------|
+| `custom-server.ts` | Remove `isTheiaRunning`, default shell is now `/bin/bash` in dashboard container, expanded aliases |

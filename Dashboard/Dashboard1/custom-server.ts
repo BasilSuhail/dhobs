@@ -7,28 +7,6 @@ import * as pty from 'node-pty'
 const WS_PORT = parseInt(process.env.WS_PORT || '3070', 10)
 const hostname = '0.0.0.0'
 
-/** Check via Docker socket HTTP API — avoids docker CLI permission issues. */
-function isTheiaRunning(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const req = httpGet({
-      socketPath: '/var/run/docker.sock',
-      path: '/containers/project-s-theia/json',
-    }, (res) => {
-      let data = ''
-      res.on('data', (chunk) => { data += chunk })
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data)
-          resolve(json?.State?.Running === true)
-        } catch {
-          resolve(false)
-        }
-      })
-    })
-    req.on('error', () => resolve(false))
-    req.setTimeout(2000, () => { req.destroy(); resolve(false) })
-  })
-}
 
 /** Check if a named container is running via Docker socket. */
 function isContainerRunning(name: string): Promise<boolean> {
@@ -88,15 +66,10 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
     ws.send(`\x1b]0;${shortName}\x07`) // set tab title via OSC
     ws.send(`\x1b[2m[connected to ${containerName}]\x1b[0m\r\n`)
   } else {
-    const useTheia = await isTheiaRunning()
-    if (useTheia) {
-      cmd = 'docker'
-      args = ['exec', '-it', '-w', '/home/project/workspace', 'project-s-theia', '/bin/bash']
-      ws.send('\x1b[2m[connected to theia]\x1b[0m\r\n')
-    } else {
-      cmd = '/bin/bash'
-      args = []
-    }
+    // Unified shell — runs in the dashboard container which has docker.io installed.
+    // All docker/compose commands work natively. Theia IDE is at localhost:3030.
+    cmd = '/bin/bash'
+    args = []
   }
 
   try {
@@ -113,10 +86,14 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
     return
   }
 
-  // Inject ollama alias into Theia/bash shell so 'ollama' works natively
+  // Inject convenience aliases into the default unified shell
   if (shellType !== 'ollama' && shellType !== 'container') {
     setTimeout(() => {
-      if (shell) shell.write("alias ollama='docker exec -it project-s-ollama ollama'\n")
+      if (shell) shell.write([
+        "alias ollama='docker exec -it project-s-ollama ollama'",
+        "alias theia='docker exec -it project-s-theia /bin/bash'",
+        "clear",
+      ].join(' && ') + '\n')
     }, 300)
   }
 
