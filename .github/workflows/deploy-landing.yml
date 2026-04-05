@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: Dashboard/Dashboard1
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Remove server-only files (incompatible with static export)
         working-directory: Dashboard/Dashboard1
