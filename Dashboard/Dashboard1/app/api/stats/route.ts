@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
+import { requireSession } from '@/lib/auth'
 
 const execAsync = promisify(exec)
 
@@ -17,6 +18,7 @@ async function getDirSize(dirPath: string): Promise<number> {
 }
 
 export async function GET() {
+  await requireSession()
   try {
     // 1. Get Docker Stats
     const { stdout } = await execAsync("docker stats --no-stream --format '{{json .}}'")

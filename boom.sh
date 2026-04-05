@@ -90,6 +90,10 @@ if [ ! -f ./data/vpn/server.conf ]; then
     cp -r ./config/vpn/. ./data/vpn/
     echo "VPN seed configs copied to ./data/vpn/"
 fi
+# Security directory for entropy key, encrypted key file, and user database
+# Must exist on the host before the container starts so Docker mounts it correctly
+mkdir -p ./data/security
+chmod 700 ./data/security
 mkdir -p ./config/matrix
 
 # Check for native Ollama process holding port 11434 (common on macOS)
@@ -193,6 +197,26 @@ done
 
 echo -e "\n✅ Project S is LIVE!"
 echo "🔗 Access your dashboard at: http://localhost:3069"
+
+# Check if the dashboard has been set up before — key file presence means setup is done
+if [ ! -f ./data/security/.homeforge.key ]; then
+    echo ""
+    echo "┌─────────────────────────────────────────────────────┐"
+    echo "│  FIRST-TIME DASHBOARD SETUP REQUIRED                │"
+    echo "│                                                     │"
+    echo "│  1. Open http://localhost:3069                      │"
+    echo "│     You will be redirected to /setup automatically  │"
+    echo "│                                                     │"
+    echo "│  2. Move your mouse over the canvas to generate     │"
+    echo "│     your 128-character encryption key               │"
+    echo "│                                                     │"
+    echo "│  3. Copy and store the key somewhere safe —         │"
+    echo "│     you will need it if you ever need to recover    │"
+    echo "│                                                     │"
+    echo "│  4. Create your admin account to finish setup       │"
+    echo "└─────────────────────────────────────────────────────┘"
+    echo ""
+fi
 
 # 5. Open in default browser (cross-platform)
 if command -v xdg-open &> /dev/null; then

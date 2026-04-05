@@ -30,6 +30,9 @@ RUN npm run build
 # Compile the custom WebSocket server
 RUN npx tsc --project tsconfig.server.json
 
+# Compile the bootstrap key-generation script
+RUN npx tsc --project tsconfig.scripts.json
+
 # Production image, copy all the files and run next
 FROM base AS runner
 RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
@@ -58,11 +61,33 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy compiled custom server
 COPY --from=builder --chown=nextjs:nodejs /app/custom-server.js ./
 
+# Copy compiled bootstrap script (runs before Next.js to generate/load entropy key)
+RUN mkdir -p /app/scripts
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/bootstrap.js ./scripts/bootstrap.js
+
+# Copy compiled lib/crypto helpers required by bootstrap.js at runtime
+# (tsc emits these alongside bootstrap.js; they are NOT bundled into .next/standalone)
+RUN mkdir -p /app/lib/crypto
+COPY --from=builder --chown=nextjs:nodejs /app/lib/crypto/keystore.js ./lib/crypto/keystore.js
+COPY --from=builder --chown=nextjs:nodejs /app/lib/crypto/entropy.js  ./lib/crypto/entropy.js
+
 # Copy server-side deps not bundled by standalone (ws has no deps; node-pty is native)
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/ws ./node_modules/ws
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/ws       ./node_modules/ws
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/node-pty ./node_modules/node-pty
 
-# Startup script: runs WS server + Next.js standalone together
+# Copy native auth/db modules excluded from standalone bundle via serverExternalPackages
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/better-sqlite3-multiple-ciphers ./node_modules/better-sqlite3-multiple-ciphers
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/argon2                          ./node_modules/argon2
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@phc                     ./node_modules/@phc
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/node-gyp-build           ./node_modules/node-gyp-build
+
+# Create the security data directory (mounted as a Docker volume at runtime)
+# Permissions set to 700 so only the nextjs user can read/write key material
+RUN mkdir -p /app/data/security \
+  && chown nextjs:nodejs /app/data/security \
+  && chmod 700 /app/data/security
+
+# Startup script: runs bootstrap → WS server + Next.js standalone together
 COPY --from=builder --chown=nextjs:nodejs /app/start.sh ./
 RUN chmod +x /app/start.sh
 
