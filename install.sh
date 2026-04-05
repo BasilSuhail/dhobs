@@ -75,6 +75,10 @@ mkdir -p ./data/filebrowser
 [ -d ./data/filebrowser/database.db ] && rm -rf ./data/filebrowser/database.db
 touch ./data/filebrowser/database.db
 mkdir -p ./data/vpn/{pki,clients,config,staticclients,log,db}
+# Security directory for entropy key, encrypted key file, and user database
+# Must exist on the host before the container starts so Docker mounts it as a directory, not a file
+mkdir -p ./data/security
+chmod 700 ./data/security
 # Copy VPN seed configs only on first run — never overwrite a live PKI
 if [ ! -f ./data/vpn/server.conf ]; then
     cp -r ./config/vpn/. ./data/vpn/
@@ -187,6 +191,16 @@ fi
 
 echo "--------------------------------------------------"
 echo "Installation complete! Your services are starting."
+echo "--------------------------------------------------"
+echo ""
+echo "FIRST-TIME DASHBOARD SETUP:"
+echo "  The dashboard requires a one-time setup before you can log in."
+echo "  1. Wait ~30 seconds for the dashboard container to start"
+echo "  2. Open http://localhost:3069 — you will be redirected to /setup"
+echo "  3. Move your mouse around the canvas to generate your encryption key"
+echo "  4. Copy and store the 128-character key somewhere safe (you will need it for recovery)"
+echo "  5. Create your admin account"
+echo ""
 echo "--------------------------------------------------"
 echo "Dashboard:      http://localhost:3069"
 echo "Jellyfin:       http://localhost:8096"

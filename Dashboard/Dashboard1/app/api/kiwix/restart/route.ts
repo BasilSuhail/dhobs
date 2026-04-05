@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import http from 'http'
+import { requireAdmin } from '@/lib/auth'
 
 export async function POST() {
+  await requireAdmin()
   return new Promise<NextResponse>((resolve) => {
     const req = http.request(
       {
