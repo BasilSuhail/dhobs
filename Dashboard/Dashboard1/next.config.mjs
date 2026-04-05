@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
+const isLanding = process.env.LANDING === 'true'
+
 const nextConfig = {
-  output: 'standalone',
+  output: isLanding ? 'export' : 'standalone',
+  basePath: isLanding ? '/ProjectS-HomeForge' : '',
   images: {
     unoptimized: true,
   },
   devIndicators: false,
-  // Prevent Next.js from bundling native modules — they must be loaded by Node.js at runtime
-  serverExternalPackages: ['better-sqlite3-multiple-ciphers', 'argon2'],
+  ...(isLanding ? {} : {
+    serverExternalPackages: ['better-sqlite3-multiple-ciphers', 'argon2'],
+  }),
 }
 
 export default nextConfig
