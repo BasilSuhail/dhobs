@@ -11,11 +11,20 @@ const hostname = '0.0.0.0'
 const ALLOWED_CONTAINERS = new Set([
   'project-s-jellyfin',
   'project-s-nextcloud',
+  'project-s-nextcloud-db',
   'project-s-ollama',
+  'project-s-open-webui',
   'project-s-kiwix-reader',
+  'project-s-kiwix-manager',
   'project-s-collabora',
   'project-s-vaultwarden',
   'project-s-dashboard',
+  'project-s-theia',
+  'project-s-matrix-server',
+  'project-s-matrix-client',
+  'project-s-matrix-db',
+  'project-s-openvpn',
+  'project-s-openvpn-ui',
 ])
 
 const VALID_SHELL_TYPES = new Set(['ollama', 'container', null])
