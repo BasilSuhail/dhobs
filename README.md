@@ -2,6 +2,8 @@
 
 > Your personal, private, self-hosted digital hub — one dashboard, one login, zero cloud dependency.
 
+**[Live Preview →](https://basilsuhail.github.io/ProjectS-HomeForge)**
+
 ---
 
 ## Table of Contents

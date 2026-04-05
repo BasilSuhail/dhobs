@@ -36,6 +36,7 @@ export function Sidebar({
   terminalOpen, 
   onToggleTerminal
 }: SidebarProps) {
+  const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const [showSettings, setShowSettings] = useState(false)
   const [showThemes, setShowThemes] = useState(false)
   const { colorTheme, setColorTheme } = useTheme()
@@ -86,13 +87,15 @@ export function Sidebar({
             onClick={() => onNavigate?.("metrics")}
             theme={colorTheme}
           />
-          <NavButton
-            icon={BrainCircuit}
-            label="Ollama"
-            active={activeSection === "ollama"}
-            onClick={() => onNavigate?.("ollama")}
-            theme={colorTheme}
-          />
+          {!IS_LANDING && (
+            <NavButton
+              icon={BrainCircuit}
+              label="Ollama"
+              active={activeSection === "ollama"}
+              onClick={() => onNavigate?.("ollama")}
+              theme={colorTheme}
+            />
+          )}
         </nav>
 
         {/* Divider */}

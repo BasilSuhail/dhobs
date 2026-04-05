@@ -185,8 +185,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
+
+    // Landing page always forces dark mode — ignore any saved preference.
+    // This ensures visitors always see the dark theme on the public preview site.
+    if (process.env.NEXT_PUBLIC_LANDING_MODE === 'true') {
+      document.documentElement.classList.add("dark")
+      applyColorTheme(colorThemes[0])
+      return
+    }
+
     const savedThemeId = localStorage.getItem("colorThemeId")
-    
+
     if (savedThemeId) {
       const theme = colorThemes.find(t => t.id === savedThemeId)
       if (theme) {

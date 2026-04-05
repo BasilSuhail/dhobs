@@ -160,13 +160,13 @@ function MemoryGauge({ value }: { value: number }) {
 const STORAGE_COLORS = ['#d4e157', '#22d3ee', '#a855f7', '#fb923c', '#ec4899'];
 
 import { MOCK_STATS } from "@/lib/landing-data"
-const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
 
 interface DashboardSectionProps {
   onExecContainer?: (containerName: string) => void
 }
 
 export function DashboardSection({ onExecContainer }: DashboardSectionProps) {
+  const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
   const [stats, setStats] = useState<StatsData | null>(null)
   const [cpuHistory, setCpuHistory] = useState<HistoryPoint[]>([])

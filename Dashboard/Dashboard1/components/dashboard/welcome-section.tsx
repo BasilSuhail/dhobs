@@ -17,8 +17,6 @@ import { cn } from "@/lib/utils"
 import { AppHoverCard } from "@/components/dashboard/app-hover-card"
 import { HOVER_CARDS } from "@/lib/landing-data"
 
-const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
-
 const SERVICE_PORTS = [
   { name: "Jellyfin", port: 8096, icon: Play },
   { name: "Nextcloud", port: 8081, icon: Cloud },
@@ -70,6 +68,7 @@ interface WelcomeSectionProps {
 }
 
 export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
+  const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
   const [hostname, setHostname] = useState("")
   const router = useRouter()
@@ -80,13 +79,14 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
 
   const applications = useMemo(
     () =>
-      SERVICE_PORTS.map((svc) => ({
-        name: svc.name,
-        url: 'port' in svc && hostname ? `http://${hostname}:${svc.port}` : "",
-        icon: svc.icon,
-        route: 'route' in svc ? (svc as { route: string }).route : undefined,
-        section: 'section' in svc ? (svc as { section: string }).section : undefined,
-      })),
+      SERVICE_PORTS
+        .map((svc) => ({
+          name: svc.name,
+          url: 'port' in svc && hostname ? `http://${hostname}:${svc.port}` : "",
+          icon: svc.icon,
+          route: 'route' in svc ? (svc as { route: string }).route : undefined,
+          section: 'section' in svc ? (svc as { section: string }).section : undefined,
+        })),
     [hostname]
   )
 
