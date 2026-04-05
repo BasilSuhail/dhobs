@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { request as httpRequest } from 'http'
+import { requireAdmin } from '@/lib/auth'
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
 
 export async function DELETE(req: NextRequest) {
+  await requireAdmin()
   const body = await req.json()
 
   return new Promise<NextResponse>((resolve) => {

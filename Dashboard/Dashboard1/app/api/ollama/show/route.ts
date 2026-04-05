@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { request as httpRequest } from 'http'
+import { requireSession } from '@/lib/auth'
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
 
 export async function POST(req: NextRequest) {
+  await requireSession()
   const body = await req.json()
 
   return new Promise<NextResponse>((resolve) => {
