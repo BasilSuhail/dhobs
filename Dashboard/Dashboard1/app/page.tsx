@@ -10,6 +10,8 @@ import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
+const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
+
 export default function HomePage() {
   const { colorTheme } = useTheme()
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -142,12 +144,14 @@ export default function HomePage() {
       </main>
 
       {/* Terminal Panel */}
-      <TerminalPanel
-        open={terminalOpen}
-        onClose={() => setTerminalOpen(false)}
-        execTarget={execTarget}
-        onExecConsumed={() => setExecTarget(undefined)}
-      />
+      {!IS_LANDING && (
+        <TerminalPanel
+          open={terminalOpen}
+          onClose={() => setTerminalOpen(false)}
+          execTarget={execTarget}
+          onExecConsumed={() => setExecTarget(undefined)}
+        />
+      )}
 
       {/* Global Styles for Aurora Animation */}
       <style jsx global>{`
