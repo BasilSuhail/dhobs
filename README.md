@@ -82,18 +82,18 @@ docker compose up -d
 
 After the containers are running, the dashboard requires a one-time setup before it can be used.
 
-### Step 1 — Generate Matrix Synapse secrets
+### Step 1 — Matrix Synapse secrets
 
-Before starting, add the following to your `.env` file. Generate each value with:
+`boom.sh` and `install.sh` auto-generate these on first run. If you're using **Option C (manual `docker compose`)**, add them to `.env` manually:
 
 ```bash
-openssl rand -hex 32
+openssl rand -hex 32   # run three times — one value per variable
 ```
 
 ```env
-MATRIX_REGISTRATION_SECRET=<output of openssl rand -hex 32>
-MATRIX_MACAROON_SECRET_KEY=<output of openssl rand -hex 32>
-MATRIX_FORM_SECRET=<output of openssl rand -hex 32>
+MATRIX_REGISTRATION_SECRET=<generated>
+MATRIX_MACAROON_SECRET_KEY=<generated>
+MATRIX_FORM_SECRET=<generated>
 ```
 
 These are injected into `config/matrix/homeserver.yaml` at container startup. Never reuse values between installations.
@@ -116,7 +116,7 @@ Navigate to `http://localhost:3069` and log in with the admin credentials create
 
 ## 📦 Integrated Services
 
-The following services are currently functional and accessible via their own ports:
+The following services are currently running and accessible via their own ports:
 
 | Service | Description | Port |
 |---|---|---|
@@ -124,10 +124,15 @@ The following services are currently functional and accessible via their own por
 | Jellyfin | Media & entertainment server | `:8096` |
 | Nextcloud | Cloud productivity & file management | `:8081` |
 | Nextcloud Office (Collabora) | Document editing — auto-configured on start | `:9980` |
-| Theia IDE | Integrated development environment | `:3030` |
-| Matrix (Element) | Secure, encrypted communications | `:8082` |
-| Vaultwarden | Enterprise-grade password management | `:8083` |
-| Kiwix | Offline knowledge base | `:8087` |
+| Theia IDE | Browser-based IDE with terminal & Docker access | `:3030` |
+| Matrix / Element | Secure, encrypted self-hosted chat | `:8082` |
+| Vaultwarden | Password manager (Bitwarden-compatible) | `:8083` |
+| Open-WebUI | Local AI chat interface (connected to Ollama) | `:8085` |
+| Kiwix Manager | File browser for uploading `.zim` files | `:8086` |
+| Kiwix Reader | Offline knowledge base (Wikipedia, etc.) | `:8087` |
+| OpenVPN UI | VPN client management interface | `:8090` |
+| Ollama | Local LLM inference engine | `:11434` |
+| OpenVPN Server | Self-hosted VPN | `:1194/udp` |
 
 ---
 
@@ -181,56 +186,55 @@ Install once. Get a private, encrypted, modular platform that runs your digital 
 
 ## Core Features
 
+**Currently implemented:**
+
 | Module | What it does | Powered by |
 |---|---|---|
-| File & productivity | Documents, calendar, contacts, email | Nextcloud |
+| File & productivity | Documents, calendar, contacts, email | Nextcloud + Collabora |
 | Media server | Stream video, music, photos | Jellyfin |
-| Code environment | Browser-based IDE | Eclipse Theia |
-| Communications | Self-hosted chat & messaging | Matrix Synapse |
+| Code environment | Browser-based IDE with terminal | Eclipse Theia |
+| Communications | Self-hosted encrypted chat | Matrix Synapse + Element |
 | Password manager | Vault for all credentials | Vaultwarden |
-| Automation | Workflow automation | n8n |
-| Smart home | Device control & automation | Home Assistant |
-| AI assistant | Local LLM chat interface | LibreChat + Ollama |
-| Version control | Self-hosted Git | Gitea |
-| Reverse proxy | Unified routing & SSL | Nginx |
+| AI assistant | Local LLM chat interface | Open-WebUI + Ollama |
+| Offline knowledge | Wikipedia & more, no internet required | Kiwix |
+| VPN | Self-hosted private network | OpenVPN |
+
+**Planned modules:**
+
+| Module | Powered by |
+|---|---|
+| Workflow automation | n8n |
+| Smart home | Home Assistant |
+| Version control | Gitea |
+| Reverse proxy & SSL | Nginx |
 
 ---
 
 ## How it Works
 
-Project S is an orchestration layer built on Docker. It pulls together best-in-class open-source tools, puts them behind a single sign-on system, and manages them through a clean dashboard.
+Project S is an orchestration layer built on Docker. It pulls together best-in-class open-source tools, puts them behind a unified dashboard, and manages them through a single interface.
 
 ```
 Your browser
     │
     ▼
-Project S Dashboard  ←── one login, one UI
+Project S Dashboard (:3069)  ←── one login, one UI
     │
-    ├── Nginx (reverse proxy & routing)
-    ├── Nextcloud · Jellyfin · Matrix Synapse
-    ├── Vaultwarden · Eclipse Theia · Gitea
-    └── Home Assistant · LibreChat · n8n · ...
+    ├── Nextcloud (:8081) · Collabora (:9980)
+    ├── Jellyfin (:8096) · Theia IDE (:3030)
+    ├── Matrix Synapse (:8008) · Element (:8082)
+    ├── Vaultwarden (:8083) · Kiwix (:8087)
+    ├── Open-WebUI (:8085) · Ollama (:11434)
+    └── OpenVPN (:1194) · OpenVPN UI (:8090)
 ```
 
-Each service runs in its own Docker container. Project S handles networking, authentication passthrough, and management so you don't have to.
+Each service runs in its own Docker container. Project S handles networking, shared data volumes, and service health monitoring so you don't have to.
 
 ---
 
 ## Security Model
 
-Project S is built encryption-first:
-
-- **Entropy key generation** — on first launch, mouse movement entropy is hashed via SHA-256 (Web Crypto API) to produce a unique 256-bit key
-- **Argon2id hashing** — master credentials are hashed before any storage operation
-- **AES-256-GCM** — all stored credentials are encrypted at rest
-- **Zero plaintext on disk** — your password never touches storage unencrypted
-- **RBAC** — Admin, Developer, Viewer, and Media User roles with granular permissions
-
----
-
-## Security Implementation (v0.1-security)
-
-The `security` branch introduces a full authentication and encryption stack for the dashboard:
+Project S is built encryption-first. The dashboard uses a layered security stack:
 
 ### Authentication
 - **One-time setup wizard** — first launch redirects to `/setup` where mouse movement entropy generates a 128-character hex key; admin account is created in the same flow
@@ -239,30 +243,33 @@ The `security` branch introduces a full authentication and encryption stack for 
 - **Role-based access** — `admin` and `viewer` roles; privileged API routes protected by `requireAdmin()`
 - **Middleware guard** — all dashboard routes redirect to `/login` if unauthenticated
 
-### Database Encryption
-- **SQLCipher via `better-sqlite3-multiple-ciphers`** — the SQLite database (`homeforge.db`) is AES-256 encrypted at rest
-- **HKDF-SHA512 key derivation** — `SESSION_SECRET`, `WS_SECRET`, and `DB_KEY` are all derived from the entropy key; never hardcoded
-- **Pre-setup / post-setup rekey** — database opens with a UUID-derived key before setup; `PRAGMA rekey` transitions it to the entropy-derived key after the wizard completes
+### Encryption & Key Derivation
+- **Entropy key** — mouse movement combined with CSPRNG, hashed via SHA-512 (Web Crypto API), produces a 128-character hex key
+- **HKDF-SHA512** — `SESSION_SECRET`, `WS_SECRET`, and `DB_KEY` are all derived from the entropy key at runtime; never hardcoded or stored in `.env`
+- **SQLCipher via `better-sqlite3-multiple-ciphers`** — the SQLite user database is AES-256-GCM encrypted at rest
+- **Pre/post-setup rekey** — database opens with a temporary UUID-derived key before setup; `PRAGMA rekey` transitions to the entropy-derived key once setup completes
 
 ### Rate Limiting & WebSocket Security
 - **Sliding-window rate limiter** — login endpoint allows 10 attempts per username per 15 minutes; returns `X-RateLimit-*` headers
 - **WS ticket auth** — terminal WebSocket connections require a short-lived HMAC-SHA256 ticket (`GET /api/auth/ws-ticket`); tickets expire after 30 seconds
-- **PTY idle timeout** — terminal sessions close automatically after 30 minutes of inactivity
+- **PTY idle timeout** — terminal sessions auto-close after 30 minutes of inactivity
 - **Container allowlist** — WebSocket shell access is restricted to explicitly whitelisted container names
 
 ### Secrets Management
-No secrets are hardcoded. All sensitive values are environment variables documented in `.env.example`:
+Runtime secrets (`SESSION_SECRET`, `WS_SECRET`, `DB_KEY`) are derived from the entropy key at startup — they are never written to disk or `.env`. Infrastructure secrets in `.env.example`:
 
 | Variable | Used by |
 |---|---|
-| `SESSION_SECRET` | iron-session cookie encryption |
-| `WS_SECRET` | WebSocket HMAC ticket signing |
-| `DB_KEY` | SQLCipher database encryption key |
+| `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` | Nextcloud MariaDB |
+| `NEXTCLOUD_ADMIN_PASSWORD` | Nextcloud admin account |
+| `COLLABORA_PASSWORD` | Collabora Online admin |
 | `MATRIX_REGISTRATION_SECRET` | Synapse federation registration |
 | `MATRIX_MACAROON_SECRET_KEY` | Synapse macaroon tokens |
 | `MATRIX_FORM_SECRET` | Synapse CSRF protection |
+| `WEBUI_SECRET_KEY` | Open-WebUI session signing |
+| `VPN_ADMIN_PASSWORD` | OpenVPN UI admin account |
 
-Generate Matrix secrets with: `openssl rand -hex 32`
+Generate secrets with: `openssl rand -hex 32` (or `-base64 32` for `WEBUI_SECRET_KEY`)
 
 ---
 
@@ -270,14 +277,14 @@ Generate Matrix secrets with: `openssl rand -hex 32`
 
 | Phase | Focus | Status |
 |---|---|---|
-| 1 | Research & open-source tool selection | Mostly complete |
-| 2 | Initial setup, encryption & user management | Not started |
+| 1 | Research & open-source tool selection | Complete |
+| 2 | Authentication, encryption & user management | Complete |
 | 3 | Dashboard design & UI | Partially complete |
 | 4 | Core service integration | Partially complete |
 | 5 | Optional modules & one-click installer | Not started |
-| 6 | Smart home, supply chain & public beta | Not started |
+| 6 | Smart home, automation & public beta | Not started |
 
-**Target release:** `v0.1.0` public beta, tagged in Gitea on completion of all 60 tasks.
+**Target release:** `v0.1.0` public beta on completion of all planned tasks.
 
 ---
 
