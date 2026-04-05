@@ -75,23 +75,48 @@ function TerminalInstance({ tabId, active, shell, containerName, xtermTheme, onF
       if (title) onTitleChange?.(title)
     })
 
-    // onData uses wsRef (not captured ws) so it works before and after WS connects
-    terminal.onData((data: string) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'input', data }))
-      }
-    })
-
     termRef.current = terminal
     fitRef.current  = fitAddon
 
     onFitReady(() => {
-      if (fitRef.current && wsRef.current) {
+      if (fitRef.current) {
         fitRef.current.fit()
         const dims = fitRef.current.proposeDimensions()
-        if (dims && wsRef.current.readyState === WebSocket.OPEN) {
+        if (dims && wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
         }
+      }
+    })
+
+    // ── Landing mode: mock terminal (no WebSocket) ────────────────────────────
+    if (process.env.NEXT_PUBLIC_LANDING_MODE === 'true') {
+      const prompt = '\r\x1b[32mhomeforge\x1b[0m \x1b[34m~\x1b[0m \x1b[90m$\x1b[0m '
+      terminal.write('\x1b[2J\x1b[H')
+      terminal.write('\r\x1b[90m┌──────────────────────────────────────────┐\x1b[0m\r\n')
+      terminal.write('\r\x1b[90m│\x1b[0m  \x1b[32mHomeForge Terminal\x1b[0m  \x1b[90m—  Preview Mode  │\x1b[0m\r\n')
+      terminal.write('\r\x1b[90m└──────────────────────────────────────────┘\x1b[0m\r\n')
+      terminal.write('\r\x1b[90mCommands are not executed in preview mode.\x1b[0m\r\n\r\n')
+      terminal.write(prompt)
+      let line = ''
+      terminal.onData((data: string) => {
+        const code = data.charCodeAt(0)
+        if (code === 13) {
+          terminal.write('\r\n\x1b[90m— preview mode, command not executed —\x1b[0m\r\n\r\n')
+          line = ''
+          terminal.write(prompt)
+        } else if (code === 127) {
+          if (line.length > 0) { line = line.slice(0, -1); terminal.write('\b \b') }
+        } else if (code >= 32) {
+          line += data; terminal.write(data)
+        }
+      })
+      return () => { clearTimeout(fitTimer); terminal.dispose() }
+    }
+
+    // onData uses wsRef (not captured ws) so it works before and after WS connects
+    terminal.onData((data: string) => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'input', data }))
       }
     })
 
@@ -169,11 +194,11 @@ function TerminalInstance({ tabId, active, shell, containerName, xtermTheme, onF
   useEffect(() => {
     if (!active) return
     const timer = setTimeout(() => {
-      if (fitRef.current && wsRef.current && termRef.current) {
+      if (fitRef.current && termRef.current) {
         fitRef.current.fit()
         termRef.current.focus()
         const dims = fitRef.current.proposeDimensions()
-        if (dims && wsRef.current.readyState === WebSocket.OPEN) {
+        if (dims && wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
         }
       }

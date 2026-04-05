@@ -80,13 +80,15 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
 
   const applications = useMemo(
     () =>
-      SERVICE_PORTS.map((svc) => ({
-        name: svc.name,
-        url: 'port' in svc && hostname ? `http://${hostname}:${svc.port}` : "",
-        icon: svc.icon,
-        route: 'route' in svc ? (svc as { route: string }).route : undefined,
-        section: 'section' in svc ? (svc as { section: string }).section : undefined,
-      })),
+      SERVICE_PORTS
+        .filter((svc) => !(IS_LANDING && svc.name === 'Ollama'))
+        .map((svc) => ({
+          name: svc.name,
+          url: 'port' in svc && hostname ? `http://${hostname}:${svc.port}` : "",
+          icon: svc.icon,
+          route: 'route' in svc ? (svc as { route: string }).route : undefined,
+          section: 'section' in svc ? (svc as { section: string }).section : undefined,
+        })),
     [hostname]
   )
 
