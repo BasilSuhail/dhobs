@@ -10,7 +10,6 @@ import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { Construction } from "lucide-react"
-
 export default function HomePage() {
   const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
