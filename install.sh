@@ -75,6 +75,10 @@ mkdir -p ./data/filebrowser
 [ -d ./data/filebrowser/database.db ] && rm -rf ./data/filebrowser/database.db
 touch ./data/filebrowser/database.db
 mkdir -p ./data/vpn/{pki,clients,config,staticclients,log,db}
+# Security directory for entropy key, encrypted key file, and user database
+# Must exist on the host before the container starts so Docker mounts it as a directory, not a file
+mkdir -p ./data/security
+chmod 700 ./data/security
 # Copy VPN seed configs only on first run — never overwrite a live PKI
 if [ ! -f ./data/vpn/server.conf ]; then
     cp -r ./config/vpn/. ./data/vpn/
@@ -108,22 +112,14 @@ with open(sys.argv[1], 'w') as f:
 " "$file" "$old" "$new"
 }
 
-if grep -q "CHANGE_ME" ./config/matrix/homeserver.yaml 2>/dev/null; then
+if grep -q "change_me_generate_with_openssl_rand_hex_32" .env 2>/dev/null; then
     echo "Generating random secrets for Matrix/Synapse..."
     REG_SECRET=$(openssl rand -hex 32)
     MAC_SECRET=$(openssl rand -hex 32)
     FORM_SECRET=$(openssl rand -hex 32)
-    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_registration_secret_CHANGE_ME" "$REG_SECRET"
-    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_macaroon_CHANGE_ME" "$MAC_SECRET"
-    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_form_secret_CHANGE_ME" "$FORM_SECRET"
-fi
-
-# Sync Matrix DB password from .env to homeserver.yaml
-if [ -f .env ]; then
-    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2-)
-    if [ -n "$MATRIX_PW" ] && grep -q "password: change_me_synapse_password" ./config/matrix/homeserver.yaml 2>/dev/null; then
-        replace_in_file ./config/matrix/homeserver.yaml "change_me_synapse_password" "$MATRIX_PW"
-    fi
+    replace_in_file .env "change_me_generate_with_openssl_rand_hex_32" "$REG_SECRET"
+    sed -i "s|MATRIX_MACAROON_SECRET_KEY=.*|MATRIX_MACAROON_SECRET_KEY=$MAC_SECRET|" .env
+    sed -i "s|MATRIX_FORM_SECRET=.*|MATRIX_FORM_SECRET=$FORM_SECRET|" .env
 fi
 
 # 5. Initialize Matrix Element configuration
@@ -187,6 +183,16 @@ fi
 
 echo "--------------------------------------------------"
 echo "Installation complete! Your services are starting."
+echo "--------------------------------------------------"
+echo ""
+echo "FIRST-TIME DASHBOARD SETUP:"
+echo "  The dashboard requires a one-time setup before you can log in."
+echo "  1. Wait ~30 seconds for the dashboard container to start"
+echo "  2. Open http://localhost:3069 — you will be redirected to /setup"
+echo "  3. Move your mouse around the canvas to generate your encryption key"
+echo "  4. Copy and store the 128-character key somewhere safe (you will need it for recovery)"
+echo "  5. Create your admin account"
+echo ""
 echo "--------------------------------------------------"
 echo "Dashboard:      http://localhost:3069"
 echo "Jellyfin:       http://localhost:8096"

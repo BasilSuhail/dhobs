@@ -1,6 +1,8 @@
 # Docker data
 data/
 db/
+# Allow dashboard source lib/db (rule above would otherwise match it)
+!Dashboard/Dashboard1/lib/db/
 
 # Cache files (Jellyfin fontconfig etc.)
 cache/

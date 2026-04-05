@@ -90,6 +90,10 @@ if [ ! -f ./data/vpn/server.conf ]; then
     cp -r ./config/vpn/. ./data/vpn/
     echo "VPN seed configs copied to ./data/vpn/"
 fi
+# Security directory for entropy key, encrypted key file, and user database
+# Must exist on the host before the container starts so Docker mounts it correctly
+mkdir -p ./data/security
+chmod 700 ./data/security
 mkdir -p ./config/matrix
 
 # Check for native Ollama process holding port 11434 (common on macOS)
@@ -120,22 +124,16 @@ with open(sys.argv[1], 'w') as f:
 " "$file" "$old" "$new"
 }
 
-if grep -q "CHANGE_ME" ./config/matrix/homeserver.yaml 2>/dev/null; then
+if grep -q "change_me_generate_with_openssl_rand_hex_32" .env 2>/dev/null; then
     echo "Generating random secrets for Matrix/Synapse..."
     REG_SECRET=$(openssl rand -hex 32)
     MAC_SECRET=$(openssl rand -hex 32)
     FORM_SECRET=$(openssl rand -hex 32)
-    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_registration_secret_CHANGE_ME" "$REG_SECRET"
-    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_macaroon_CHANGE_ME" "$MAC_SECRET"
-    replace_in_file ./config/matrix/homeserver.yaml "homeforge_default_form_secret_CHANGE_ME" "$FORM_SECRET"
+    replace_in_file .env "change_me_generate_with_openssl_rand_hex_32" "$REG_SECRET"
+    # Replace remaining two occurrences individually
+    sed -i "s|MATRIX_MACAROON_SECRET_KEY=.*|MATRIX_MACAROON_SECRET_KEY=$MAC_SECRET|" .env
+    sed -i "s|MATRIX_FORM_SECRET=.*|MATRIX_FORM_SECRET=$FORM_SECRET|" .env
 fi
-if [ -f .env ]; then
-    MATRIX_PW=$(grep MATRIX_DB_PASSWORD .env | cut -d'=' -f2-)
-    if [ -n "$MATRIX_PW" ] && grep -q "password: change_me_synapse_password" ./config/matrix/homeserver.yaml 2>/dev/null; then
-        replace_in_file ./config/matrix/homeserver.yaml "change_me_synapse_password" "$MATRIX_PW"
-    fi
-fi
-
 # 1. Clean up old containers
 echo "🧹 Cleaning up environment..."
 docker compose down --remove-orphans > /dev/null 2>&1
@@ -193,6 +191,26 @@ done
 
 echo -e "\n✅ Project S is LIVE!"
 echo "🔗 Access your dashboard at: http://localhost:3069"
+
+# Check if the dashboard has been set up before — key file presence means setup is done
+if [ ! -f ./data/security/.homeforge.key ]; then
+    echo ""
+    echo "┌─────────────────────────────────────────────────────┐"
+    echo "│  FIRST-TIME DASHBOARD SETUP REQUIRED                │"
+    echo "│                                                     │"
+    echo "│  1. Open http://localhost:3069                      │"
+    echo "│     You will be redirected to /setup automatically  │"
+    echo "│                                                     │"
+    echo "│  2. Move your mouse over the canvas to generate     │"
+    echo "│     your 128-character encryption key               │"
+    echo "│                                                     │"
+    echo "│  3. Copy and store the key somewhere safe —         │"
+    echo "│     you will need it if you ever need to recover    │"
+    echo "│                                                     │"
+    echo "│  4. Create your admin account to finish setup       │"
+    echo "└─────────────────────────────────────────────────────┘"
+    echo ""
+fi
 
 # 5. Open in default browser (cross-platform)
 if command -v xdg-open &> /dev/null; then

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { requireAdmin } from '@/lib/auth'
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
 
@@ -8,6 +9,7 @@ const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
  * the response body without buffering it.
  */
 export async function POST(req: NextRequest) {
+  await requireAdmin()
   const { name } = await req.json()
 
   let ollamaRes: Response

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { get as httpGet } from 'http'
+import { requireSession } from '@/lib/auth'
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
 
@@ -9,6 +10,7 @@ const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://ollama:11434'
  * Works regardless of how HomeForge is accessed (localhost, LAN IP, domain).
  */
 export async function GET() {
+  await requireSession()
   return new Promise<NextResponse>((resolve) => {
     const req = httpGet(`${OLLAMA_BASE}/api/tags`, { timeout: 5000 }, (res) => {
       let data = ''

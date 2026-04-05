@@ -3,9 +3,34 @@
 import { createServer, get as httpGet, IncomingMessage } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import * as pty from 'node-pty'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 const WS_PORT = parseInt(process.env.WS_PORT || '3070', 10)
 const hostname = '0.0.0.0'
+
+const ALLOWED_CONTAINERS = new Set([
+  'project-s-jellyfin',
+  'project-s-nextcloud',
+  'project-s-nextcloud-db',
+  'project-s-ollama',
+  'project-s-open-webui',
+  'project-s-kiwix-reader',
+  'project-s-kiwix-manager',
+  'project-s-collabora',
+  'project-s-vaultwarden',
+  'project-s-dashboard',
+  'project-s-theia',
+  'project-s-matrix-server',
+  'project-s-matrix-client',
+  'project-s-matrix-db',
+  'project-s-openvpn',
+  'project-s-openvpn-ui',
+])
+
+const VALID_SHELL_TYPES = new Set(['ollama', 'container', null])
+
+// Close idle PTY sessions after 30 minutes of no input
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 
 
 /** Check if a named container is running via Docker socket. */
@@ -31,6 +56,35 @@ function isContainerRunning(name: string): Promise<boolean> {
   })
 }
 
+/**
+ * Verify a WS auth ticket issued by GET /api/auth/ws-ticket.
+ * Ticket format: "{timestamp_ms}.{hmac-sha256-hex}"
+ * Returns true only when the HMAC is valid AND the ticket is within 30 seconds of issue.
+ */
+function verifyWsTicket(ticket: string | null): boolean {
+  const secret = process.env.WS_SECRET
+  if (!ticket || !secret) return false
+
+  const dot = ticket.lastIndexOf('.')
+  if (dot === -1) return false
+
+  const ts  = ticket.slice(0, dot)
+  const sig = ticket.slice(dot + 1)
+
+  // Reject tickets older than 30 seconds
+  const timestamp = parseInt(ts, 10)
+  if (isNaN(timestamp) || Date.now() - timestamp > 30_000) return false
+
+  // Constant-time HMAC comparison — prevents timing oracle attacks
+  const expected = createHmac('sha256', secret).update(ts).digest('hex')
+  try {
+    return timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))
+  } catch {
+    // Buffer.from throws if sig is not valid hex or wrong length
+    return false
+  }
+}
+
 const server = createServer((_req, res) => {
   res.writeHead(200)
   res.end('Project S Terminal WS Server\n')
@@ -42,8 +96,28 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
   let shell: pty.IPty | null = null
 
   const url = new URL(req.url || '/', `http://localhost:${WS_PORT}`)
+
+  // Verify auth ticket before spawning any shell or sending any data
+  const ticket = url.searchParams.get('ticket')
+  if (!verifyWsTicket(ticket)) {
+    ws.close(4401, 'Unauthorized')
+    return
+  }
+
   const shellType = url.searchParams.get('shell') // 'ollama' | 'container' | null
   const containerName = url.searchParams.get('container') // e.g. 'project-s-jellyfin'
+
+  // Validate shell type
+  if (!VALID_SHELL_TYPES.has(shellType)) {
+    ws.close(4400, 'Invalid shell type')
+    return
+  }
+
+  // Validate container name against whitelist
+  if (shellType === 'container' && (!containerName || !ALLOWED_CONTAINERS.has(containerName))) {
+    ws.close(4400, 'Container not allowed')
+    return
+  }
 
   let cmd: string
   let args: string[]
@@ -77,7 +151,7 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
-      cwd: '/homelab',
+      cwd: process.env.HOME || '/',
       env: { ...process.env, TERM: 'xterm-256color' } as Record<string, string>,
     })
   } catch (err) {
@@ -111,8 +185,18 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
     }
   })
 
+  // Idle timeout — close session after 30 minutes of no input
+  let idleTimer = setTimeout(() => {
+    ws.close(4408, 'Session idle timeout')
+  }, IDLE_TIMEOUT_MS)
+
   // WebSocket → pty input / resize
   ws.on('message', (message: Buffer) => {
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(() => {
+      ws.close(4408, 'Session idle timeout')
+    }, IDLE_TIMEOUT_MS)
+
     try {
       const msg = JSON.parse(message.toString())
       if (msg.type === 'input' && shell) {
@@ -128,6 +212,7 @@ wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
   })
 
   const cleanup = () => {
+    clearTimeout(idleTimer)
     if (shell) {
       try { shell.kill() } catch { /* already dead */ }
       shell = null

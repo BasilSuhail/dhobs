@@ -25,17 +25,19 @@ services:
       context: ./Dashboard/Dashboard1
       dockerfile: Dockerfile
     container_name: project-s-dashboard
+    hostname: homeforge-dashboard
     user: root
     ports:
       - '3069:3069'
       - '3070:3070'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/data
-      - .:/homelab
+      - ./data:/data:ro
+      - ./data/security:/app/data/security
     environment:
       - PORT=3069
       - WS_PORT=3070
+      - SECURITY_DIR=/app/data/security
     restart: 'unless-stopped'
     depends_on:
       - jellyfin
@@ -192,6 +194,12 @@ services:
       - ./data/matrix/synapse:/data
       - ./config/matrix/homeserver.yaml:/data/homeserver.yaml:ro
       - ./config/matrix/localhost.log.config:/data/localhost.log.config:ro
+    environment:
+      - MATRIX_REGISTRATION_SECRET=${MATRIX_REGISTRATION_SECRET}
+      - MATRIX_MACAROON_SECRET_KEY=${MATRIX_MACAROON_SECRET_KEY}
+      - MATRIX_FORM_SECRET=${MATRIX_FORM_SECRET}
+      - MATRIX_DB_USER=${MATRIX_DB_USER}
+      - MATRIX_DB_PASSWORD=${MATRIX_DB_PASSWORD}
     restart: unless-stopped
     deploy:
       resources:

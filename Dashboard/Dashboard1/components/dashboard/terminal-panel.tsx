@@ -49,6 +49,7 @@ function TerminalInstance({ tabId, active, shell, containerName, xtermTheme, onF
     const container = containerRef.current
     if (!container) return
 
+    // ── Terminal setup (synchronous) ──────────────────────────────────────────
     const terminal = new Terminal({
       fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
       fontSize: 13,
@@ -74,47 +75,15 @@ function TerminalInstance({ tabId, active, shell, containerName, xtermTheme, onF
       if (title) onTitleChange?.(title)
     })
 
-    // Fix #1: detect ws vs wss based on page protocol
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    let wsUrl: string
-    if (shell === 'container' && containerName) {
-      wsUrl = `${proto}://${window.location.hostname}:3070?shell=container&container=${encodeURIComponent(containerName)}`
-    } else if (shell === 'ollama') {
-      wsUrl = `${proto}://${window.location.hostname}:3070?shell=ollama`
-    } else {
-      wsUrl = `${proto}://${window.location.hostname}:3070`
-    }
-
-    const ws = new WebSocket(wsUrl)
-
-    ws.onopen = () => {
-      const dims = fitAddon.proposeDimensions()
-      if (dims) {
-        ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
-      }
-    }
-
-    ws.onmessage = (e: MessageEvent) => {
-      terminal.write(e.data)
-    }
-
-    ws.onerror = () => {
-      terminal.write('\r\n\x1b[31mWebSocket connection failed. Is the server running?\x1b[0m\r\n')
-    }
-
-    ws.onclose = () => {
-      terminal.write('\r\n\x1b[33m[Session closed]\x1b[0m\r\n')
-    }
-
+    // onData uses wsRef (not captured ws) so it works before and after WS connects
     terminal.onData((data: string) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input', data }))
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'input', data }))
       }
     })
 
     termRef.current = terminal
-    fitRef.current = fitAddon
-    wsRef.current = ws
+    fitRef.current  = fitAddon
 
     onFitReady(() => {
       if (fitRef.current && wsRef.current) {
@@ -126,9 +95,72 @@ function TerminalInstance({ tabId, active, shell, containerName, xtermTheme, onF
       }
     })
 
+    // ── Async WS connection (needs auth ticket) ───────────────────────────────
+    let cancelled = false
+
+    async function connect() {
+      // Fix #1: detect ws vs wss based on page protocol
+      const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+      let wsUrl: string
+      if (shell === 'container' && containerName) {
+        wsUrl = `${proto}://${window.location.hostname}:3070?shell=container&container=${encodeURIComponent(containerName)}`
+      } else if (shell === 'ollama') {
+        wsUrl = `${proto}://${window.location.hostname}:3070?shell=ollama`
+      } else {
+        wsUrl = `${proto}://${window.location.hostname}:3070`
+      }
+
+      // Obtain a short-lived HMAC ticket before opening the socket
+      try {
+        const res = await fetch('/api/auth/ws-ticket')
+        if (!res.ok) {
+          if (!cancelled) terminal.write('\r\n\x1b[31mSession expired — please sign in again.\x1b[0m\r\n')
+          return
+        }
+        const { ticket } = await res.json()
+        // Use ? if wsUrl has no query string yet, & if it already has params
+        wsUrl += (wsUrl.includes('?') ? '&' : '?') + `ticket=${encodeURIComponent(ticket)}`
+      } catch {
+        if (!cancelled) terminal.write('\r\n\x1b[31mFailed to obtain terminal ticket — is the server running?\x1b[0m\r\n')
+        return
+      }
+
+      if (cancelled) return
+
+      const ws = new WebSocket(wsUrl)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        const dims = fitAddon.proposeDimensions()
+        if (dims) ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
+      }
+
+      ws.onmessage = (e: MessageEvent) => {
+        terminal.write(e.data)
+      }
+
+      ws.onerror = () => {
+        terminal.write('\r\n\x1b[31mWebSocket connection failed. Is the server running?\x1b[0m\r\n')
+      }
+
+      ws.onclose = (event) => {
+        if (event.code === 4401) {
+          terminal.write('\r\n\x1b[31m[Unauthorized — ticket rejected]\x1b[0m\r\n')
+        } else if (event.code === 4408) {
+          terminal.write('\r\n\x1b[33m[Session closed — idle timeout]\x1b[0m\r\n')
+        } else {
+          terminal.write('\r\n\x1b[33m[Session closed]\x1b[0m\r\n')
+        }
+      }
+    }
+
+    connect()
+
     return () => {
+      cancelled = true
       clearTimeout(fitTimer)
-      ws.close()
+      wsRef.current?.close()
+      wsRef.current = null
       terminal.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

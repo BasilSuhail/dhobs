@@ -8,6 +8,7 @@
 
 **Getting Started**
 - [Quick Start](#-quick-start)
+- [First-Time Security Setup](#-first-time-security-setup)
 - [Integrated Services](#-integrated-services)
 - [Adding New Services](#-adding-new-services)
 - [Project Logs](#-project-documentation--logs)
@@ -72,6 +73,42 @@ docker compose up -d
 ```
 
 > `boom.sh` and `install.sh` handle `.env` creation automatically. Only use this option if running `docker compose` directly.
+
+---
+
+## 🔐 First-Time Security Setup
+
+After the containers are running, the dashboard requires a one-time setup before it can be used.
+
+### Step 1 — Generate Matrix Synapse secrets
+
+Before starting, add the following to your `.env` file. Generate each value with:
+
+```bash
+openssl rand -hex 32
+```
+
+```env
+MATRIX_REGISTRATION_SECRET=<output of openssl rand -hex 32>
+MATRIX_MACAROON_SECRET_KEY=<output of openssl rand -hex 32>
+MATRIX_FORM_SECRET=<output of openssl rand -hex 32>
+```
+
+These are injected into `config/matrix/homeserver.yaml` at container startup. Never reuse values between installations.
+
+### Step 2 — Dashboard entropy key & admin account
+
+1. Open `http://localhost:3069` — you will be redirected to `/setup` automatically
+2. Move your mouse over the canvas to generate a unique 128-character encryption key
+3. **Copy and store this key somewhere safe** — it encrypts your entire database; it cannot be recovered if lost
+4. Choose a username and a strong password (minimum 12 characters) to create your admin account
+5. You will be logged in automatically and redirected to the dashboard
+
+> The entropy key is derived from mouse movement + CSPRNG (SHA-512). It is stored AES-256-GCM encrypted on disk and used to derive the database encryption key, session secret, and WebSocket secret via HKDF-SHA512. It never leaves the server.
+
+### Step 3 — Subsequent logins
+
+Navigate to `http://localhost:3069` and log in with the admin credentials created in Step 2. Additional user accounts (with `viewer` role) can be created from the dashboard admin panel.
 
 ---
 
@@ -186,6 +223,44 @@ Project S is built encryption-first:
 - **AES-256-GCM** — all stored credentials are encrypted at rest
 - **Zero plaintext on disk** — your password never touches storage unencrypted
 - **RBAC** — Admin, Developer, Viewer, and Media User roles with granular permissions
+
+---
+
+## Security Implementation (v0.1-security)
+
+The `security` branch introduces a full authentication and encryption stack for the dashboard:
+
+### Authentication
+- **One-time setup wizard** — first launch redirects to `/setup` where mouse movement entropy generates a 128-character hex key; admin account is created in the same flow
+- **iron-session v8** — encrypted, signed HTTP-only cookie sessions (`homeforge_session`)
+- **Argon2id password hashing** — 64 MiB memory, 3 iterations; credentials never stored in plaintext
+- **Role-based access** — `admin` and `viewer` roles; privileged API routes protected by `requireAdmin()`
+- **Middleware guard** — all dashboard routes redirect to `/login` if unauthenticated
+
+### Database Encryption
+- **SQLCipher via `better-sqlite3-multiple-ciphers`** — the SQLite database (`homeforge.db`) is AES-256 encrypted at rest
+- **HKDF-SHA512 key derivation** — `SESSION_SECRET`, `WS_SECRET`, and `DB_KEY` are all derived from the entropy key; never hardcoded
+- **Pre-setup / post-setup rekey** — database opens with a UUID-derived key before setup; `PRAGMA rekey` transitions it to the entropy-derived key after the wizard completes
+
+### Rate Limiting & WebSocket Security
+- **Sliding-window rate limiter** — login endpoint allows 10 attempts per username per 15 minutes; returns `X-RateLimit-*` headers
+- **WS ticket auth** — terminal WebSocket connections require a short-lived HMAC-SHA256 ticket (`GET /api/auth/ws-ticket`); tickets expire after 30 seconds
+- **PTY idle timeout** — terminal sessions close automatically after 30 minutes of inactivity
+- **Container allowlist** — WebSocket shell access is restricted to explicitly whitelisted container names
+
+### Secrets Management
+No secrets are hardcoded. All sensitive values are environment variables documented in `.env.example`:
+
+| Variable | Used by |
+|---|---|
+| `SESSION_SECRET` | iron-session cookie encryption |
+| `WS_SECRET` | WebSocket HMAC ticket signing |
+| `DB_KEY` | SQLCipher database encryption key |
+| `MATRIX_REGISTRATION_SECRET` | Synapse federation registration |
+| `MATRIX_MACAROON_SECRET_KEY` | Synapse macaroon tokens |
+| `MATRIX_FORM_SECRET` | Synapse CSRF protection |
+
+Generate Matrix secrets with: `openssl rand -hex 32`
 
 ---
 

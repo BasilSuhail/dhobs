@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { readdir, stat } from 'fs/promises'
 import path from 'path'
+import { requireSession } from '@/lib/auth'
 
 const KIWIX_DATA_DIR = '/data/kiwix'
 
 export async function GET() {
+  await requireSession()
   try {
     const entries = await readdir(KIWIX_DATA_DIR)
     const zimFiles = entries.filter(f => f.endsWith('.zim'))
