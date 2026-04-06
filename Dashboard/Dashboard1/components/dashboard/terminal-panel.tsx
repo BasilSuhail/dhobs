@@ -232,6 +232,10 @@ export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: Ter
   const [height, setHeight] = useState(320)
 
   const resizeRef = useRef<HTMLDivElement>(null)
+  const panelRef  = useRef<HTMLDivElement>(null)  // for direct DOM height during drag
+  const isDragging = useRef(false)
+  const heightRef = useRef(height)         // always-current height for drag handler
+  useEffect(() => { heightRef.current = height }, [height])
   const tabCounter = useRef(1)
   const fitFns = useRef<Map<string, () => void>>(new Map())
   // Fix #4: track whether the panel has ever been opened
@@ -293,35 +297,46 @@ export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: Ter
     const resizeEl = resizeRef.current
     if (!resizeEl) return
 
-    let startY = 0
-    let startHeight = 0
-
-    const onMouseMove = (e: MouseEvent) => {
-      const delta = startY - e.clientY
-      const newH = Math.min(Math.max(startHeight + delta, 200), window.innerHeight - 100)
-      setHeight(newH)
-    }
-
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove)
-      document.removeEventListener("mouseup", onMouseUp)
-      document.body.style.cursor = ""
-      document.body.style.userSelect = ""
-      fitFns.current.get(activeTab)?.()
-    }
-
     const onMouseDown = (e: MouseEvent) => {
-      startY = e.clientY
-      startHeight = height
+      e.preventDefault()
+      const startY = e.clientY
+      const startHeight = heightRef.current
+      isDragging.current = true
+
+      // Strip transition during drag so it's instant
+      if (panelRef.current) panelRef.current.style.transition = 'none'
+
       document.body.style.cursor = "ns-resize"
       document.body.style.userSelect = "none"
+
+      const onMouseMove = (e: MouseEvent) => {
+        if (!panelRef.current) return
+        const delta = startY - e.clientY
+        const newH = Math.min(Math.max(startHeight + delta, 160), window.innerHeight - 80)
+        // Direct DOM update — zero React re-renders during drag
+        panelRef.current.style.height = `${newH}px`
+        heightRef.current = newH
+      }
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove)
+        document.removeEventListener("mouseup", onMouseUp)
+        document.body.style.cursor = ""
+        document.body.style.userSelect = ""
+        isDragging.current = false
+        // Restore transition and commit final height to React state
+        if (panelRef.current) panelRef.current.style.transition = ''
+        setHeight(heightRef.current)
+        setTimeout(() => fitFns.current.get(activeTab)?.(), 80)
+      }
+
       document.addEventListener("mousemove", onMouseMove)
       document.addEventListener("mouseup", onMouseUp)
     }
 
     resizeEl.addEventListener("mousedown", onMouseDown)
     return () => resizeEl.removeEventListener("mousedown", onMouseDown)
-  }, [height, activeTab])
+  }, [activeTab, open])
 
   useEffect(() => {
     const timer = setTimeout(() => fitFns.current.get(activeTab)?.(), 100)
@@ -365,30 +380,39 @@ export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: Ter
   return (
     // Fix #4: use CSS transform to hide instead of unmounting — sessions stay alive
     <div
-      className="fixed bottom-0 left-0 right-0 z-[60] flex flex-col transition-transform duration-300 ease-out"
+      ref={panelRef}
+      className="fixed z-[60] flex flex-col transition-all duration-300 ease-out"
       style={{
         height: panelHeight,
-        marginLeft: isMaximized ? 0 : "72px",
-        transform: open ? 'translateY(0)' : 'translateY(100%)',
+        ...(isMaximized
+          ? { top: 0, left: 0, right: 0, bottom: 0 }
+          : { bottom: '20px', left: '92px', right: '20px' }
+        ),
+        transform: open ? 'translateY(0)' : 'translateY(calc(100% + 20px))',
       }}
     >
-      {/* Resize Handle */}
+
+
+      {/* Resize Strip */}
       {!isMaximized && (
         <div
           ref={resizeRef}
-          className="h-1.5 cursor-ns-resize flex items-center justify-center"
-          style={{ background: "transparent" }}
+          className="flex items-center justify-center cursor-ns-resize shrink-0 group"
+          style={{ height: '20px', background: 'transparent' }}
         >
           <div
-            className="w-12 h-0.5 rounded-full"
-            style={{ backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }}
+            className="h-1 rounded-full transition-all duration-200 group-hover:opacity-80"
+            style={{
+              width: '64px',
+              backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)',
+            }}
           />
         </div>
       )}
 
       {/* Main Panel */}
       <div
-        className="flex-1 flex flex-col overflow-hidden border-t rounded-t-xl shadow-2xl"
+        className="flex-1 flex flex-col overflow-hidden border rounded-2xl shadow-2xl"
         style={{
           backgroundColor: mode === 'dark' ? 'rgba(10, 10, 10, 0.97)' : 'rgba(245, 245, 245, 0.97)',
           backdropFilter: "blur(24px) saturate(120%)",
@@ -397,11 +421,15 @@ export function TerminalPanel({ open, onClose, execTarget, onExecConsumed }: Ter
         }}
       >
         {/* Tab Bar */}
-        <div className="flex items-center h-9 px-2 border-b shrink-0" style={{ borderColor: colorTheme.border }}>
+        <div
+          className="flex items-center h-9 px-2 border-b shrink-0"
+          style={{ borderColor: colorTheme.border }}
+        >
           <div className="flex items-center gap-0.5 flex-1 overflow-x-auto">
             {tabs.map((tab) => (
               <div
                 key={tab.id}
+                data-tab
                 onClick={() => setActiveTab(tab.id)}
                 className="flex items-center gap-1.5 px-3 h-7 rounded-md text-xs cursor-pointer transition-all group"
                 style={activeTab === tab.id ? {

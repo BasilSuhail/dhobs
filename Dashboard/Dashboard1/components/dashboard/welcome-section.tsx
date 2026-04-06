@@ -23,7 +23,7 @@ const SERVICE_PORTS = [
   { name: "Theia IDE", port: 3030, icon: Code },
   { name: "Matrix", port: 8082, icon: MessageSquare },
   { name: "Vaultwarden", port: 8083, icon: Key },
-  { name: "Kiwix", port: 8087, icon: Book, route: "/kiwix" },
+  { name: "Kiwix", port: 8087, icon: Book, section: "kiwix" },
   { name: "Ollama", icon: BrainCircuit, section: "ollama" },
   { name: "Open WebUI", port: 8085, icon: MessageSquare },
   { name: "VPN Manager", port: 8090, icon: Shield },
@@ -147,7 +147,7 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
                       {app.name}
                     </p>
                     <p className="text-[10px] truncate uppercase tracking-widest opacity-40" style={{ color: colorTheme.foreground }}>
-                      {app.section ? "Manager" : app.route ? "Internal" : "External"}
+                      {(app.section || app.route) ? "Internal" : "External"}
                     </p>
                   </div>
                 </>

@@ -10,7 +10,6 @@ import {
   X,
   TerminalSquare,
   Activity,
-  BrainCircuit,
   Check,
   type LucideIcon,
 } from "lucide-react"
@@ -20,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { type DockApp } from "@/components/dashboard/dock"
 
 interface SidebarProps {
   className?: string
@@ -27,6 +27,8 @@ interface SidebarProps {
   onNavigate?: (section: string) => void
   terminalOpen?: boolean
   onToggleTerminal?: () => void
+  dockApps?: DockApp[]
+  onDockAppClick?: (id: string) => void
 }
 
 export function Sidebar({ 
@@ -34,7 +36,9 @@ export function Sidebar({
   activeSection = "home", 
   onNavigate, 
   terminalOpen, 
-  onToggleTerminal
+  onToggleTerminal,
+  dockApps = [],
+  onDockAppClick,
 }: SidebarProps) {
   const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const [showSettings, setShowSettings] = useState(false)
@@ -87,16 +91,53 @@ export function Sidebar({
             onClick={() => onNavigate?.("metrics")}
             theme={colorTheme}
           />
-          {!IS_LANDING && (
-            <NavButton
-              icon={BrainCircuit}
-              label="Ollama"
-              active={activeSection === "ollama"}
-              onClick={() => onNavigate?.("ollama")}
-              theme={colorTheme}
-            />
-          )}
+
         </nav>
+
+        {/* App Icons — active / minimized / closing windows */}
+        {dockApps.length > 0 && (
+          <>
+            <div className="mx-3 h-px transition-colors duration-500" style={{ backgroundColor: colorTheme.border }} />
+            <div className="flex flex-col items-center gap-1 px-2 py-2">
+              {dockApps.map((app) => {
+                const Icon = app.icon
+                const isActive = app.isActive
+                const isClosing = app.isClosing
+                const isMinimized = !isActive && !isClosing
+                return (
+                  <Tooltip key={app.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onDockAppClick?.(app.id)}
+                        className="relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300"
+                        style={{
+                          backgroundColor: isActive
+                            ? colorTheme.accent
+                            : isClosing
+                            ? `${colorTheme.accent}08`
+                            : `${colorTheme.accent}15`,
+                          color: isActive
+                            ? colorTheme.accentForeground
+                            : colorTheme.accent,
+                          opacity: isClosing ? 0.3 : 1,
+                          filter: isClosing ? 'grayscale(1)' : 'none',
+                        }}
+                      >
+                        <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={12}>
+                      <p>
+                        {app.name}
+                        {isActive ? ' — open' : isClosing ? ' (closing…)' : ' (minimized)'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         {/* Divider */}
         <div className="mx-3 h-px transition-colors duration-500" style={{ backgroundColor: colorTheme.border }} />

@@ -1,15 +1,27 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { WelcomeSection } from "@/components/dashboard/welcome-section"
 import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MetricsSection } from "@/components/dashboard/metrics-section"
 import { OllamaSection } from "@/components/dashboard/ollama-section"
+import { KiwixSection } from "@/components/dashboard/kiwix-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
+import { type DockApp } from "@/components/dashboard/dock"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Construction } from "lucide-react"
+import { Construction, BrainCircuit, Book } from "lucide-react"
+
+interface ActiveWindow {
+  id: string
+  name: string
+  icon: any
+  component: React.ReactNode
+  isMinimized: boolean
+  isClosing?: boolean
+}
+
 export default function HomePage() {
   const IS_LANDING = process.env.NEXT_PUBLIC_LANDING_MODE === 'true'
   const { colorTheme } = useTheme()
@@ -18,6 +30,7 @@ export default function HomePage() {
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [execTarget, setExecTarget] = useState<string | undefined>()
   const [currentSection, setCurrentSection] = useState("home")
+  const [openWindows, setOpenWindows] = useState<ActiveWindow[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,7 +42,6 @@ export default function HomePage() {
       if (!containerRef.current || currentSection !== "home") return
       const scrollTop = window.scrollY
       const windowHeight = window.innerHeight
-      // Calculate progress based on first screen scroll
       const progress = Math.min(scrollTop / windowHeight, 1)
       setScrollProgress(progress)
     }
@@ -38,15 +50,65 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [currentSection])
 
+  const openApp = useCallback((id: string, name: string, icon: any, component: React.ReactNode) => {
+    setOpenWindows(prev => {
+      const existing = prev.find(w => w.id === id)
+      if (existing) {
+        // Restore if closing or minimized
+        return prev.map(w => w.id === id ? { ...w, isMinimized: false, isClosing: false } : w)
+      }
+      return [...prev, { id, name, icon, component, isMinimized: false }]
+    })
+  }, [])
+
+  const closeApp = useCallback((id: string) => {
+    setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isClosing: true, isMinimized: false } : w))
+    setTimeout(() => {
+      setOpenWindows(prev => prev.filter(w => !(w.id === id && w.isClosing)))
+    }, 12000)
+  }, [])
+
+  // Sidebar icon click: if active → close (grace period); if closing → reopen
+  const handleDockClick = useCallback((id: string) => {
+    const win = openWindows.find(w => w.id === id)
+    if (!win) return
+    if (win.isClosing) {
+      if (id === "ollama") openApp("ollama", "Ollama", BrainCircuit, <OllamaSection />)
+      if (id === "kiwix") openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
+    } else {
+      closeApp(id)
+    }
+  }, [openWindows, openApp, closeApp])
+
   const bgColor = mounted ? colorTheme.background : "#0a0a0a"
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
 
   const handleNavigate = (section: string) => {
+    if (section === "ollama") {
+      openApp("ollama", "Ollama", BrainCircuit, <OllamaSection isWindow />)
+      return
+    }
+    if (section === "kiwix") {
+      openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
+      return
+    }
+    // Close all open apps when navigating away
+    setOpenWindows([])
     setCurrentSection(section)
     if (section === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" })
     }
   }
+
+  // Show all open windows in the sidebar — active, minimized, or closing
+  const dockApps: DockApp[] = openWindows.map(w => ({
+    id: w.id,
+    name: w.name,
+    icon: w.icon,
+    isOpen: !w.isClosing,
+    isActive: !w.isMinimized && !w.isClosing,
+    isClosing: w.isClosing
+  }))
 
   return (
     <div 
@@ -95,22 +157,42 @@ export default function HomePage() {
 
       {/* Sidebar */}
       <Sidebar
-        activeSection={currentSection}
+        activeSection={openWindows.some(w => !w.isClosing) ? "app" : currentSection}
         onNavigate={handleNavigate}
         terminalOpen={terminalOpen}
         onToggleTerminal={() => setTerminalOpen(prev => !prev)}
+        dockApps={dockApps}
+        onDockAppClick={handleDockClick}
       />
 
-      <main className="relative z-10 h-full w-full">
-        {/* HOME / METRICS VIEW (Static / Scrollable) */}
-        {/* OLLAMA SECTION */}
-        <div className={cn(
-          "h-full w-full transition-all duration-500",
-          currentSection === "ollama" ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
-        )}>
-          <OllamaSection />
+      {/* Floating App Panels */}
+      {openWindows.map((win) => (
+        <div
+          key={win.id}
+          className="fixed z-30 transition-all duration-500"
+          style={{
+            top: '20px',
+            bottom: '20px',
+            left: '92px',
+            right: '20px',
+            opacity: win.isClosing ? 0 : 1,
+            pointerEvents: win.isClosing ? 'none' : 'auto',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: `1px solid ${colorTheme.border}`,
+            backgroundColor: colorTheme.card,
+            backdropFilter: 'blur(40px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(150%)',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
+          }}
+        >
+          {win.component}
         </div>
+      ))}
 
+
+
+      <main className="relative z-10 h-full w-full">
         <div className={cn(
           "h-full w-full transition-all duration-500",
           (currentSection === "home" || currentSection === "metrics") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
