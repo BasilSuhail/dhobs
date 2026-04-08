@@ -41,6 +41,20 @@ export function getDb(): Database.Database {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS metrics_history (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+      cpu         REAL,
+      memory      REAL,
+      gpu         REAL,
+      disk        REAL,
+      net_down    REAL,
+      net_up      REAL
+    );
+
+    -- Keep only last 24h of metrics (auto-cleanup on each read)
+    -- Run periodically via index check
+
     INSERT OR IGNORE INTO app_state(key, value) VALUES ('setup_complete', '0');
   `)
 

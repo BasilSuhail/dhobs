@@ -4,6 +4,7 @@ import { promisify } from 'util'
 import fs from 'fs'
 import path from 'path'
 import { requireSession } from '@/lib/auth'
+import { getDb } from '@/lib/db'
 
 const execAsync = promisify(exec)
 
@@ -223,6 +224,24 @@ export async function GET() {
       temps,
       diskUsedPerc: diskPerc,
       uptimeDays,
+    }
+
+    // Write to SQLite history (every poll)
+    try {
+      const db = getDb()
+      db.exec('DELETE FROM metrics_history WHERE created_at < unixepoch() - 86400') // TTL 24h
+      db.prepare(
+        'INSERT INTO metrics_history (cpu, memory, gpu, disk, net_down, net_up) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(
+        cpuVal,
+        memPercVal,
+        gpuData?.load ?? 0,
+        diskPerc ?? 0,
+        totalNetIO.down,
+        totalNetIO.up,
+      )
+    } catch (err) {
+      console.error('Failed to write metrics history:', err)
     }
 
     return NextResponse.json(result)
