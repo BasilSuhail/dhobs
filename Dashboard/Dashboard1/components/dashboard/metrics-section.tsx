@@ -9,6 +9,7 @@ import { StorageLoad } from "../metrics/storage-load"
 import { DiskVolumes } from "../metrics/disk-volumes"
 import { NodeAlerts } from "../metrics/node-alerts"
 import { ActiveInfrastructure } from "../metrics/active-infrastructure"
+import { SystemDiagnostics } from "../metrics/system-diagnostics"
 
 interface ContainerStat {
   name: string
@@ -37,6 +38,9 @@ interface StatsData {
   temps: { cpu: number | null; gpu: number | null; sys: number | null }
   diskUsedPerc: number | null
   uptimeDays: number | null
+  swap: { total: number; used: number; perc: number } | null
+  loadAvg: { load1: number; load5: number; load15: number } | null
+  netErrors: { rxErrors: number; txErrors: number; rxDropped: number; txDropped: number } | null
 }
 
 interface SystemHistoryPoint {
@@ -159,6 +163,9 @@ export function MetricsSection() {
       <div className="flex-1 min-h-0 overflow-hidden">
         <ActiveInfrastructure stats={stats} />
       </div>
+
+      {/* Row 4: System Diagnostics — Swap, Load, Network Errors */}
+      <SystemDiagnostics stats={stats} />
     </div>
   )
 }

@@ -95,6 +95,51 @@ async function readUptime(): Promise<number | null> {
   } catch { return null }
 }
 
+// Swap usage — Linux only
+async function readSwap(): Promise<{ total: number; used: number; perc: number } | null> {
+  try {
+    const raw = fs.readFileSync('/proc/meminfo', 'utf-8')
+    const parse = (key: string) => {
+      const line = raw.split('\n').find(l => l.startsWith(key))
+      return line ? parseInt(line.split(/\s+/)[1]) * 1024 : 0 // kB → bytes
+    }
+    const total = parse('SwapTotal')
+    if (total === 0) return null // no swap configured
+    const free = parse('SwapFree')
+    const used = total - free
+    return { total, used, perc: total > 0 ? ((used / total) * 100) : 0 }
+  } catch { return null }
+}
+
+// System load averages — Linux only
+async function readLoadAverages(): Promise<{ load1: number; load5: number; load15: number } | null> {
+  try {
+    const raw = fs.readFileSync('/proc/loadavg', 'utf-8').trim()
+    const [load1, load5, load15] = raw.split(/\s+/).slice(0, 3).map(Number)
+    return { load1, load5, load15 }
+  } catch { return null }
+}
+
+// Network errors/dropped packets — Linux only
+async function readNetErrors(): Promise<{ rxErrors: number; txErrors: number; rxDropped: number; txDropped: number } | null> {
+  try {
+    const lines = fs.readFileSync('/proc/net/dev', 'utf-8').trim().split('\n').slice(2)
+    let rxErrors = 0, txErrors = 0, rxDropped = 0, txDropped = 0
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/)
+      const iface = parts[0].replace(':', '')
+      // Skip virtual interfaces
+      if (['lo', 'docker0', 'br-1'].some(p => iface.startsWith(p)) || iface.startsWith('veth')) continue
+      // Format: face |rx bytes packets errs drop fifo frame compressed multicast|tx bytes packets errs drop fifo colls carrier compressed
+      rxDropped += parseInt(parts[4]) || 0
+      rxErrors += parseInt(parts[3]) || 0
+      txDropped += parseInt(parts[12]) || 0
+      txErrors += parseInt(parts[11]) || 0
+    }
+    return { rxErrors, txErrors, rxDropped, txDropped }
+  } catch { return null }
+}
+
 // Container health via docker ps -a — includes exited/unhealthy containers
 async function readContainerHealth(projectContainers: any[]): Promise<any[]> {
   try {
@@ -168,7 +213,13 @@ export async function GET() {
     const temps = await readTemps(gpuData?.temp ?? null)
 
     // 5. Read disk usage % and uptime
-    const [diskPerc, uptimeDays] = await Promise.all([readDiskUsage(), readUptime()])
+    const [diskPerc, uptimeDays, swapData, loadAvg, netErrors] = await Promise.all([
+      readDiskUsage(),
+      readUptime(),
+      readSwap(),
+      readLoadAverages(),
+      readNetErrors(),
+    ])
 
     let totalCpu = 0
     let totalMemPerc = 0
@@ -224,6 +275,9 @@ export async function GET() {
       temps,
       diskUsedPerc: diskPerc,
       uptimeDays,
+      swap: swapData ? { total: swapData.total, used: swapData.used, perc: swapData.perc } : null,
+      loadAvg: loadAvg ? { load1: loadAvg.load1, load5: loadAvg.load5, load15: loadAvg.load15 } : null,
+      netErrors: netErrors || null,
     }
 
     // Write to SQLite history (every poll)
