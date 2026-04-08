@@ -35,6 +35,9 @@ interface StatsData {
   swap: { total: number; used: number; perc: number } | null
   loadAvg: { load1: number; load5: number; load15: number } | null
   netErrors: { rxErrors: number; txErrors: number; rxDropped: number; txDropped: number } | null
+  disks: Array<{ mount: string; total: string; used: string; avail: string; usePerc: number; device: string }>
+  smart: Array<{ device: string; model: string; temperature: number | null; powerOnHours: number | null; health: string; reallocated: number | null }>
+  power: { watts: number | null; kwhEstimate: number | null }
 }
 
 interface HistoryPoint {
@@ -365,13 +368,86 @@ export function MetricsSection() {
               {stats.gpu?.temp && <div className="text-[9px] text-foreground/15 tabular-nums">GPU {stats.gpu.temp}°</div>}
             </div>
             <div className="bg-secondary/5 rounded-lg px-3 py-2">
-              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Net Errors</div>
+              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Net Health</div>
               <div className="text-sm font-mono font-semibold tabular-nums mt-0.5" style={{ color: (stats.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
                 {stats.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Disks + SMART + Power */}
+        {(stats.disks.length > 0 || stats.smart.length > 0 || stats.power.kwhEstimate !== null) && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Per-Disk Breakdown */}
+            {stats.disks.length > 0 && (
+              <div className="lg:col-span-1">
+                <SectionHeader title="Disk Usage" />
+                <div className="bg-secondary/5 rounded-lg overflow-hidden">
+                  <table className="w-full text-[10px]">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-1 px-2 font-medium text-foreground/20 uppercase tracking-wider">Mount</th>
+                        <th className="text-right py-1 px-2 font-medium text-foreground/20">Used</th>
+                        <th className="text-right py-1 px-2 font-medium text-foreground/20">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.disks.map((d, i) => (
+                        <tr key={i} className="border-b border-border/40">
+                          <td className="py-1 px-2 text-foreground/50 truncate max-w-[120px]" title={d.mount}>{d.mount}</td>
+                          <td className="py-1 px-2 text-right font-mono tabular-nums text-foreground/40">{d.used}/{d.total}</td>
+                          <td className="py-1 px-2 text-right font-mono tabular-nums" style={{ color: d.usePerc > 85 ? '#ef4444' : d.usePerc > 60 ? '#f59e0b' : '#22c55e' }}>{d.usePerc}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SMART Health */}
+            {stats.smart.length > 0 && (
+              <div className="lg:col-span-1">
+                <SectionHeader title="Drive Health" />
+                <div className="bg-secondary/5 rounded-lg overflow-hidden">
+                  <table className="w-full text-[10px]">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-1 px-2 font-medium text-foreground/20 uppercase tracking-wider">Drive</th>
+                        <th className="text-right py-1 px-2 font-medium text-foreground/20">Temp</th>
+                        <th className="text-right py-1 px-2 font-medium text-foreground/20">Health</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.smart.map((d, i) => (
+                        <tr key={i} className="border-b border-border/40">
+                          <td className="py-1 px-2 text-foreground/50 truncate max-w-[100px]" title={d.model}>{d.model}</td>
+                          <td className="py-1 px-2 text-right font-mono tabular-nums text-foreground/40">{d.temperature ? `${d.temperature}°` : "—"}</td>
+                          <td className="py-1 px-2 text-right">
+                            <span className="text-[9px] font-medium" style={{ color: d.health === 'OK' ? '#22c55e' : '#ef4444' }}>{d.health}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Power */}
+            {stats.power.kwhEstimate !== null && (
+              <div className="lg:col-span-1">
+                <SectionHeader title="Energy" />
+                <div className="bg-secondary/5 rounded-lg px-3 py-2">
+                  <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Cumulative Energy</div>
+                  <div className="text-lg font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.power.kwhEstimate.toFixed(2)} kWh</div>
+                  {stats.power.watts !== null && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.power.watts.toFixed(0)}W current</div>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Containers table */}
         <div>

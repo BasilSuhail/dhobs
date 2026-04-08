@@ -95,6 +95,81 @@ async function readUptime(): Promise<number | null> {
   } catch { return null }
 }
 
+// Per-disk breakdown — df output for real filesystems
+async function readDiskBreakdown(): Promise<Array<{ mount: string; total: string; used: string; avail: string; usePerc: number; device: string }>> {
+  try {
+    const { stdout } = await execAsync(
+      "df -h --output=source,size,used,avail,pcent,target | grep -v -E 'tmpfs|devtmpfs|overlay|udev|shm' | tail -n +2",
+      { timeout: 3000 }
+    )
+    const lines = stdout.trim().split('\n').filter(Boolean)
+    return lines.map(line => {
+      const parts = line.trim().split(/\s+/)
+      if (parts.length >= 6) {
+        return {
+          device: parts[0],
+          total: parts[1],
+          used: parts[2],
+          avail: parts[3],
+          usePerc: parseInt(parts[4]) || 0,
+          mount: parts[5],
+        }
+      }
+      return null
+    }).filter(Boolean) as Array<{ mount: string; total: string; used: string; avail: string; usePerc: number; device: string }>
+  } catch { return [] }
+}
+
+// SMART disk health — requires smartctl
+async function readSmartHealth(): Promise<Array<{ device: string; model: string; temperature: number | null; powerOnHours: number | null; health: string; reallocated: number | null }>> {
+  try {
+    // First check if smartctl is available
+    await execAsync('which smartctl', { timeout: 2000 })
+  } catch { return [] } // smartctl not installed
+
+  try {
+    // Scan for devices
+    const { stdout: scanOut } = await execAsync('smartctl --scan --json', { timeout: 5000 })
+    const scanData = JSON.parse(scanOut)
+    const devices = scanData.devices || []
+
+    const results = []
+    for (const dev of devices.slice(0, 10)) { // Limit to 10 devices
+      try {
+        const { stdout } = await execAsync(`smartctl --json --all ${dev.name}`, { timeout: 5000 })
+        const data = JSON.parse(stdout)
+
+        results.push({
+          device: dev.name,
+          model: data.model_name || dev.name,
+          temperature: data.temperature?.current ?? null,
+          powerOnHours: data.power_on_time?.hours ?? data.power_cycle_count ?? null,
+          health: data.smart_status?.passed ? 'OK' : data.smart_status?.output || 'Unknown',
+          reallocated: data.vendor_attributes?.['5']?.raw?.value ?? data.vendor_attributes?.['5']?.raw?.string ?? null,
+        })
+      } catch { /* skip devices that fail */ }
+    }
+    return results
+  } catch { return [] }
+}
+
+// Power consumption — via Intel RAPL or powercap
+async function readPower(): Promise<{ watts: number | null; kwhEstimate: number | null }> {
+  try {
+    // Intel RAPL (most common on Intel CPUs)
+    const energyFile = '/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj'
+    if (fs.existsSync(energyFile)) {
+      const energyUj = parseInt(fs.readFileSync(energyFile, 'utf-8').trim())
+      const maxPowerFile = '/sys/class/powercap/intel-rapl/intel-rapl:0/max_energy_range_uj'
+      const maxEnergy = fs.existsSync(maxPowerFile) ? parseInt(fs.readFileSync(maxPowerFile, 'utf-8').trim()) : 0
+      // This gives cumulative energy, not instantaneous watts
+      // For a rough watts estimate, we'd need two readings — skip for now
+      return { watts: null, kwhEstimate: energyUj / 3.6e9 } // microjoules to kWh
+    }
+  } catch { /* not available */ }
+  return { watts: null, kwhEstimate: null }
+}
+
 // Swap usage — Linux only
 async function readSwap(): Promise<{ total: number; used: number; perc: number } | null> {
   try {
@@ -213,12 +288,15 @@ export async function GET() {
     const temps = await readTemps(gpuData?.temp ?? null)
 
     // 5. Read disk usage % and uptime
-    const [diskPerc, uptimeDays, swapData, loadAvg, netErrors] = await Promise.all([
+    const [diskPerc, uptimeDays, swapData, loadAvg, netErrors, diskBreakdown, smartHealth, powerData] = await Promise.all([
       readDiskUsage(),
       readUptime(),
       readSwap(),
       readLoadAverages(),
       readNetErrors(),
+      readDiskBreakdown(),
+      readSmartHealth(),
+      readPower(),
     ])
 
     let totalCpu = 0
@@ -278,6 +356,9 @@ export async function GET() {
       swap: swapData ? { total: swapData.total, used: swapData.used, perc: swapData.perc } : null,
       loadAvg: loadAvg ? { load1: loadAvg.load1, load5: loadAvg.load5, load15: loadAvg.load15 } : null,
       netErrors: netErrors || null,
+      disks: diskBreakdown,
+      smart: smartHealth,
+      power: powerData,
     }
 
     // Write to SQLite history (every poll)
