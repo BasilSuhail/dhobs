@@ -67,7 +67,6 @@ async function readTemps(gpuTemp: number | null): Promise<{ cpu: number | null; 
       }
     }).filter(Boolean) as { type: string; temp: number }[]
 
-    // Pick highest CPU-type zone, or overall max
     const cpuZones = readings.filter(r => r.type.toLowerCase().includes('cpu') || r.type.toLowerCase().includes('x86'))
     const cpuReading = cpuZones.length > 0 ? cpuZones.sort((a, b) => b.temp - a.temp)[0] : readings.sort((a, b) => b.temp - a.temp)[0]
     result.cpu = cpuReading?.temp ?? null
@@ -75,6 +74,24 @@ async function readTemps(gpuTemp: number | null): Promise<{ cpu: number | null; 
   } catch { /* /sys/class/thermal not available — silent fail */ }
 
   return result
+}
+
+// Disk usage % for root filesystem — Linux only
+async function readDiskUsage(): Promise<number | null> {
+  try {
+    const { stdout } = await execAsync("df -h / | awk 'NR==2 {print $5}' | tr -d '%'", { timeout: 3000 })
+    const perc = parseInt(stdout.trim())
+    return isNaN(perc) ? null : perc
+  } catch { return null }
+}
+
+// System uptime in days — Linux only
+async function readUptime(): Promise<number | null> {
+  try {
+    const raw = fs.readFileSync('/proc/uptime', 'utf-8').trim()
+    const seconds = parseFloat(raw.split(' ')[0])
+    return Math.floor(seconds / 86400)
+  } catch { return null }
 }
 
 // Container health via docker ps -a — includes exited/unhealthy containers
@@ -149,6 +166,9 @@ export async function GET() {
     // 4. Read temperatures
     const temps = await readTemps(gpuData?.temp ?? null)
 
+    // 5. Read disk usage % and uptime
+    const [diskPerc, uptimeDays] = await Promise.all([readDiskUsage(), readUptime()])
+
     let totalCpu = 0
     let totalMemPerc = 0
     let totalMemBytes = 0
@@ -201,6 +221,8 @@ export async function GET() {
       containers: containersWithHealth,
       gpu: gpuData ? { load: gpuData.load, temp: gpuData.temp } : null,
       temps,
+      diskUsedPerc: diskPerc,
+      uptimeDays,
     }
 
     return NextResponse.json(result)

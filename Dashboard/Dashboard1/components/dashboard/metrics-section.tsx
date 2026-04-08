@@ -35,6 +35,8 @@ interface StatsData {
   containers: ContainerStat[]
   gpu: { load: number; temp: number } | null
   temps: { cpu: number | null; gpu: number | null; sys: number | null }
+  diskUsedPerc: number | null
+  uptimeDays: number | null
 }
 
 interface SystemHistoryPoint {

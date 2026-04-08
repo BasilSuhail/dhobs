@@ -7,16 +7,23 @@ interface QuickStatsProps {
     cpu: string
     memBytes: string
     netDown: string
+    gpu: { load: number; temp: number } | null
+    temps: { cpu: number | null; gpu: number | null; sys: number | null }
+    diskUsedPerc: number | null
+    uptimeDays: number | null
   } | null
 }
 
 export function QuickStats({ stats }: QuickStatsProps) {
+  const gpuLabel = stats?.gpu ? `${stats.gpu.load}%` : "N/A"
+  const tempValue = stats?.temps?.cpu ? `${stats.temps.cpu}°` : "N/A"
+
   const displayStats = [
     { icon: Cpu, value: `${stats?.cpu || "0"}%`, label: "CPU", color: "#22d3ee" },
     { icon: MemoryStick, value: `${stats?.memBytes || "0"} GiB`, label: "Used", color: "#facc15" },
     { icon: Wifi, value: `${stats?.netDown || "0"} MB/s`, label: "Net In", color: "#22c55e" },
-    { icon: Gauge, value: "---", label: "GPU", color: "#a855f7" },
-    { icon: Thermometer, value: "---", label: "Temp", color: "#f97316" },
+    { icon: Gauge, value: gpuLabel, label: "GPU", color: "#a855f7" },
+    { icon: Thermometer, value: tempValue, label: "Temp", color: "#f97316" },
   ]
 
   return (
