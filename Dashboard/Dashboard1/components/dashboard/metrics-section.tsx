@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback } from "react"
-import { Cpu, MemoryStick, HardDrive, Clock, ArrowDownUp, Activity, AlertCircle, Wifi, Server, Database, Thermometer, Gauge } from "lucide-react"
-import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Line, LineChart, Bar, BarChart } from "recharts"
+import { Cpu, MemoryStick, HardDrive, Clock, ArrowDownUp, Activity, Wifi, Server, Database } from "lucide-react"
+import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts"
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -90,14 +90,14 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
   color: string
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-3 shadow-sm">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
+    <div className="bg-card rounded-xl border border-border p-3 flex items-start gap-2.5 shadow-sm">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
         <Icon className="w-4 h-4" style={{ color }} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</div>
-        <div className="text-2xl font-bold text-gray-900 tabular-nums leading-tight mt-0.5">{value}</div>
-        {sub && <div className="text-[11px] text-gray-400 mt-0.5 truncate">{sub}</div>}
+        <div className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">{label}</div>
+        <div className="text-lg font-bold text-foreground tabular-nums leading-tight mt-0.5">{value}</div>
+        {sub && <div className="text-[10px] text-foreground/30 mt-0.5 truncate">{sub}</div>}
       </div>
     </div>
   )
@@ -111,16 +111,23 @@ function ChartCard({ title, icon: Icon, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-gray-400" />
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</span>
+    <div className="bg-card rounded-xl border border-border p-3 shadow-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="w-3.5 h-3.5 text-foreground/40" />
+        <span className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">{title}</span>
       </div>
-      <div className="h-52">
-        {children}
-      </div>
+      <div className="h-44">{children}</div>
     </div>
   )
+}
+
+// ── Tooltip style ──────────────────────────────────────────────────────────
+
+const tooltipStyle = {
+  backgroundColor: "var(--card)",
+  border: "1px solid var(--border)",
+  borderRadius: "10px",
+  fontSize: "11px",
 }
 
 // ── Main Section ───────────────────────────────────────────────────────────
@@ -182,19 +189,19 @@ export function MetricsSection() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50/50 overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-border">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">System Metrics</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Real-time monitoring · 5s refresh</p>
+          <h2 className="text-sm font-bold text-foreground">System Metrics</h2>
+          <p className="text-[10px] text-foreground/30 mt-0.5">Real-time · 5s refresh</p>
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+        <div className="flex items-center gap-0.5 bg-secondary/20 rounded-lg p-0.5">
           {(["1h", "6h", "24h", "7d"] as TimeRange[]).map(r => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${range === r ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all ${range === r ? 'bg-card text-foreground shadow-sm' : 'text-foreground/40 hover:text-foreground/60'}`}
             >
               {r}
             </button>
@@ -203,12 +210,12 @@ export function MetricsSection() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
 
         {/* Row 1: Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           <StatCard icon={Cpu} label="CPU" value={`${stats?.cpu || "0"}%`} color="#0ea5e9" />
-          <StatCard icon={MemoryStick} label="Memory" value={`${stats?.memPerc || "0"}%`} sub={`${stats?.memBytes || "0"} GiB used`} color="#8b5cf6" />
+          <StatCard icon={MemoryStick} label="Memory" value={`${stats?.memPerc || "0"}%`} sub={`${stats?.memBytes || "0"} GiB`} color="#8b5cf6" />
           <StatCard icon={HardDrive} label="Disk" value={stats?.diskUsedPerc ? `${stats.diskUsedPerc}%` : "N/A"} color="#f59e0b" />
           <StatCard icon={Clock} label="Uptime" value={stats?.uptimeDays ? `${stats.uptimeDays}d` : "N/A"} color="#22c55e" />
           <StatCard icon={Wifi} label="Net ↓" value={`${stats?.netDown || "0"} MB/s`} color="#06b6d4" />
@@ -229,12 +236,12 @@ export function MetricsSection() {
                   <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 10 }} interval="preserveStartEnd" minTickGap={60} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 10 }} domain={[0, 100]} ticks={[0, 50, 100]} />
-              <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px", fontSize: "11px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} labelStyle={{ color: "#6b7280" }} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
-              <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={2} fill="url(#cpuGrad)" isAnimationActive={false} />
-              <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={2} fill="url(#memGrad)" isAnimationActive={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.08)" vertical={false} />
+              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "rgba(128,128,128,0.3)", fontSize: 9 }} interval="preserveStartEnd" minTickGap={60} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "rgba(128,128,128,0.3)", fontSize: 9 }} domain={[0, 100]} ticks={[0, 50, 100]} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ opacity: 0.4 }} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
+              <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={1.5} fill="url(#cpuGrad)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#memGrad)" isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -254,34 +261,34 @@ export function MetricsSection() {
                     <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 10 }} interval="preserveStartEnd" minTickGap={60} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px", fontSize: "11px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} labelStyle={{ color: "#6b7280" }} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
-                <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={2} fill="url(#dlGrad)" isAnimationActive={false} />
-                <Area type="monotone" dataKey="netUp" name="netUp" stroke="#ec4899" strokeWidth={2} fill="url(#ulGrad)" isAnimationActive={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.08)" vertical={false} />
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: "rgba(128,128,128,0.3)", fontSize: 9 }} interval="preserveStartEnd" minTickGap={60} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "rgba(128,128,128,0.3)", fontSize: 9 }} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={{ opacity: 0.4 }} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
+                <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={1.5} fill="url(#dlGrad)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="netUp" name="netUp" stroke="#ec4899" strokeWidth={1.5} fill="url(#ulGrad)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
 
           <ChartCard title="Storage Breakdown" icon={Database}>
-            <div className="space-y-3 h-full overflow-y-auto pr-1">
+            <div className="space-y-2 h-full overflow-y-auto pr-1">
               {stats?.storage?.map((s, i) => {
                 const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
                 const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
                 const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
                 return (
                   <div key={s.name}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-gray-600">{s.name}</span>
-                      <span className="text-gray-400">{humanSize(parseFloat(s.size))} · {pct}%</span>
+                    <div className="flex justify-between text-[10px] mb-1">
+                      <span className="font-medium text-foreground/60">{s.name}</span>
+                      <span className="text-foreground/30">{humanSize(parseFloat(s.size))} · {pct}%</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-secondary/20 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(2, Math.min(100, parseFloat(pct)))}%`, backgroundColor: colors[i % colors.length] }} />
                     </div>
                   </div>
                 )
-              }) ?? <div className="text-xs text-gray-400 text-center py-8">No storage data</div>}
+              }) ?? <div className="text-[10px] text-foreground/30 text-center py-6">No storage data</div>}
             </div>
           </ChartCard>
         </div>
@@ -289,69 +296,71 @@ export function MetricsSection() {
         {/* Row 4: Diagnostics + Containers */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Diagnostics */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4 text-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Diagnostics</span>
+          <div className="bg-card rounded-xl border border-border p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-3.5 h-3.5 text-foreground/40" />
+              <span className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">Diagnostics</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div>
-                <div className="text-[11px] text-gray-400 uppercase tracking-wider">Swap</div>
-                <div className="text-lg font-bold text-gray-900 tabular-nums">{stats?.swap ? `${stats.swap.perc.toFixed(0)}%` : "N/A"}</div>
-                {stats?.swap && <div className="text-[11px] text-gray-400">{humanBytes(stats.swap.used)} / {humanBytes(stats.swap.total)}</div>}
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Swap</div>
+                <div className="text-base font-bold text-foreground tabular-nums">{stats?.swap ? `${stats.swap.perc.toFixed(0)}%` : "N/A"}</div>
+                {stats?.swap && <div className="text-[9px] text-foreground/30">{humanBytes(stats.swap.used)} / {humanBytes(stats.swap.total)}</div>}
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 uppercase tracking-wider">Load Average</div>
-                <div className="text-lg font-bold text-gray-900 tabular-nums">{stats?.loadAvg ? stats.loadAvg.load1.toFixed(2) : "N/A"}</div>
-                {stats?.loadAvg && <div className="text-[11px] text-gray-400">{stats.loadAvg.load5.toFixed(2)} · {stats.loadAvg.load15.toFixed(2)}</div>}
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Load Average</div>
+                <div className="text-base font-bold text-foreground tabular-nums">{stats?.loadAvg ? stats.loadAvg.load1.toFixed(2) : "N/A"}</div>
+                {stats?.loadAvg && <div className="text-[9px] text-foreground/30">{stats.loadAvg.load5.toFixed(2)} · {stats.loadAvg.load15.toFixed(2)}</div>}
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 uppercase tracking-wider">Temperature</div>
-                <div className="text-lg font-bold text-gray-900 tabular-nums">{stats?.temps?.cpu ? `${stats.temps.cpu}°C` : "N/A"}</div>
-                <div className="text-[11px] text-gray-400">
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Temperature</div>
+                <div className="text-base font-bold text-foreground tabular-nums">{stats?.temps?.cpu ? `${stats.temps.cpu}°C` : "N/A"}</div>
+                <div className="text-[9px] text-foreground/30">
                   {stats?.gpu?.temp ? `GPU ${stats.gpu.temp}°C · ` : ""}{stats?.temps?.sys ? `SYS ${stats.temps.sys}°C` : ""}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-gray-400 uppercase tracking-wider">Network Health</div>
-                <div className="text-lg font-bold tabular-nums" style={{ color: (stats?.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Network Health</div>
+                <div className="text-base font-bold tabular-nums" style={{ color: (stats?.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
                   {stats?.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
                 </div>
-                <div className="text-[11px] text-gray-400">Errors + dropped packets</div>
+                <div className="text-[9px] text-foreground/30">Errors + dropped</div>
               </div>
             </div>
           </div>
 
           {/* Containers */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <Server className="w-4 h-4 text-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Containers ({stats?.containers?.length || 0})</span>
+          <div className="lg:col-span-2 bg-card rounded-xl border border-border p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Server className="w-3.5 h-3.5 text-foreground/40" />
+                <span className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">Containers ({stats?.containers?.length || 0})</span>
+              </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-[10px]">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-2 px-2 font-medium text-gray-400 uppercase tracking-wider">Service</th>
-                    <th className="text-left py-2 px-2 font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-400 uppercase tracking-wider">CPU</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-400 uppercase tracking-wider">Memory</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-1.5 px-2 font-medium text-foreground/30 uppercase tracking-wider">Service</th>
+                    <th className="text-left py-1.5 px-2 font-medium text-foreground/30 uppercase tracking-wider">Status</th>
+                    <th className="text-right py-1.5 px-2 font-medium text-foreground/30 uppercase tracking-wider">CPU</th>
+                    <th className="text-right py-1.5 px-2 font-medium text-foreground/30 uppercase tracking-wider">Memory</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats?.containers?.map(c => (
-                    <tr key={c.name} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="py-2 px-2 font-semibold text-gray-800 capitalize">{c.name}</td>
-                      <td className="py-2 px-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: `${statusColor(c.status)}15`, color: statusColor(c.status) }}>
+                    <tr key={c.name} className="border-b border-border/50 hover:bg-secondary/10 transition-colors">
+                      <td className="py-1.5 px-2 font-semibold text-foreground/80 capitalize">{c.name}</td>
+                      <td className="py-1.5 px-2">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase" style={{ backgroundColor: `${statusColor(c.status)}15`, color: statusColor(c.status) }}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(c.status) }} />
                           {statusLabel(c.status)}
                         </span>
                       </td>
-                      <td className="py-2 px-2 text-right tabular-nums text-gray-600">{c.cpu}</td>
-                      <td className="py-2 px-2 text-right tabular-nums text-gray-600">{c.mem.split(" / ")[0]}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-foreground/50">{c.cpu}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-foreground/50">{c.mem.split(" / ")[0]}</td>
                     </tr>
-                  )) ?? <tr><td colSpan={4} className="py-8 text-center text-gray-400">No containers</td></tr>}
+                  )) ?? <tr><td colSpan={4} className="py-6 text-center text-foreground/30">No containers</td></tr>}
                 </tbody>
               </table>
             </div>
