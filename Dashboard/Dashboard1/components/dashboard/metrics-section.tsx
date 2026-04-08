@@ -1,15 +1,10 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { QuickStats } from "../metrics/quick-stats"
-import { CpuGauge, MemoryGauge, GpuGauge, TemperatureGauge } from "../metrics/gauge-cards"
-import { SystemChart } from "../metrics/system-chart"
-import { NetworkActivity } from "../metrics/network-activity"
-import { StorageLoad } from "../metrics/storage-load"
-import { DiskVolumes } from "../metrics/disk-volumes"
-import { NodeAlerts } from "../metrics/node-alerts"
-import { ActiveInfrastructure } from "../metrics/active-infrastructure"
-import { SystemDiagnostics } from "../metrics/system-diagnostics"
+import { useEffect, useState, useRef, useCallback } from "react"
+import { Activity, ChevronDown, ArrowUpRight, ArrowDownRight, MoreHorizontal } from "lucide-react"
+import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Line, LineChart } from "recharts"
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface ContainerStat {
   name: string
@@ -32,7 +27,6 @@ interface StatsData {
   netDown: string
   netUp: string
   storage: StorageStat[]
-  topContainers: ContainerStat[]
   containers: ContainerStat[]
   gpu: { load: number; temp: number } | null
   temps: { cpu: number | null; gpu: number | null; sys: number | null }
@@ -43,50 +37,119 @@ interface StatsData {
   netErrors: { rxErrors: number; txErrors: number; rxDropped: number; txDropped: number } | null
 }
 
-interface SystemHistoryPoint {
+interface HistoryPoint {
   time: string
   cpu: number
   memory: number
   gpu: number
-  storage: number
+  disk: number
+  netDown: number
+  netUp: number
 }
 
-interface NetworkHistoryPoint {
-  time: string
-  down: number
-  up: number
+type TimeRange = "1h" | "6h" | "24h" | "7d"
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function humanBytes(bytes: number): string {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(0)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${bytes} B`
 }
+
+function humanSize(mb: number): string {
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`
+  return `${mb.toFixed(0)} MB`
+}
+
+function statusColor(status: string): string {
+  if (["running", "healthy"].includes(status)) return "#22c55e"
+  if (["unhealthy", "exited", "dead"].includes(status)) return "#ef4444"
+  if (["restarting", "paused"].includes(status)) return "#f59e0b"
+  return "#22c55e"
+}
+
+function statusLabel(status: string): string {
+  if (["running", "healthy"].includes(status)) return "Running"
+  if (status === "unhealthy") return "Unhealthy"
+  if (status === "exited") return "Exited"
+  if (status === "dead") return "Dead"
+  if (status === "restarting") return "Restarting"
+  if (status === "paused") return "Paused"
+  return "Running"
+}
+
+// ── Sparkline ──────────────────────────────────────────────────────────────
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 40
+    const y = 12 - (v / 100) * 12
+    return `${x},${y}`
+  }).join(" ")
+  return (
+    <svg width="40" height="14" className="inline-block">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ── Section Header ─────────────────────────────────────────────────────────
+
+function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider">{title}</h3>
+      {action}
+    </div>
+  )
+}
+
+// ── Main Section ───────────────────────────────────────────────────────────
 
 export function MetricsSection() {
   const [stats, setStats] = useState<StatsData | null>(null)
-  const [systemHistory, setSystemHistory] = useState<SystemHistoryPoint[]>([])
-  const [networkHistory, setNetworkHistory] = useState<NetworkHistoryPoint[]>([])
+  const [history, setHistory] = useState<HistoryPoint[]>([])
+  const [range, setRange] = useState<TimeRange>("1h")
+  const [rangeOpen, setRangeOpen] = useState(false)
+  const [cpuHistory, setCpuHistory] = useState<number[]>([])
+  const [memHistory, setMemHistory] = useState<number[]>([])
   const isFetching = useRef(false)
+  const rangeRef = useRef<HTMLDivElement>(null)
 
-  // Fetch persisted history on mount
+  // Close range dropdown on outside click
   useEffect(() => {
-    fetch('/api/stats/history')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setSystemHistory(data.map((d: any) => ({
-            time: d.time,
-            cpu: d.cpu,
-            memory: d.memory,
-            gpu: d.gpu,
-            storage: d.disk,
-          })))
-          setNetworkHistory(data.map((d: any) => ({
-            time: d.time,
-            down: parseFloat(d.netDown) || 0,
-            up: parseFloat(d.netUp) || 0,
-          })))
-        }
-      })
-      .catch(() => { /* no history yet — first poll */ })
+    const handler = (e: MouseEvent) => {
+      if (rangeRef.current && !rangeRef.current.contains(e.target as Node)) setRangeOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
   }, [])
 
-  const fetchStats = async () => {
+  const fetchHistory = useCallback((r: TimeRange) => {
+    fetch(`/api/stats/history?range=${r}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setHistory(data.map((d: any) => ({
+            time: d.time,
+            cpu: d.cpu ?? 0,
+            memory: d.memory ?? 0,
+            gpu: d.gpu ?? 0,
+            disk: d.disk ?? 0,
+            netDown: parseFloat(d.netDown) || 0,
+            netUp: parseFloat(d.netUp) || 0,
+          })))
+          setCpuHistory(data.map((d: any) => d.cpu ?? 0).slice(-30))
+          setMemHistory(data.map((d: any) => d.memory ?? 0).slice(-30))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const fetchStats = useCallback(async () => {
     if (isFetching.current) return
     isFetching.current = true
     try {
@@ -94,78 +157,261 @@ export function MetricsSection() {
       const data = await res.json()
       if (data && !data.error) {
         setStats(data)
-        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-
         const diskPerc = data.diskUsedPerc ?? 0
-
-        setSystemHistory(prev => [...prev, {
+        setCpuHistory(prev => [...prev, parseFloat(data.cpu) || 0].slice(-30))
+        setMemHistory(prev => [...prev, parseFloat(data.memPerc) || 0].slice(-30))
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        setHistory(prev => [...prev, {
           time: now,
           cpu: parseFloat(data.cpu) || 0,
           memory: parseFloat(data.memPerc) || 0,
           gpu: data?.gpu?.load ?? 0,
-          storage: diskPerc,
-        }].slice(-120))
-
-        setNetworkHistory(prev => [...prev, {
-          time: now,
-          down: parseFloat(data.netDown) || 0,
-          up: parseFloat(data.netUp) || 0,
-        }].slice(-120))
+          disk: diskPerc,
+          netDown: parseFloat(data.netDown) || 0,
+          netUp: parseFloat(data.netUp) || 0,
+        }].slice(-1344))
       }
-    } catch (err) {
-      console.error("Metrics offline")
-    } finally {
-      isFetching.current = false
-    }
-  }
-
-  useEffect(() => {
-    fetchStats()
-    const interval = setInterval(fetchStats, 5000)
-    return () => clearInterval(interval)
+    } catch { console.error("Metrics offline") }
+    finally { isFetching.current = false }
   }, [])
 
+  useEffect(() => { fetchHistory(range) }, [range, fetchHistory])
+  useEffect(() => { fetchStats(); const i = setInterval(fetchStats, 5000); return () => clearInterval(i) }, [fetchStats])
+
+  const rangeLabels: Record<TimeRange, string> = { "1h": "Past hour", "6h": "Past 6 hours", "24h": "Past 24 hours", "7d": "Past 7 days" }
+
+  // ── Render ─────────────────────────────────────────────────────────────
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden pl-[88px]">
+        <div className="flex items-center justify-center h-full text-foreground/20">
+          <span className="text-xs font-medium animate-pulse">Loading metrics...</span>
+        </div>
+      </div>
+    )
+  }
+
+  const chartTooltip = {
+    contentStyle: { backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "11px", padding: "6px 10px", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" },
+    labelStyle: { color: "var(--foreground)", opacity: 0.4, marginBottom: "2px" },
+    itemStyle: { color: "var(--foreground)", padding: "1px 0" },
+  }
+
+  const gridStroke = "rgba(128,128,128,0.06)"
+  const axisTick = { fill: "rgba(128,128,128,0.25)", fontSize: 9 }
+
   return (
-    <div className="flex flex-col gap-3 p-3 pl-[88px] h-[100vh] max-h-[100vh] overflow-hidden box-border">
-      {/* Quick Stats Bar */}
-      <QuickStats stats={stats} />
+    <div className="flex flex-col h-screen overflow-hidden pl-[88px]">
 
-      {/* Row 1: Gauges + Performance Chart */}
-      <div className="flex gap-3" style={{ flex: '0 0 28%' }}>
-        <div className="grid grid-cols-2 grid-rows-2 gap-3" style={{ flex: '0 0 280px' }}>
-          <CpuGauge value={parseFloat(stats?.cpu || "0")} containerCount={stats?.containers.length || 0} />
-          <MemoryGauge value={parseFloat(stats?.memPerc || "0")} usedBytes={stats?.memBytes || "0"} />
-          <GpuGauge gpu={stats?.gpu ?? null} />
-          <TemperatureGauge temps={stats?.temps ?? { cpu: null, gpu: null, sys: null }} />
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-4 py-2.5 shrink-0 border-b border-border">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Metrics</h2>
+          <p className="text-[10px] text-foreground/25 mt-0.5">Real-time · 5s refresh</p>
         </div>
-        <div className="flex-1 min-w-0">
-          <SystemChart data={systemHistory} />
+        <div className="relative" ref={rangeRef}>
+          <button onClick={() => setRangeOpen(!rangeOpen)} className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-foreground/50 bg-secondary/10 rounded-md border border-border hover:bg-secondary/20 transition-colors">
+            {range} · {rangeLabels[range]}
+            <ChevronDown className={`w-3 h-3 transition-transform ${rangeOpen ? "rotate-180" : ""}`} />
+          </button>
+          {rangeOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden min-w-[160px]">
+              {(["1h", "6h", "24h", "7d"] as TimeRange[]).map(r => (
+                <button
+                  key={r}
+                  onClick={() => { setRange(r); setRangeOpen(false) }}
+                  className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${range === r ? 'text-foreground bg-secondary/10 font-medium' : 'text-foreground/40 hover:text-foreground/60'}`}
+                >
+                  {r} <span className="opacity-40 ml-1">— {rangeLabels[r]}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Row 2: Storage, Disk Volumes, Node Alerts, Traffic Pulse */}
-      <div className="flex gap-3" style={{ flex: '0 0 22%' }}>
-        <div style={{ flex: '0 0 180px' }}>
-          <StorageLoad stats={stats} />
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+
+        {/* Stat pills */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">CPU</span>
+            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.cpu}%</span>
+            <Sparkline data={cpuHistory} color="#0ea5e9" />
+          </div>
+          <span className="text-foreground/10">|</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Memory</span>
+            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.memPerc}%</span>
+            <span className="text-[10px] text-foreground/25">{stats.memBytes} GiB</span>
+            <Sparkline data={memHistory} color="#8b5cf6" />
+          </div>
+          <span className="text-foreground/10">|</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Disk</span>
+            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.diskUsedPerc ?? "—"}%</span>
+          </div>
+          <span className="text-foreground/10">|</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Uptime</span>
+            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.uptimeDays ?? "—"}d</span>
+          </div>
+          <span className="text-foreground/10">|</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Net</span>
+            <span className="text-[11px] font-mono text-emerald-500 tabular-nums">↓{stats.netDown}</span>
+            <span className="text-[11px] font-mono text-rose-400 tabular-nums">↑{stats.netUp}</span>
+            <span className="text-[9px] text-foreground/20">MB/s</span>
+          </div>
         </div>
-        <div style={{ flex: '0 0 160px' }}>
-          <DiskVolumes stats={stats} />
+
+        {/* CPU + Memory chart */}
+        <div>
+          <SectionHeader title="CPU & Memory" />
+          <div className="h-48 -mx-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
+                <YAxis axisLine={false} tickLine={false} tick={axisTick} domain={[0, 100]} ticks={[0, 50, 100]} />
+                <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
+                <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={1.5} fill="url(#cpuGrad)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#memGrad)" isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div style={{ flex: '0 0 210px' }}>
-          <NodeAlerts stats={stats} />
+
+        {/* Network + Storage side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <SectionHeader title="Network I/O" />
+            <div className="h-40 -mx-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="dlGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="ulGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
+                  <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
+                  <YAxis axisLine={false} tickLine={false} tick={axisTick} />
+                  <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
+                  <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={1.5} fill="url(#dlGrad)" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="netUp" name="netUp" stroke="#f43f5e" strokeWidth={1.5} fill="url(#ulGrad)" isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div>
+            <SectionHeader title="Storage" />
+            <div className="space-y-2">
+              {stats.storage.map((s, i) => {
+                const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
+                const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
+                const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
+                return (
+                  <div key={s.name} className="group">
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="text-foreground/50 group-hover:text-foreground/70 transition-colors">{s.name}</span>
+                      <span className="text-foreground/25 tabular-nums">{humanSize(parseFloat(s.size))}</span>
+                    </div>
+                    <div className="h-1 bg-secondary/10 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(1, Math.min(100, parseFloat(pct)))}%`, backgroundColor: colors[i % colors.length] }} />
+                    </div>
+                  </div>
+                )
+              })}
+              {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
+            </div>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <NetworkActivity stats={stats} history={networkHistory} />
+
+        {/* Diagnostics row */}
+        <div>
+          <SectionHeader title="System" />
+          <div className="grid grid-cols-4 gap-3">
+            <div className="bg-secondary/5 rounded-lg px-3 py-2">
+              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Swap</div>
+              <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.swap ? `${stats.swap.perc.toFixed(0)}%` : "—"}</div>
+            </div>
+            <div className="bg-secondary/5 rounded-lg px-3 py-2">
+              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
+              <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.loadAvg ? stats.loadAvg.load1.toFixed(2) : "—"}</div>
+              {stats.loadAvg && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.loadAvg.load5} · {stats.loadAvg.load15}</div>}
+            </div>
+            <div className="bg-secondary/5 rounded-lg px-3 py-2">
+              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">CPU Temp</div>
+              <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.temps?.cpu ? `${stats.temps.cpu}°` : "—"}</div>
+              {stats.gpu?.temp && <div className="text-[9px] text-foreground/15 tabular-nums">GPU {stats.gpu.temp}°</div>}
+            </div>
+            <div className="bg-secondary/5 rounded-lg px-3 py-2">
+              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Net Errors</div>
+              <div className="text-sm font-mono font-semibold tabular-nums mt-0.5" style={{ color: (stats.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
+                {stats.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Containers table */}
+        <div>
+          <SectionHeader title={`Containers (${stats.containers.length})`} />
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">Service</th>
+                  <th className="text-left py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">Status</th>
+                  <th className="text-right py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">CPU</th>
+                  <th className="text-right py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider text-[9px]">Memory</th>
+                  <th className="w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.containers.map(c => (
+                  <tr key={c.name} className="border-b border-border/40 hover:bg-secondary/5 transition-colors group">
+                    <td className="py-1.5 px-2 font-medium text-foreground/70 capitalize">{c.name}</td>
+                    <td className="py-1.5 px-2">
+                      <span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ backgroundColor: `${statusColor(c.status)}12`, color: statusColor(c.status) }}>
+                        <span className="w-1 h-1 rounded-full" style={{ backgroundColor: statusColor(c.status) }} />
+                        {statusLabel(c.status)}
+                      </span>
+                    </td>
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{c.cpu}</td>
+                    <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{c.mem.split(" / ")[0]}</td>
+                    <td className="py-1.5 px-2 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MoreHorizontal className="w-3 h-3 text-foreground/30 ml-auto" />
+                    </td>
+                  </tr>
+                ))}
+                {stats.containers.length === 0 && (
+                  <tr><td colSpan={5} className="py-6 text-center text-foreground/20 text-[11px]">No containers</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
-      {/* Row 3: Active Infrastructure — takes remaining space */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <ActiveInfrastructure stats={stats} />
-      </div>
-
-      {/* Row 4: System Diagnostics — Swap, Load, Network Errors */}
-      <SystemDiagnostics stats={stats} />
     </div>
   )
 }
