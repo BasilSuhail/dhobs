@@ -111,42 +111,70 @@ export function MemoryGauge({ value, usedBytes }: { value: number, usedBytes: st
   )
 }
 
-export function GpuGauge() {
+export function GpuGauge({ gpu }: { gpu: { load: number; temp: number } | null }) {
+  if (!gpu) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-3 flex flex-col h-full shadow-sm overflow-hidden opacity-50">
+        <div className="flex items-center gap-2 shrink-0">
+          <Gauge className="w-3.5 h-3.5 text-[#a855f7]" />
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-40 text-foreground">GPU Load</span>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs font-black opacity-30 text-foreground">No GPU</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <GaugeCard
       icon={<Gauge className="w-3.5 h-3.5" />}
       title="GPU Load"
-      value={0}
+      value={gpu.load}
       unit="%"
       color="#a855f7"
       subtitle="Device"
-      subtitleValue="Offline"
+      subtitleValue="Active"
     />
   )
 }
 
-export function TemperatureGauge() {
-  const temps = [
-    { label: "CPU", value: 0, color: "#22d3ee" },
-    { label: "GPU", value: 0, color: "#a855f7" },
-    { label: "SYS", value: 0, color: "#22c55e" },
-  ]
-  
+export function TemperatureGauge({ temps }: { temps: { cpu: number | null; gpu: number | null; sys: number | null } }) {
+  const displayTemps = [
+    { label: "CPU", value: temps.cpu, color: "#22d3ee" },
+    { label: "GPU", value: temps.gpu, color: "#a855f7" },
+    { label: "SYS", value: temps.sys, color: "#22c55e" },
+  ].filter(t => t.value !== null)
+
+  if (displayTemps.length === 0) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-3 h-full flex flex-col shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 shrink-0">
+          <Thermometer className="w-3.5 h-3.5 text-orange-400" />
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-40 text-foreground">Thermals</span>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-xs font-black opacity-30 text-foreground">N/A</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-card rounded-xl border border-border p-3 h-full flex flex-col shadow-sm overflow-hidden">
       <div className="flex items-center gap-2 shrink-0">
         <Thermometer className="w-3.5 h-3.5 text-orange-400" />
         <span className="text-[10px] font-black uppercase tracking-widest opacity-40 text-foreground">Thermals</span>
       </div>
-      
+
       <div className="flex-1 min-h-0 flex items-center justify-around overflow-hidden">
-        {temps.map((temp) => (
+        {displayTemps.map((temp) => (
           <div key={temp.label} className="text-center flex flex-col items-center">
             <div className="relative">
-              <CircularGauge value={temp.value} maxValue={100} color={temp.color} size={36} strokeWidth={3} />
+              <CircularGauge value={Math.min(temp.value!, 100)} maxValue={100} color={temp.color} size={36} strokeWidth={3} />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-[9px] font-bold translate-y-0.5" style={{ color: temp.color }}>
-                  --°
+                  {temp.value}°
                 </span>
               </div>
             </div>

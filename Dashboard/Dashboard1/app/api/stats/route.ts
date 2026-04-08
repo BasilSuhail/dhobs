@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import fs from 'fs'
 import path from 'path'
 import { requireSession } from '@/lib/auth'
 
@@ -9,11 +10,117 @@ const execAsync = promisify(exec)
 // Function to get directory size in bytes
 async function getDirSize(dirPath: string): Promise<number> {
   try {
-    // Inside the Alpine container, we use du -sk or du -sb
     const { stdout } = await execAsync(`du -sk "${dirPath}"`)
     return parseInt(stdout.split('\t')[0]) * 1024
-  } catch (error) {
+  } catch {
     return 0
+  }
+}
+
+// Dynamic storage scan — all subdirectories under /data
+async function scanStorage(dataRoot: string): Promise<{ name: string; value: number }[]> {
+  try {
+    const entries = fs.readdirSync(dataRoot, { withFileTypes: true })
+    const dirs = entries.filter(e => e.isDirectory() && !e.name.startsWith('.'))
+    const results = await Promise.all(
+      dirs.map(async (dir) => {
+        const size = await getDirSize(path.join(dataRoot, dir.name))
+        return { name: dir.name, value: size }
+      })
+    )
+    return results.filter(s => s.value > 0)
+  } catch {
+    return []
+  }
+}
+
+// GPU detection via nvidia-smi — silent fail if absent
+async function readGpu(): Promise<{ load: number; temp: number } | null> {
+  try {
+    const { stdout } = await execAsync(
+      'nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits',
+      { timeout: 5000 }
+    )
+    const [load, temp] = stdout.trim().split(',').map(Number)
+    if (!isNaN(load) && !isNaN(temp)) return { load, temp }
+  } catch { /* no GPU — silent fail */ }
+  return null
+}
+
+// Temperature detection via /sys/class/thermal — Linux only
+async function readTemps(gpuTemp: number | null): Promise<{ cpu: number | null; gpu: number | null; sys: number | null }> {
+  const result: { cpu: number | null; gpu: number | null; sys: number | null } = {
+    cpu: null,
+    gpu: gpuTemp,
+    sys: null,
+  }
+
+  try {
+    const zones = fs.readdirSync('/sys/class/thermal').filter(f => f.startsWith('thermal_zone'))
+    const readings = zones.map(zone => {
+      try {
+        const temp = parseInt(fs.readFileSync(`/sys/class/thermal/${zone}/temp`, 'utf-8').trim()) / 1000
+        const type = fs.readFileSync(`/sys/class/thermal/${zone}/type`, 'utf-8').trim()
+        return { type, temp }
+      } catch {
+        return null
+      }
+    }).filter(Boolean) as { type: string; temp: number }[]
+
+    // Pick highest CPU-type zone, or overall max
+    const cpuZones = readings.filter(r => r.type.toLowerCase().includes('cpu') || r.type.toLowerCase().includes('x86'))
+    const cpuReading = cpuZones.length > 0 ? cpuZones.sort((a, b) => b.temp - a.temp)[0] : readings.sort((a, b) => b.temp - a.temp)[0]
+    result.cpu = cpuReading?.temp ?? null
+    result.sys = readings.length > 0 ? Math.max(...readings.map(r => r.temp)) : null
+  } catch { /* /sys/class/thermal not available — silent fail */ }
+
+  return result
+}
+
+// Container health via docker ps -a — includes exited/unhealthy containers
+async function readContainerHealth(projectContainers: any[]): Promise<any[]> {
+  try {
+    const { stdout } = await execAsync(
+      `docker ps -a --filter "name=project-s-" --format "{{.Names}}\\t{{.Status}}"`,
+      { timeout: 5000 }
+    )
+    const lines = stdout.trim().split('\n').filter(Boolean)
+    const healthMap = new Map<string, string>()
+
+    for (const line of lines) {
+      const parts = line.split('\t')
+      if (parts.length >= 2) {
+        healthMap.set(parts[0], parts[1])
+      }
+    }
+
+    return projectContainers.map((c: any) => {
+      const rawStatus = healthMap.get(c.Name) || 'Up'
+      const statusLower = rawStatus.toLowerCase()
+
+      // Determine display status from raw docker status string
+      let displayStatus = 'running'
+      if (statusLower.includes('unhealthy')) displayStatus = 'unhealthy'
+      else if (statusLower.includes('restarting')) displayStatus = 'restarting'
+      else if (statusLower.includes('exited')) displayStatus = 'exited'
+      else if (statusLower.includes('dead')) displayStatus = 'dead'
+      else if (statusLower.includes('paused')) displayStatus = 'paused'
+
+      return {
+        name: c.Name.replace('project-s-', ''),
+        status: displayStatus,
+        cpu: c.CPUPerc,
+        mem: c.MemUsage,
+      }
+    })
+  } catch {
+    // Fallback: all containers running
+    return projectContainers.map((c: any) => ({
+      name: c.Name.replace('project-s-', ''),
+      status: 'running',
+      cpu: c.CPUPerc,
+      mem: c.MemUsage,
+    }))
   }
 }
 
@@ -31,32 +138,32 @@ export async function GET() {
       }
     }).filter(Boolean)
     const projectContainers = containers.filter(c => c.Name.includes('project-s'))
-    
-    // 2. Get Storage Stats (Mounted at /data in the container)
+
+    // 2. Get Storage Stats — dynamic scan of all /data subdirectories
     const dataRoot = '/data'
-    const storagePaths = ['jellyfin', 'nextcloud', 'matrix', 'media', 'vaultwarden']
-    const storageStats = await Promise.all(
-      storagePaths.map(async (folder) => {
-        const size = await getDirSize(path.join(dataRoot, folder))
-        return { name: folder, value: size }
-      })
-    )
+    const storageStats = await scanStorage(dataRoot)
+
+    // 3. Read GPU data (nvidia-smi if available)
+    const gpuData = await readGpu()
+
+    // 4. Read temperatures
+    const temps = await readTemps(gpuData?.temp ?? null)
 
     let totalCpu = 0
     let totalMemPerc = 0
     let totalMemBytes = 0
     let totalNetIO = { up: 0, down: 0 }
-    
+
     projectContainers.forEach(c => {
       totalCpu += parseFloat(c.CPUPerc.replace('%', ''))
       totalMemPerc += parseFloat(c.MemPerc.replace('%', ''))
-      
+
       const memUsage = c.MemUsage.split(' / ')[0]
       if (memUsage.includes('GiB')) totalMemBytes += parseFloat(memUsage) * 1024 * 1024 * 1024
       else if (memUsage.includes('MiB')) totalMemBytes += parseFloat(memUsage) * 1024 * 1024
       else if (memUsage.includes('KiB')) totalMemBytes += parseFloat(memUsage) * 1024
       else totalMemBytes += parseFloat(memUsage)
-      
+
       const netParts = c.NetIO.split(' / ')
       const parseNet = (val: string) => {
         if (val.includes('GB')) return parseFloat(val) * 1024 * 1024 * 1024
@@ -74,6 +181,9 @@ export async function GET() {
     const netDownVal = totalNetIO.down / (1024 * 1024)
     const netUpVal = totalNetIO.up / (1024 * 1024)
 
+    // Get container health status
+    const containersWithHealth = await readContainerHealth(projectContainers)
+
     const result = {
       cpu: cpuVal.toFixed(1),
       memPerc: memPercVal.toFixed(1),
@@ -82,23 +192,15 @@ export async function GET() {
       netUp: netUpVal.toFixed(1),
       storage: storageStats.map(s => ({
         name: s.name.charAt(0).toUpperCase() + s.name.slice(1),
-        size: (s.value / (1024 * 1024)).toFixed(1), // MB
+        size: (s.value / (1024 * 1024)).toFixed(1),
         bytes: s.value
       })),
-      topContainers: [...projectContainers]
-        .sort((a, b) => parseFloat(b.CPUPerc) - parseFloat(a.CPUPerc))
-        .slice(0, 5)
-        .map(c => ({
-          name: c.Name.replace('project-s-', ''),
-          cpu: c.CPUPerc,
-          mem: c.MemUsage
-        })),
-      containers: projectContainers.map(c => ({
-        name: c.Name.replace('project-s-', ''),
-        status: 'running', // docker stats only returns running containers
-        cpu: c.CPUPerc,
-        mem: c.MemUsage
-      }))
+      topContainers: [...containersWithHealth]
+        .sort((a, b) => parseFloat(b.cpu) - parseFloat(a.cpu))
+        .slice(0, 5),
+      containers: containersWithHealth,
+      gpu: gpuData ? { load: gpuData.load, temp: gpuData.temp } : null,
+      temps,
     }
 
     return NextResponse.json(result)

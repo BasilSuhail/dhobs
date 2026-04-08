@@ -15,6 +15,7 @@ interface ContainerStat {
   status: string
   cpu: string
   mem: string
+  [key: string]: unknown
 }
 
 interface StorageStat {
@@ -32,6 +33,8 @@ interface StatsData {
   storage: StorageStat[]
   topContainers: ContainerStat[]
   containers: ContainerStat[]
+  gpu: { load: number; temp: number } | null
+  temps: { cpu: number | null; gpu: number | null; sys: number | null }
 }
 
 interface SystemHistoryPoint {
@@ -105,8 +108,8 @@ export function MetricsSection() {
         <div className="grid grid-cols-2 grid-rows-2 gap-3" style={{ flex: '0 0 280px' }}>
           <CpuGauge value={parseFloat(stats?.cpu || "0")} containerCount={stats?.containers.length || 0} />
           <MemoryGauge value={parseFloat(stats?.memPerc || "0")} usedBytes={stats?.memBytes || "0"} />
-          <GpuGauge />
-          <TemperatureGauge />
+          <GpuGauge gpu={stats?.gpu ?? null} />
+          <TemperatureGauge temps={stats?.temps ?? { cpu: null, gpu: null, sys: null }} />
         </div>
         <div className="flex-1 min-w-0">
           <SystemChart data={systemHistory} />

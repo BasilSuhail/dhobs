@@ -2,21 +2,32 @@
 
 import { AlertTriangle, Server } from "lucide-react"
 
-interface ContainerStat {
+interface NodeContainer {
   name: string
   status: string
   cpu: string
   mem: string
+  [key: string]: unknown
 }
 
 interface NodeAlertsProps {
   stats: {
-    containers: ContainerStat[]
+    containers: NodeContainer[]
   } | null
 }
 
 export function NodeAlerts({ stats }: NodeAlertsProps) {
   const alerts = stats?.containers.slice(0, 3) || []
+
+  const statusConfig: Record<string, { bg: string; text: string; border: string; label: string }> = {
+    running:   { bg: 'bg-green-500/10', text: 'text-green-500', border: 'border-green-500/20', label: 'OK' },
+    healthy:   { bg: 'bg-green-500/10', text: 'text-green-500', border: 'border-green-500/20', label: 'OK' },
+    unhealthy: { bg: 'bg-red-500/10',   text: 'text-red-500',   border: 'border-red-500/20',   label: 'Alert' },
+    exited:    { bg: 'bg-red-500/10',   text: 'text-red-500',   border: 'border-red-500/20',   label: 'Down' },
+    dead:      { bg: 'bg-red-500/10',   text: 'text-red-500',   border: 'border-red-500/20',   label: 'Dead' },
+    restarting:{ bg: 'bg-yellow-500/10',text: 'text-yellow-500',border: 'border-yellow-500/20',label: 'Restarting' },
+    paused:    { bg: 'bg-yellow-500/10',text: 'text-yellow-500',border: 'border-yellow-500/20',label: 'Paused' },
+  }
 
   return (
     <div className="bg-card rounded-xl border border-border p-3 h-full flex flex-col shadow-sm overflow-hidden">
@@ -26,25 +37,28 @@ export function NodeAlerts({ stats }: NodeAlertsProps) {
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col justify-around gap-1 overflow-hidden">
-        {alerts.length > 0 ? alerts.map((alert) => (
-          <div
-            key={alert.name}
-            className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] rounded-lg px-2 py-1 shrink-0"
-          >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Server className="w-3 h-3 opacity-30 text-foreground shrink-0" />
-              <div className="min-w-0 flex-1">
-                <div className="text-[9px] font-black text-foreground truncate uppercase">{alert.name}</div>
-                <div className="text-[8px] font-mono opacity-30 text-foreground truncate">
-                  {alert.cpu} | {alert.mem.split(' / ')[0]}
+        {alerts.length > 0 ? alerts.map((alert) => {
+          const cfg = statusConfig[alert.status] || statusConfig.running
+          return (
+            <div
+              key={alert.name}
+              className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] rounded-lg px-2 py-1 shrink-0"
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Server className="w-3 h-3 opacity-30 text-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[9px] font-black text-foreground truncate uppercase">{alert.name}</div>
+                  <div className="text-[8px] font-mono opacity-30 text-foreground truncate">
+                    {alert.cpu} | {alert.mem.split(' / ')[0]}
+                  </div>
                 </div>
               </div>
+              <span className={`ml-2 px-1.5 py-0.5 ${cfg.bg} ${cfg.text} rounded-full text-[7px] font-black uppercase shrink-0 border ${cfg.border}`}>
+                {cfg.label}
+              </span>
             </div>
-            <span className="ml-2 px-1.5 py-0.5 bg-green-500/10 text-green-500 rounded-full text-[7px] font-black uppercase shrink-0 border border-green-500/20">
-              OK
-            </span>
-          </div>
-        )) : (
+          )
+        }) : (
           <div className="flex-1 flex items-center justify-center text-[8px] opacity-20 uppercase font-black">Scanning Nodes...</div>
         )}
       </div>
