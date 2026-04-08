@@ -189,9 +189,9 @@ export function MetricsSection() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden pl-[88px]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-border">
+      <div className="flex items-center justify-between px-4 py-2.5 shrink-0 border-b border-border">
         <div>
           <h2 className="text-sm font-bold text-foreground">System Metrics</h2>
           <p className="text-[10px] text-foreground/30 mt-0.5">Real-time · 5s refresh</p>
@@ -294,43 +294,37 @@ export function MetricsSection() {
         </div>
 
         {/* Row 4: Diagnostics + Containers */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {/* Diagnostics */}
-          <div className="bg-card rounded-xl border border-border p-3 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+          {/* Diagnostics — compact horizontal row */}
+          <div className="lg:col-span-1 bg-card rounded-xl border border-border p-3 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Activity className="w-3.5 h-3.5 text-foreground/40" />
               <span className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">Diagnostics</span>
             </div>
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               <div>
                 <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Swap</div>
-                <div className="text-base font-bold text-foreground tabular-nums">{stats?.swap ? `${stats.swap.perc.toFixed(0)}%` : "N/A"}</div>
-                {stats?.swap && <div className="text-[9px] text-foreground/30">{humanBytes(stats.swap.used)} / {humanBytes(stats.swap.total)}</div>}
+                <div className="text-sm font-bold text-foreground tabular-nums">{stats?.swap ? `${stats.swap.perc.toFixed(0)}%` : "N/A"}</div>
               </div>
               <div>
-                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Load Average</div>
-                <div className="text-base font-bold text-foreground tabular-nums">{stats?.loadAvg ? stats.loadAvg.load1.toFixed(2) : "N/A"}</div>
-                {stats?.loadAvg && <div className="text-[9px] text-foreground/30">{stats.loadAvg.load5.toFixed(2)} · {stats.loadAvg.load15.toFixed(2)}</div>}
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Load</div>
+                <div className="text-sm font-bold text-foreground tabular-nums">{stats?.loadAvg ? stats.loadAvg.load1.toFixed(2) : "N/A"}</div>
               </div>
               <div>
-                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Temperature</div>
-                <div className="text-base font-bold text-foreground tabular-nums">{stats?.temps?.cpu ? `${stats.temps.cpu}°C` : "N/A"}</div>
-                <div className="text-[9px] text-foreground/30">
-                  {stats?.gpu?.temp ? `GPU ${stats.gpu.temp}°C · ` : ""}{stats?.temps?.sys ? `SYS ${stats.temps.sys}°C` : ""}
-                </div>
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Temp</div>
+                <div className="text-sm font-bold text-foreground tabular-nums">{stats?.temps?.cpu ? `${stats.temps.cpu}°` : "N/A"}</div>
               </div>
               <div>
-                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Network Health</div>
-                <div className="text-base font-bold tabular-nums" style={{ color: (stats?.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
+                <div className="text-[9px] text-foreground/30 uppercase tracking-wider">Net Health</div>
+                <div className="text-sm font-bold tabular-nums" style={{ color: (stats?.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
                   {stats?.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
                 </div>
-                <div className="text-[9px] text-foreground/30">Errors + dropped</div>
               </div>
             </div>
           </div>
 
-          {/* Containers */}
-          <div className="lg:col-span-2 bg-card rounded-xl border border-border p-3 shadow-sm">
+          {/* Containers — spans 3 columns */}
+          <div className="lg:col-span-3 bg-card rounded-xl border border-border p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Server className="w-3.5 h-3.5 text-foreground/40" />
