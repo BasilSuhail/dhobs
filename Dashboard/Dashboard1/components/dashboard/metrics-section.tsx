@@ -59,6 +59,29 @@ export function MetricsSection() {
   const [networkHistory, setNetworkHistory] = useState<NetworkHistoryPoint[]>([])
   const isFetching = useRef(false)
 
+  // Fetch persisted history on mount
+  useEffect(() => {
+    fetch('/api/stats/history')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSystemHistory(data.map((d: any) => ({
+            time: d.time,
+            cpu: d.cpu,
+            memory: d.memory,
+            gpu: d.gpu,
+            storage: d.disk,
+          })))
+          setNetworkHistory(data.map((d: any) => ({
+            time: d.time,
+            down: parseFloat(d.netDown) || 0,
+            up: parseFloat(d.netUp) || 0,
+          })))
+        }
+      })
+      .catch(() => { /* no history yet — first poll */ })
+  }, [])
+
   const fetchStats = async () => {
     if (isFetching.current) return
     isFetching.current = true
@@ -68,24 +91,22 @@ export function MetricsSection() {
       if (data && !data.error) {
         setStats(data)
         const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        
-        // Calculate storage as percentage of a reasonable max (e.g., 2GB = 100%)
-        const totalStorageBytes = (data.storage || []).reduce((sum: number, s: StorageStat) => sum + s.bytes, 0)
-        const storagePerc = Math.min(100, (totalStorageBytes / (2 * 1024 * 1024 * 1024)) * 100)
-        
+
+        const diskPerc = data.diskUsedPerc ?? 0
+
         setSystemHistory(prev => [...prev, {
           time: now,
           cpu: parseFloat(data.cpu) || 0,
           memory: parseFloat(data.memPerc) || 0,
-          gpu: 0, // GPU not available from Docker stats
-          storage: storagePerc
-        }].slice(-30))
+          gpu: data?.gpu?.load ?? 0,
+          storage: diskPerc,
+        }].slice(-120))
 
         setNetworkHistory(prev => [...prev, {
           time: now,
           down: parseFloat(data.netDown) || 0,
-          up: parseFloat(data.netUp) || 0
-        }].slice(-30))
+          up: parseFloat(data.netUp) || 0,
+        }].slice(-120))
       }
     } catch (err) {
       console.error("Metrics offline")
