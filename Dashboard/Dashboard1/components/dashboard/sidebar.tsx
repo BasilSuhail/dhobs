@@ -24,6 +24,7 @@ import { type DockApp } from "@/components/dashboard/dock"
 interface SidebarProps {
   className?: string
   activeSection?: string
+  currentSection?: string
   onNavigate?: (section: string) => void
   terminalOpen?: boolean
   onToggleTerminal?: () => void
@@ -31,10 +32,11 @@ interface SidebarProps {
   onDockAppClick?: (id: string) => void
 }
 
-export function Sidebar({ 
-  className, 
-  activeSection = "home", 
-  onNavigate, 
+export function Sidebar({
+  className,
+  activeSection = "home",
+  currentSection = "home",
+  onNavigate,
   terminalOpen, 
   onToggleTerminal,
   dockApps = [],
@@ -85,17 +87,17 @@ export function Sidebar({
 
         {/* Main Navigation (Home & Metrics) */}
         <nav className="flex flex-col items-center gap-1 px-2 py-3">
-          <NavButton 
+          <NavButton
             icon={LayoutGrid}
             label="Home"
-            active={activeSection === "home" || activeSection === "dashboard"}
+            active={currentSection === "home"}
             onClick={() => onNavigate?.("home")}
             theme={colorTheme}
           />
           <NavButton
             icon={Activity}
             label="Metrics"
-            active={activeSection === "metrics"}
+            active={currentSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
             theme={colorTheme}
           />
@@ -134,8 +136,8 @@ export function Sidebar({
                         >
                           <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
                         </button>
-                        {isActive && (
-                          <span className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: colorTheme.accent }} />
+                        {isClosing ? null : (
+                          <span className={`w-1 h-1 rounded-full mt-0.5 transition-opacity ${isMinimized ? 'opacity-40' : 'opacity-100'}`} style={{ backgroundColor: colorTheme.accent }} />
                         )}
                       </div>
                     </TooltipTrigger>

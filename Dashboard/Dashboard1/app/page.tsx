@@ -11,7 +11,7 @@ import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { type DockApp } from "@/components/dashboard/dock"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Construction, BrainCircuit, Book } from "lucide-react"
+import { Construction, BrainCircuit, Book, X, Minus } from "lucide-react"
 
 interface ActiveWindow {
   id: string
@@ -20,6 +20,9 @@ interface ActiveWindow {
   component: React.ReactNode
   isMinimized: boolean
   isClosing?: boolean
+  zIndex: number
+  position: { x: number; y: number }
+  size: { w: number; h: number }
 }
 
 export default function HomePage() {
@@ -50,14 +53,28 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [currentSection])
 
+  const bringToFront = useCallback((id: string) => {
+    setOpenWindows(prev => {
+      const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
+      return prev.map(w => w.id === id ? { ...w, zIndex: maxZ + 1 } : w)
+    })
+  }, [])
+
   const openApp = useCallback((id: string, name: string, icon: any, component: React.ReactNode) => {
     setOpenWindows(prev => {
       const existing = prev.find(w => w.id === id)
       if (existing) {
-        // Restore if closing or minimized
-        return prev.map(w => w.id === id ? { ...w, isMinimized: false, isClosing: false } : w)
+        if (existing.isClosing) return prev
+        // Minimize all others, restore this one
+        const minZ = 10
+        return prev.map(w => w.id === id
+          ? { ...w, isMinimized: false, zIndex: minZ + 1 }
+          : { ...w, isMinimized: true, zIndex: minZ }
+        )
       }
-      return [...prev, { id, name, icon, component, isMinimized: false }]
+      // Open new → minimize all others
+      return prev.map(w => ({ ...w, isMinimized: true, zIndex: 10 }))
+        .concat([{ id, name, icon, component, isMinimized: false, zIndex: 11, position: { x: 0, y: 0 }, size: { w: 0, h: 0 } }])
     })
   }, [])
 
@@ -65,18 +82,37 @@ export default function HomePage() {
     setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isClosing: true, isMinimized: false } : w))
     setTimeout(() => {
       setOpenWindows(prev => prev.filter(w => !(w.id === id && w.isClosing)))
-    }, 12000)
+    }, 400)
   }, [])
 
-  // Sidebar icon click: if active → close (grace period); if closing → reopen
+  // Close all open windows with grace period (triggered by Home nav)
+  const closeAllWindows = useCallback(() => {
+    setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isClosing: true, isMinimized: false }))
+    setTimeout(() => {
+      setOpenWindows(prev => prev.filter(w => !w.isClosing))
+    }, 25000) // 25 second grace period — dock icon stays visible
+  }, [])
+
+  const minimizeApp = useCallback((id: string) => {
+    setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: true } : w))
+  }, [])
+
+  // Sidebar icon click: if active → minimize; if minimized → restore; if closing → reopen
   const handleDockClick = useCallback((id: string) => {
     const win = openWindows.find(w => w.id === id)
     if (!win) return
     if (win.isClosing) {
-      if (id === "ollama") openApp("ollama", "Ollama", BrainCircuit, <OllamaSection />)
+      if (id === "ollama") openApp("ollama", "Ollama", BrainCircuit, <OllamaSection isWindow />)
       if (id === "kiwix") openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
+    } else if (win.isMinimized) {
+      // Restore this, minimize all others
+      bringToFront(id)
+      setOpenWindows(prev => prev.map(w => w.id === id
+        ? { ...w, isMinimized: false, zIndex: 11 }
+        : { ...w, isMinimized: true, zIndex: 10 }
+      ))
     } else {
-      closeApp(id)
+      minimizeApp(id)
     }
   }, [openWindows, openApp, closeApp])
 
@@ -92,12 +128,16 @@ export default function HomePage() {
       openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
       return
     }
-    // Close all open apps when navigating away
-    setOpenWindows([])
-    setCurrentSection(section)
+    // Minimize open windows when navigating to home
     if (section === "home") {
+      setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isMinimized: true }))
+      setCurrentSection(section)
       window.scrollTo({ top: 0, behavior: "smooth" })
+      return
     }
+    // Minimize open windows when navigating to metrics
+    setOpenWindows(prev => prev.map(w => w.isClosing ? w : { ...w, isMinimized: true }))
+    setCurrentSection(section)
   }
 
   // Show all open windows in the sidebar — active, minimized, or closing
@@ -158,6 +198,7 @@ export default function HomePage() {
       {/* Sidebar */}
       <Sidebar
         activeSection={openWindows.some(w => !w.isClosing) ? "app" : currentSection}
+        currentSection={currentSection}
         onNavigate={handleNavigate}
         terminalOpen={terminalOpen}
         onToggleTerminal={() => setTerminalOpen(prev => !prev)}
@@ -165,29 +206,61 @@ export default function HomePage() {
         onDockAppClick={handleDockClick}
       />
 
-      {/* Floating App Panels */}
+      {/* Floating App Panels — full screen with title bar */}
       {openWindows.map((win) => (
-        <div
-          key={win.id}
-          className="fixed z-30 transition-all duration-500"
-          style={{
-            top: '20px',
-            bottom: '20px',
-            left: '92px',
-            right: '20px',
-            opacity: win.isClosing ? 0 : 1,
-            pointerEvents: win.isClosing ? 'none' : 'auto',
-            borderRadius: '20px',
-            overflow: 'hidden',
-            border: `1px solid ${colorTheme.border}`,
-            backgroundColor: colorTheme.card,
-            backdropFilter: 'blur(40px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(150%)',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
-          }}
-        >
-          {win.component}
-        </div>
+        !win.isMinimized && (
+          <div
+            key={win.id}
+            className="fixed"
+            style={{
+              top: '16px',
+              bottom: '16px',
+              left: '104px',
+              right: '16px',
+              zIndex: 30,
+              opacity: win.isMinimized || win.isClosing ? 0 : 1,
+              transform: win.isMinimized || win.isClosing ? 'scale(0.98)' : 'scale(1)',
+              pointerEvents: win.isMinimized || win.isClosing ? 'none' : 'auto',
+              transition: 'opacity 0.3s ease, transform 0.3s ease',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              border: `1px solid ${colorTheme.border}`,
+              backgroundColor: colorTheme.card,
+              boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Title Bar */}
+            <div className="flex items-center justify-between px-4 py-2 shrink-0" style={{ borderBottom: `1px solid ${colorTheme.border}` }}>
+              <div className="flex items-center gap-2">
+                <win.icon className="w-4 h-4" style={{ color: colorTheme.accent }} />
+                <span className="text-xs font-semibold text-foreground/60">{win.name}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); minimizeApp(win.id) }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary/30 transition-colors"
+                  title="Minimize"
+                >
+                  <Minus className="w-3.5 h-3.5 text-foreground/30" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); closeApp(win.id) }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-colors"
+                  title="Close"
+                >
+                  <X className="w-3.5 h-3.5 text-foreground/30 hover:text-red-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Window Content */}
+            <div className="flex-1 overflow-hidden">
+              {win.component}
+            </div>
+          </div>
+        )
       ))}
 
 
@@ -219,9 +292,11 @@ export default function HomePage() {
             <>
               <div
                 style={{
-                  opacity: 1 - scrollProgress * 1.5,
+                  opacity: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 0 : 1 - scrollProgress * 1.5,
                   transform: `translateY(${-scrollProgress * 50}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                  pointerEvents: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 'none' : 'auto',
+                  position: openWindows.length > 0 ? 'relative' : 'relative',
                 }}
               >
                 <WelcomeSection onNavigate={handleNavigate} />
