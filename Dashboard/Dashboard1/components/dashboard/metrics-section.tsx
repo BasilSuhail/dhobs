@@ -121,7 +121,7 @@ interface BackupEntry {
   status: string
 }
 
-function BackupUpsRow({ stats }: { stats: StatsData | null }) {
+function BackupWidget() {
   const [backups, setBackups] = useState<BackupEntry[]>([])
   const [backingUp, setBackingUp] = useState(false)
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null)
@@ -175,83 +175,49 @@ function BackupUpsRow({ stats }: { stats: StatsData | null }) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Backup Section */}
-      <div>
-        <div className="bg-secondary/5 rounded-lg p-2.5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">Backup</span>
-            <button
-              onClick={handleBackup}
-              disabled={backingUp}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
-            >
-              <Plus className="w-3 h-3" />
-              {backingUp ? 'Creating...' : 'New Backup'}
-            </button>
-          </div>
-          {backups.length > 0 ? (
-            <div className="space-y-1.5">
-              {backups.map((b, i) => (
-                <div key={i} className="flex items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'success' ? 'bg-emerald-400' : b.status === 'restored' ? 'bg-cyan-400' : 'bg-red-400'}`} />
-                    <span className="text-foreground/50 truncate font-mono" title={b.filename}>{b.filename.replace('homeforge-backup-', '').replace('.tar.gz', '')}</span>
-                    <span className="text-foreground/25 shrink-0">{humanSize(b.sizeBytes)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className="text-foreground/20">{timeAgo(b.createdAt)}</span>
-                    {b.status === 'success' && (
-                      <button
-                        onClick={() => handleRestore(b.filename)}
-                        className="p-0.5 rounded hover:bg-secondary/30 transition-colors"
-                        title="Restore"
-                      >
-                        <RotateCcw className="w-3 h-3 text-foreground/25" />
-                      </button>
-                    )}
-                  </div>
+    <div>
+      <SectionHeader title="Backup" action={
+        <button
+          onClick={handleBackup}
+          disabled={backingUp}
+          className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
+        >
+          <Plus className="w-2.5 h-2.5" />
+          {backingUp ? 'Creating...' : 'New'}
+        </button>
+      } />
+      <div className="bg-secondary/5 rounded-lg p-2.5">
+        {backups.length > 0 ? (
+          <div className="space-y-1.5">
+            {backups.map((b, i) => (
+              <div key={i} className="flex items-center justify-between text-[10px]">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'success' ? 'bg-emerald-400' : b.status === 'restored' ? 'bg-cyan-400' : 'bg-red-400'}`} />
+                  <span className="text-foreground/50 truncate font-mono" title={b.filename}>{b.filename.replace('homeforge-backup-', '').replace('.tar.gz', '')}</span>
+                  <span className="text-foreground/25 shrink-0">{humanSize(b.sizeBytes)}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-[10px] text-foreground/20 text-center py-3">
-              No backups yet. Click "New" to create one.
-            </div>
-          )}
-          {restoreMsg && <div className="text-[9px] text-cyan-400 mt-1.5">{restoreMsg}</div>}
-        </div>
-      </div>
-
-      {/* UPS Status */}
-      {stats?.ups?.batteryPerc !== null && stats && (
-        <div>
-          <SectionHeader title="UPS" />
-          <div className="bg-secondary/5 rounded-lg p-3">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Battery</div>
-                <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.batteryPerc}%</div>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className="text-foreground/20">{timeAgo(b.createdAt)}</span>
+                  {b.status === 'success' && (
+                    <button
+                      onClick={() => handleRestore(b.filename)}
+                      className="p-0.5 rounded hover:bg-secondary/30 transition-colors"
+                      title="Restore"
+                    >
+                      <RotateCcw className="w-3 h-3 text-foreground/25" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div>
-                <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
-                <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.loadPerc ? `${stats.ups.loadPerc}%` : "—"}</div>
-              </div>
-              <div>
-                <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Runtime</div>
-                <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.runtimeMin ? `${stats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
-              </div>
-            </div>
-            {stats.ups.status && (
-              <div className="mt-1">
-                <span className="text-[9px] font-medium" style={{ color: stats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
-                  {stats.ups.status === 'OL' ? 'Online' : stats.ups.status}
-                </span>
-              </div>
-            )}
+            ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-[10px] text-foreground/20 text-center py-3">
+            No backups yet. Click "New" to create one.
+          </div>
+        )}
+        {restoreMsg && <div className="text-[9px] text-cyan-400 mt-1.5">{restoreMsg}</div>}
+      </div>
     </div>
   )
 }
@@ -416,10 +382,12 @@ export function MetricsSection() {
           </div>
         </div>
 
-        {/* Charts + Storage: 70/30 layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-4">
-          {/* Left: CPU + Network stacked */}
+        {/* Left column: CPU chart, Network chart, System, Backup */}
+        {/* Right column: Storage, Disk Usage */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left column */}
           <div className="space-y-4">
+            {/* CPU & Memory */}
             <div>
               <SectionHeader title="CPU & Memory" />
               <div className="h-32 -mx-2">
@@ -446,6 +414,7 @@ export function MetricsSection() {
               </div>
             </div>
 
+            {/* Network I/O */}
             <div>
               <SectionHeader title="Network I/O" />
               <div className="h-32 -mx-2">
@@ -471,84 +440,87 @@ export function MetricsSection() {
                 </ResponsiveContainer>
               </div>
             </div>
-          </div>
 
-          {/* Right: Storage */}
-          <div>
-            <SectionHeader title="Storage" />
-            <div className="bg-secondary/5 rounded-lg p-3 h-full">
-              <div className="space-y-2">
-                {stats.storage.map((s, i) => {
-                  const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
-                  const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
-                  const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
-                  return (
-                    <div key={s.name} className="group">
-                      <div className="flex items-center justify-between text-[11px] mb-1">
-                        <span className="text-foreground/50 group-hover:text-foreground/70 transition-colors">{s.name}</span>
-                        <span className="text-foreground/25 tabular-nums">{humanSize(parseFloat(s.size))}</span>
-                      </div>
-                      <div className="h-1.5 bg-secondary/10 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(1, Math.min(100, parseFloat(pct)))}%`, backgroundColor: colors[i % colors.length] }} />
-                      </div>
+            {/* System Diagnostics */}
+            <div>
+              <SectionHeader title="System" />
+              <div className="bg-secondary/5 rounded-lg px-3 py-2.5">
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Swap</div>
+                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.swap ? `${stats.swap.perc.toFixed(0)}%` : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
+                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.loadAvg ? stats.loadAvg.load1.toFixed(2) : "—"}</div>
+                    {stats.loadAvg && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.loadAvg.load5} · {stats.loadAvg.load15}</div>}
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-foreground/25 uppercase tracking-wider">CPU Temp</div>
+                    <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.temps?.cpu ? `${stats.temps.cpu}°` : "—"}</div>
+                    {stats.gpu?.temp && <div className="text-[9px] text-foreground/15 tabular-nums">GPU {stats.gpu.temp}°</div>}
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Net Health</div>
+                    <div className="text-sm font-mono font-semibold tabular-nums mt-0.5" style={{ color: (stats.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
+                      {stats.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
                     </div>
-                  )
-                })}
-                {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Diagnostics row */}
-        <div>
-          <SectionHeader title="System" />
-          <div className="grid grid-cols-4 gap-3">
-            <div className="bg-secondary/5 rounded-lg px-3 py-2">
-              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Swap</div>
-              <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.swap ? `${stats.swap.perc.toFixed(0)}%` : "—"}</div>
-            </div>
-            <div className="bg-secondary/5 rounded-lg px-3 py-2">
-              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
-              <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.loadAvg ? stats.loadAvg.load1.toFixed(2) : "—"}</div>
-              {stats.loadAvg && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.loadAvg.load5} · {stats.loadAvg.load15}</div>}
-            </div>
-            <div className="bg-secondary/5 rounded-lg px-3 py-2">
-              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">CPU Temp</div>
-              <div className="text-sm font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.temps?.cpu ? `${stats.temps.cpu}°` : "—"}</div>
-              {stats.gpu?.temp && <div className="text-[9px] text-foreground/15 tabular-nums">GPU {stats.gpu.temp}°</div>}
-            </div>
-            <div className="bg-secondary/5 rounded-lg px-3 py-2">
-              <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Net Health</div>
-              <div className="text-sm font-mono font-semibold tabular-nums mt-0.5" style={{ color: (stats.netErrors && (stats.netErrors.rxErrors + stats.netErrors.txDropped) > 0) ? "#ef4444" : "#22c55e" }}>
-                {stats.netErrors ? (stats.netErrors.rxErrors + stats.netErrors.txErrors + stats.netErrors.rxDropped + stats.netErrors.txDropped) : "—"}
+            {/* Backup */}
+            <BackupWidget />
+          </div>
+
+          {/* Right column: Storage + Disk Usage */}
+          <div className="space-y-4">
+            {/* Storage */}
+            <div>
+              <SectionHeader title="Storage" />
+              <div className="bg-secondary/5 rounded-lg p-3">
+                <div className="space-y-2">
+                  {stats.storage.map((s, i) => {
+                    const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
+                    const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
+                    const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
+                    return (
+                      <div key={s.name} className="group">
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className="text-foreground/50 group-hover:text-foreground/70 transition-colors">{s.name}</span>
+                          <span className="text-foreground/25 tabular-nums">{humanSize(parseFloat(s.size))}</span>
+                        </div>
+                        <div className="h-1.5 bg-secondary/10 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(1, Math.min(100, parseFloat(pct)))}%`, backgroundColor: colors[i % colors.length] }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Disks + SMART + Power */}
-        {(stats.disks.length > 0 || stats.smart.length > 0 || stats.power.kwhEstimate !== null) && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Per-Disk Breakdown */}
-            {stats.disks.length > 0 && (
-              <div className="lg:col-span-1">
+            {/* Disk Usage */}
+            {stats.disks && stats.disks.length > 0 && (
+              <div>
                 <SectionHeader title="Disk Usage" />
                 <div className="bg-secondary/5 rounded-lg overflow-hidden">
                   <table className="w-full text-[10px]">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-1 px-2 font-medium text-foreground/20 uppercase tracking-wider">Mount</th>
-                        <th className="text-right py-1 px-2 font-medium text-foreground/20">Used</th>
-                        <th className="text-right py-1 px-2 font-medium text-foreground/20">%</th>
+                      <tr className="border-b border-border/40">
+                        <th className="text-left py-1.5 px-2 font-medium text-foreground/20 uppercase tracking-wider">Mount</th>
+                        <th className="text-right py-1.5 px-2 font-medium text-foreground/20">Used</th>
+                        <th className="text-right py-1.5 px-2 font-medium text-foreground/20">%</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stats.disks.map((d, i) => (
-                        <tr key={i} className="border-b border-border/40">
-                          <td className="py-1 px-2 text-foreground/50 truncate max-w-[120px]" title={d.mount}>{d.mount}</td>
-                          <td className="py-1 px-2 text-right font-mono tabular-nums text-foreground/40">{d.used}/{d.total}</td>
-                          <td className="py-1 px-2 text-right font-mono tabular-nums" style={{ color: d.usePerc > 85 ? '#ef4444' : d.usePerc > 60 ? '#f59e0b' : '#22c55e' }}>{d.usePerc}%</td>
+                        <tr key={i} className="border-b border-border/40 hover:bg-secondary/5 transition-colors">
+                          <td className="py-1.5 px-2 text-foreground/50 truncate max-w-[120px]" title={d.mount}>{d.mount}</td>
+                          <td className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground/40">{d.used}/{d.total}</td>
+                          <td className="py-1.5 px-2 text-right font-mono tabular-nums" style={{ color: d.usePerc > 85 ? '#ef4444' : d.usePerc > 60 ? '#f59e0b' : '#22c55e' }}>{d.usePerc}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -557,52 +529,37 @@ export function MetricsSection() {
               </div>
             )}
 
-            {/* SMART Health */}
-            {stats.smart.length > 0 && (
-              <div className="lg:col-span-1">
-                <SectionHeader title="Drive Health" />
-                <div className="bg-secondary/5 rounded-lg overflow-hidden">
-                  <table className="w-full text-[10px]">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-1 px-2 font-medium text-foreground/20 uppercase tracking-wider">Drive</th>
-                        <th className="text-right py-1 px-2 font-medium text-foreground/20">Temp</th>
-                        <th className="text-right py-1 px-2 font-medium text-foreground/20">Health</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.smart.map((d, i) => (
-                        <tr key={i} className="border-b border-border/40">
-                          <td className="py-1 px-2 text-foreground/50 truncate max-w-[100px]" title={d.model}>{d.model}</td>
-                          <td className="py-1 px-2 text-right font-mono tabular-nums text-foreground/40">{d.temperature ? `${d.temperature}°` : "—"}</td>
-                          <td className="py-1 px-2 text-right">
-                            <span className="text-[9px] font-medium" style={{ color: d.health === 'OK' ? '#22c55e' : '#ef4444' }}>{d.health}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Power */}
-            {stats.power.kwhEstimate !== null && (
-              <div className="lg:col-span-1">
-                <SectionHeader title="Energy" />
-                <div className="bg-secondary/5 rounded-lg px-3 py-2">
-                  <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Cumulative Energy</div>
-                  <div className="text-lg font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.power.kwhEstimate.toFixed(2)} kWh</div>
-                  {stats.power.watts !== null && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.power.watts.toFixed(0)}W current</div>}
+            {/* UPS Status */}
+            {stats?.ups?.batteryPerc !== null && stats && (
+              <div>
+                <SectionHeader title="UPS" />
+                <div className="bg-secondary/5 rounded-lg p-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Battery</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.batteryPerc}%</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.loadPerc ? `${stats.ups.loadPerc}%` : "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Runtime</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.runtimeMin ? `${stats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
+                    </div>
+                  </div>
+                  {stats.ups.status && (
+                    <div className="mt-1">
+                      <span className="text-[9px] font-medium" style={{ color: stats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
+                        {stats.ups.status === 'OL' ? 'Online' : stats.ups.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
-        )}
-
-        {/* Backup + UPS row */}
-        <BackupUpsRow stats={stats} />
-
+        </div>
         {/* Containers table */}
         <div>
           <SectionHeader title={`Containers (${stats.containers.length})`} />
