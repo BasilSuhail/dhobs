@@ -38,6 +38,8 @@ interface StatsData {
   disks: Array<{ mount: string; total: string; used: string; avail: string; usePerc: number; device: string }>
   smart: Array<{ device: string; model: string; temperature: number | null; powerOnHours: number | null; health: string; reallocated: number | null }>
   power: { watts: number | null; kwhEstimate: number | null }
+  backup: { lastRun: number | null; lastRunAgo: string | null; success: boolean | null; size: string | null }
+  ups: { batteryPerc: number | null; loadPerc: number | null; runtimeMin: number | null; status: string | null }
 }
 
 interface HistoryPoint {
@@ -448,6 +450,61 @@ export function MetricsSection() {
                   <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Cumulative Energy</div>
                   <div className="text-lg font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.power.kwhEstimate.toFixed(2)} kWh</div>
                   {stats.power.watts !== null && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.power.watts.toFixed(0)}W current</div>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Backup + UPS row */}
+        {(stats.backup.lastRunAgo !== null || stats.ups.batteryPerc !== null) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Backup Status */}
+            <div>
+              <SectionHeader title="Backup" />
+              <div className="bg-secondary/5 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Last Backup</div>
+                    <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.backup.lastRunAgo || "Never"}</div>
+                    {stats.backup.size && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.backup.size}</div>}
+                  </div>
+                  {stats.backup.success !== null && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: stats.backup.success ? '#22c55e15' : '#ef444415', color: stats.backup.success ? '#22c55e' : '#ef4444' }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stats.backup.success ? '#22c55e' : '#ef4444' }} />
+                      {stats.backup.success ? 'Success' : 'Failed'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* UPS Status */}
+            {stats.ups.batteryPerc !== null && (
+              <div>
+                <SectionHeader title="UPS" />
+                <div className="bg-secondary/5 rounded-lg p-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Battery</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.batteryPerc}%</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.loadPerc ? `${stats.ups.loadPerc}%` : "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Runtime</div>
+                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.runtimeMin ? `${stats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
+                    </div>
+                  </div>
+                  {stats.ups.status && (
+                    <div className="mt-1">
+                      <span className="text-[9px] font-medium" style={{ color: stats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
+                        {stats.ups.status === 'OL' ? 'Online' : stats.ups.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

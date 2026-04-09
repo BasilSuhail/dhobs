@@ -170,6 +170,82 @@ async function readPower(): Promise<{ watts: number | null; kwhEstimate: number 
   return { watts: null, kwhEstimate: null }
 }
 
+// Backup status — checks common backup locations for last successful run
+async function readBackupStatus(): Promise<{ lastRun: number | null; lastRunAgo: string | null; success: boolean | null; size: string | null }> {
+  try {
+    // Check common backup locations under /data
+    const backupDirs = ['backups', 'backup', '.backups']
+    for (const dir of backupDirs) {
+      const backupPath = `/data/${dir}`
+      if (fs.existsSync(backupPath)) {
+        const entries = fs.readdirSync(backupPath, { withFileTypes: true })
+        // Look for recent files/dirs that indicate a successful backup
+        const backupFiles = entries
+          .filter(e => e.isFile() || e.isDirectory())
+          .map(e => {
+            const stat = fs.statSync(`${backupPath}/${e.name}`)
+            return { name: e.name, mtime: stat.mtimeMs, size: stat.size }
+          })
+          .sort((a, b) => b.mtime - a.mtime)
+
+        if (backupFiles.length > 0) {
+          const last = backupFiles[0]
+          const hoursAgo = Math.floor((Date.now() - last.mtime) / (1000 * 60 * 60))
+          const ago = hoursAgo < 1 ? 'Just now' : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.floor(hoursAgo / 24)}d ago`
+          const size = last.size >= 1024 ** 3 ? `${(last.size / 1024 ** 3).toFixed(1)} GB` : `${(last.size / 1024 ** 2).toFixed(0)} MB`
+          return { lastRun: Math.floor(last.mtime / 1000), lastRunAgo: ago, success: true, size }
+        }
+        return { lastRun: null, lastRunAgo: null, success: null, size: null }
+      }
+    }
+  } catch { /* no backup dir found */ }
+  return { lastRun: null, lastRunAgo: null, success: null, size: null }
+}
+
+// UPS status — via apcupsd or /proc/acpi
+async function readUPSStatus(): Promise<{ batteryPerc: number | null; loadPerc: number | null; runtimeMin: number | null; status: string | null }> {
+  try {
+    // Try apcaccess first (APC UPS)
+    const { stdout } = await execAsync('apcaccess status 2>/dev/null | grep -E "^(BCHARGE|LOADPCT|TIMELEFT|STATUS):"', { timeout: 3000 })
+    const lines = stdout.trim().split('\n')
+    const data: Record<string, string> = {}
+    for (const line of lines) {
+      const [key, ...rest] = line.split(':')
+      if (key && rest) data[key.trim()] = rest.join(':').trim()
+    }
+
+    if (Object.keys(data).length > 0) {
+      const batteryPerc = data.BCHARGE ? parseFloat(data.BCHARGE) : null
+      const loadPerc = data.LOADPCT ? parseFloat(data.LOADPCT) : null
+      const runtimeMin = data.TIMELEFT ? parseFloat(data.TIMELEFT) : null
+      const status = data.STATUS || null
+      return { batteryPerc, loadPerc, runtimeMin, status }
+    }
+  } catch { /* apcaccess not available */ }
+
+  // Try NUT (Network UPS Tools)
+  try {
+    const { stdout } = await execAsync('upsc ups@localhost 2>/dev/null | grep -E "^(battery\\.charge|ups\\.load|battery\\.runtime|ups\\.status):"', { timeout: 3000 })
+    const lines = stdout.trim().split('\n')
+    const data: Record<string, string> = {}
+    for (const line of lines) {
+      const [key, value] = line.split(':')
+      if (key && value) data[key.trim()] = value.trim()
+    }
+
+    if (Object.keys(data).length > 0) {
+      return {
+        batteryPerc: data['battery.charge'] ? parseFloat(data['battery.charge']) : null,
+        loadPerc: data['ups.load'] ? parseFloat(data['ups.load']) : null,
+        runtimeMin: data['battery.runtime'] ? parseFloat(data['battery.runtime']) / 60 : null,
+        status: data['ups.status'] || null,
+      }
+    }
+  } catch { /* NUT not available */ }
+
+  return { batteryPerc: null, loadPerc: null, runtimeMin: null, status: null }
+}
+
 // Swap usage — Linux only
 async function readSwap(): Promise<{ total: number; used: number; perc: number } | null> {
   try {
@@ -288,7 +364,7 @@ export async function GET() {
     const temps = await readTemps(gpuData?.temp ?? null)
 
     // 5. Read disk usage % and uptime
-    const [diskPerc, uptimeDays, swapData, loadAvg, netErrors, diskBreakdown, smartHealth, powerData] = await Promise.all([
+    const [diskPerc, uptimeDays, swapData, loadAvg, netErrors, diskBreakdown, smartHealth, powerData, backupData, upsData] = await Promise.all([
       readDiskUsage(),
       readUptime(),
       readSwap(),
@@ -297,6 +373,8 @@ export async function GET() {
       readDiskBreakdown(),
       readSmartHealth(),
       readPower(),
+      readBackupStatus(),
+      readUPSStatus(),
     ])
 
     let totalCpu = 0
@@ -359,6 +437,8 @@ export async function GET() {
       disks: diskBreakdown,
       smart: smartHealth,
       power: powerData,
+      backup: backupData,
+      ups: upsData,
     }
 
     // Write to SQLite history (every poll)
