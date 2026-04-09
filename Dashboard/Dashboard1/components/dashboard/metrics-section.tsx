@@ -178,17 +178,18 @@ function BackupUpsRow({ stats }: { stats: StatsData | null }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Backup Section */}
       <div>
-        <SectionHeader title="Backup" action={
-          <button
-            onClick={handleBackup}
-            disabled={backingUp}
-            className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
-          >
-            <Plus className="w-2.5 h-2.5" />
-            {backingUp ? 'Creating...' : 'New'}
-          </button>
-        } />
         <div className="bg-secondary/5 rounded-lg p-2.5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-foreground/40 uppercase tracking-wider">Backup</span>
+            <button
+              onClick={handleBackup}
+              disabled={backingUp}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
+            >
+              <Plus className="w-3 h-3" />
+              {backingUp ? 'Creating...' : 'New Backup'}
+            </button>
+          </div>
           {backups.length > 0 ? (
             <div className="space-y-1.5">
               {backups.map((b, i) => (

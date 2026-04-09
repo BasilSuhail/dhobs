@@ -74,39 +74,17 @@ export async function POST() {
     const filename = `homeforge-backup-${timestamp}.tar.gz`
     const filepath = path.join(BACKUP_DIR, filename)
 
-    // Create tarball of data, config, env, compose
-    const exclude = [
-      '--exclude=backups',
-      '--exclude=node_modules',
-      '--exclude=.git',
-      '--exclude=.next',
-      '--exclude=*.log',
-      '--exclude=tmp',
-      '--exclude=data/matrix/db', // PostgreSQL data can be regenerated
-    ].join(' ')
-
-    const projectRoot = '/app'
-    const cmd = `cd ${projectRoot} && tar -czf "${filepath}" ${exclude} \
-      -C / data \
-      --transform='s|^data/|data/|' 2>/dev/null || true`
-
-    // Simpler approach: just tar the important dirs
-    const simpleCmd = `tar -czf "${filepath}" \
+    // Simple tar of /data excluding the backups dir itself and known large/transient dirs
+    const cmd = `tar -czf "${filepath}" \
       --exclude='backups' \
       --exclude='node_modules' \
       --exclude='.git' \
       --exclude='.next' \
       --exclude='*.log' \
       --exclude='tmp' \
-      -C / data/config /data/backups/.keep 2>/dev/null || \
-      tar -czf "${filepath}" \
-        --exclude='backups' \
-        --exclude='node_modules' \
-        --exclude='.git' \
-        --exclude='.next' \
-        -C / data 2>/dev/null`
+      -C / data`
 
-    await execAsync(simpleCmd, { timeout: 300000 })
+    await execAsync(cmd, { timeout: 300000 })
 
     if (!fs.existsSync(filepath)) {
       throw new Error('Backup file not created')
