@@ -270,56 +270,29 @@ export function MetricsSection() {
           </div>
         </div>
 
-        {/* CPU + Memory chart */}
-        <div>
-          <SectionHeader title="CPU & Memory" />
-          <div className="h-36 -mx-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
-                <YAxis axisLine={false} tickLine={false} tick={axisTick} domain={[0, 100]} ticks={[0, 50, 100]} />
-                <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
-                <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={1.5} fill="url(#cpuGrad)" isAnimationActive={false} />
-                <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#memGrad)" isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Network + Storage side by side */}
+        {/* CPU/Memory + Storage side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
-            <SectionHeader title="Network I/O" />
+            <SectionHeader title="CPU & Memory" />
             <div className="h-36 -mx-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="dlGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                    <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
                     </linearGradient>
-                    <linearGradient id="ulGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+                    <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
                   <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
-                  <YAxis axisLine={false} tickLine={false} tick={axisTick} />
-                  <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
-                  <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={1.5} fill="url(#dlGrad)" isAnimationActive={false} />
-                  <Area type="monotone" dataKey="netUp" name="netUp" stroke="#f43f5e" strokeWidth={1.5} fill="url(#ulGrad)" isAnimationActive={false} />
+                  <YAxis axisLine={false} tickLine={false} tick={axisTick} domain={[0, 100]} ticks={[0, 50, 100]} />
+                  <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
+                  <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={1.5} fill="url(#cpuGrad)" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#memGrad)" isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -346,6 +319,33 @@ export function MetricsSection() {
               })}
               {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
             </div>
+          </div>
+        </div>
+
+        {/* Network I/O full width */}
+        <div>
+          <SectionHeader title="Network I/O" />
+          <div className="h-36 -mx-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="dlGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="ulGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
+                <YAxis axisLine={false} tickLine={false} tick={axisTick} />
+                <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
+                <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={1.5} fill="url(#dlGrad)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="netUp" name="netUp" stroke="#f43f5e" strokeWidth={1.5} fill="url(#ulGrad)" isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
