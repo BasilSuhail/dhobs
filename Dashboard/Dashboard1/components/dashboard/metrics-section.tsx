@@ -384,7 +384,7 @@ export function MetricsSection() {
 
         {/* Left column: CPU chart, Network chart, System, Backup */}
         {/* Right column: Storage, Disk Usage */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,6.5fr)_minmax(0,3.5fr)] gap-4">
           {/* Left column */}
           <div className="space-y-4">
             {/* CPU & Memory */}

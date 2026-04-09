@@ -74,24 +74,33 @@ export async function POST() {
     const filename = `homeforge-backup-${timestamp}.tar.gz`
     const filepath = path.join(BACKUP_DIR, filename)
 
-    // Simple tar of /data excluding the backups dir itself and known large/transient dirs
-    const cmd = `tar -czf "${filepath}" \
-      --exclude='backups' \
-      --exclude='node_modules' \
-      --exclude='.git' \
-      --exclude='.next' \
-      --exclude='*.log' \
-      --exclude='tmp' \
-      -C / data`
+    // Check if tar is available
+    try {
+      await execAsync('which tar', { timeout: 2000 })
+    } catch {
+      throw new Error('tar command not found in container')
+    }
 
-    await execAsync(cmd, { timeout: 300000 })
+    // Use absolute paths and simpler tar command
+    // The container mounts /data from the host, so we tar from there
+    const cmd = `cd / && tar -czf "${filepath}" --exclude='backups' --exclude='node_modules' --exclude='.git' --exclude='.next' --exclude='*.log' --exclude='tmp' data/`
 
+    const { stdout, stderr } = await execAsync(cmd, { timeout: 300000, maxBuffer: 10 * 1024 * 1024 })
+    if (stderr) console.error('Backup stderr:', stderr)
+    if (stdout) console.log('Backup stdout:', stdout)
+
+    // Verify the file was actually created
     if (!fs.existsSync(filepath)) {
-      throw new Error('Backup file not created')
+      throw new Error(`Backup file was not created at ${filepath}`)
     }
 
     const stat = fs.statSync(filepath)
     const sizeBytes = stat.size
+
+    // Sanity check: file should be at least 1KB
+    if (sizeBytes < 1024) {
+      throw new Error(`Backup file too small (${sizeBytes} bytes) — likely empty or failed`)
+    }
 
     // Record in DB
     db.prepare(
@@ -101,10 +110,11 @@ export async function POST() {
     return NextResponse.json({ success: true, filename, sizeBytes })
   } catch (error) {
     console.error('Backup failed:', error)
+    const errMsg = error instanceof Error ? error.message : 'Unknown error'
     db.prepare(
       'INSERT INTO backup_history (filename, size_bytes, status) VALUES (?, ?, ?)'
-    ).run('failed', 0, 'failed')
+    ).run(`error-${Date.now()}`, 0, 'failed')
 
-    return NextResponse.json({ error: 'Backup failed' }, { status: 500 })
+    return NextResponse.json({ error: `Backup failed: ${errMsg}` }, { status: 500 })
   }
 }
