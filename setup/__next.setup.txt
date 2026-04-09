@@ -2,4 +2,4 @@
 2:I[90861,["/ProjectS-HomeForge/_next/static/chunks/0kh_6pd25f85-.js","/ProjectS-HomeForge/_next/static/chunks/04dkge0.~e9lo.js"],"default"]
 3:I[57834,["/ProjectS-HomeForge/_next/static/chunks/0kh_6pd25f85-.js","/ProjectS-HomeForge/_next/static/chunks/04dkge0.~e9lo.js"],"default"]
 4:[]
-0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"X7gLKg-95qsKUvfJ0h81r"}
+0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"XnnCNxBzKODlPnSUDb_Y8"}
