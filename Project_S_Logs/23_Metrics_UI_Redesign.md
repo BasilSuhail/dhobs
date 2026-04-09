@@ -213,6 +213,124 @@ Table rows show a `MoreHorizontal` icon on hover (`opacity-0 group-hover:opacity
 
 ---
 
+## Subsequent PRs
+
+### PR #148 — Gap Analysis Phase 1 (Per-Disk, SMART, Power)
+**Date:** April 9, 2026 | **Branch:** `metrics/gap-analysis`
+
+From #147 research. Three gaps filled:
+
+| Gap | Source | Display |
+|---|---|---|
+| Per-disk breakdown | `df -h` per mount | Table with used/total, color-coded % |
+| SMART drive health | `smartctl --json --all` | Model, temp, health status |
+| Power consumption | Intel RAPL `/sys/class/powercap` | Cumulative kWh |
+
+**New API fields:** `disks[]`, `smart[]`, `power`
+
+### PR #149 — Layout Refinement (70/30 Split)
+**Date:** April 9, 2026 | **Branch:** `metrics/chart-layout`
+
+CPU + Network charts stacked left (70%), Storage full-height right column (30%). Equal chart heights (`h-32`). More space-efficient layout.
+
+### PR #150 — Matrix Crash-Loop Fix
+**Date:** April 9, 2026 | **Branch:** `fix/external-links`
+
+Matrix server crash-looped with `${MATRIX_DB_USER}` literal text. Fixed with:
+- `homeserver.yaml` → `homeserver.yaml.tpl`
+- `gen_config.py` — substitutes env vars before starting Synapse
+- Custom entrypoint runs gen_config.py → generates real config
+
+**Files:** `config/matrix/homeserver.yaml.tpl`, `config/matrix/gen_config.py`, `docker-compose.yml`
+
+### PR #153 — Backup Status + UPS Monitoring (#147 Phase 2)
+**Date:** April 9, 2026 | **Branch:** `metrics/backup-ups`
+
+| Feature | Source | Display |
+|---|---|---|
+| Backup status | Scans `/data/backups`, `/data/backup`, `/data/.backups` | Time ago + pass/fail badge + size |
+| UPS monitoring | `apcaccess` (APC) or `upsc` (NUT) | Battery %, load %, runtime, status |
+
+Both degrade gracefully when unavailable (hidden if no data).
+
+**New API fields:** `backup`, `ups`
+
+---
+
+## Updated Metrics Currently Tracked
+
+### Tier 1 — Real-Time (Stat Pills)
+- CPU % (aggregate)
+- Memory % + GiB used
+- Disk usage % (root filesystem)
+- System uptime (days)
+- Network download/upload (MB/s)
+
+### Tier 2 — Time-Series (Charts)
+- CPU & Memory history (area chart, left column)
+- Network I/O history (area chart, left column)
+- Time range selector: 1h / 6h / 24h / 7d
+
+### Tier 3 — Infrastructure
+- Storage breakdown by service (bar chart, right column)
+- Per-disk breakdown table (mount, used/total, %)
+- SMART drive health (model, temp, OK/Alert/Dead)
+- Container status table (running/unhealthy/exited/restarting)
+- Per-container CPU and memory
+
+### Tier 4 — Diagnostics
+- Swap usage (% + bytes)
+- Load average (1m, 5m, 15m)
+- CPU/GPU/SYS temperature
+- Network errors + dropped packets
+- Power consumption (cumulative kWh)
+
+### Tier 5 — Operational
+- Backup status (last run time ago, size, pass/fail badge)
+- UPS status (battery %, load %, runtime remaining, online/battery)
+
+### Tier 6 — Planned (Not Yet Built)
+- [ ] CPU per-core breakdown (stacked bar)
+- [ ] Disk I/O chart (read/write throughput)
+- [ ] Memory breakdown (used/buffers/cached/free)
+- [ ] Container resource leaderboard with sparklines
+- [ ] Panel drag/reorder (editable layout)
+- [ ] Panel show/hide toggle
+- [ ] Export metrics as CSV
+- [ ] Alert threshold configuration
+
+---
+
+## Updated API Response Schema
+
+### `GET /api/stats`
+
+```json
+{
+  "cpu": "12.3",
+  "memPerc": "45.6",
+  "memBytes": "8.2",
+  "netDown": "1.2",
+  "netUp": "0.3",
+  "storage": [{ "name": "Jellyfin", "size": "1234.5", "bytes": 1294417920 }],
+  "containers": [{ "name": "jellyfin", "status": "running", "cpu": "2.1%", "mem": "1.2GiB / 2GiB" }],
+  "gpu": { "load": 45, "temp": 62 } | null,
+  "temps": { "cpu": 55, "gpu": 62, "sys": 48 } | null,
+  "diskUsedPerc": 72 | null,
+  "uptimeDays": 14 | null,
+  "swap": { "total": 4294967296, "used": 1073741824, "perc": 25 } | null,
+  "loadAvg": { "load1": 0.42, "load5": 0.38, "load15": 0.35 } | null,
+  "netErrors": { "rxErrors": 0, "txErrors": 0, "rxDropped": 2, "txDropped": 0 } | null,
+  "disks": [{ "device": "/dev/sda1", "mount": "/", "total": "500G", "used": "360G", "avail": "140G", "usePerc": 72 }],
+  "smart": [{ "device": "/dev/sda", "model": "Samsung 870 EVO", "temperature": 35, "powerOnHours": 4200, "health": "OK", "reallocated": 0 }],
+  "power": { "watts": null, "kwhEstimate": 0.012 },
+  "backup": { "lastRun": 1712620800, "lastRunAgo": "2h ago", "success": true, "size": "1.2 GB" } | null,
+  "ups": { "batteryPerc": 100, "loadPerc": 15, "runtimeMin": 180, "status": "OL" } | null
+}
+```
+
+---
+
 ## Future Work
 
 See Issue #145 (Metrics UI Overhaul) and Issue #144 (Dashboard UI Overhaul).
