@@ -231,6 +231,7 @@ export function MetricsSection() {
   const [rangeOpen, setRangeOpen] = useState(false)
   const [cpuHistory, setCpuHistory] = useState<number[]>([])
   const [memHistory, setMemHistory] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
   const isFetching = useRef(false)
   const rangeRef = useRef<HTMLDivElement>(null)
 
@@ -272,6 +273,7 @@ export function MetricsSection() {
       const data = await res.json()
       if (data && !data.error) {
         setStats(data)
+        setLoading(false)
         const diskPerc = data.diskUsedPerc ?? 0
         setCpuHistory(prev => [...prev, parseFloat(data.cpu) || 0].slice(-30))
         setMemHistory(prev => [...prev, parseFloat(data.memPerc) || 0].slice(-30))
@@ -351,35 +353,48 @@ export function MetricsSection() {
 
         {/* Stat pills */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">CPU</span>
-            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.cpu}%</span>
-            <Sparkline data={cpuHistory} color="#0ea5e9" />
-          </div>
-          <span className="text-foreground/10">|</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Memory</span>
-            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.memPerc}%</span>
-            <span className="text-[10px] text-foreground/25">{stats.memBytes} GiB</span>
-            <Sparkline data={memHistory} color="#8b5cf6" />
-          </div>
-          <span className="text-foreground/10">|</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Disk</span>
-            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.diskUsedPerc ?? "—"}%</span>
-          </div>
-          <span className="text-foreground/10">|</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Uptime</span>
-            <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats.uptimeDays ?? "—"}d</span>
-          </div>
-          <span className="text-foreground/10">|</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Net</span>
-            <span className="text-[11px] font-mono text-emerald-500 tabular-nums">↓{stats.netDown}</span>
-            <span className="text-[11px] font-mono text-rose-400 tabular-nums">↑{stats.netUp}</span>
-            <span className="text-[9px] text-foreground/20">MB/s</span>
-          </div>
+          {loading ? (
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-baseline gap-1.5">
+                  <div className="h-2.5 w-10 rounded bg-secondary/20 animate-pulse" />
+                  <div className="h-5 w-12 rounded bg-secondary/20 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-1.5" title="Total CPU usage across all containers">
+                <span className="text-[10px] text-foreground/30 uppercase tracking-wider">CPU</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.cpu ?? "0"}%</span>
+                <Sparkline data={cpuHistory} color="#0ea5e9" />
+              </div>
+              <span className="text-foreground/10">|</span>
+              <div className="flex items-baseline gap-1.5" title="Memory usage and total GiB consumed">
+                <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Memory</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.memPerc ?? "0"}%</span>
+                <span className="text-[10px] text-foreground/25">{stats?.memBytes ?? "0"} GiB</span>
+                <Sparkline data={memHistory} color="#8b5cf6" />
+              </div>
+              <span className="text-foreground/10">|</span>
+              <div className="flex items-baseline gap-1.5" title="Root filesystem disk usage">
+                <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Disk</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.diskUsedPerc ?? "—"}%</span>
+              </div>
+              <span className="text-foreground/10">|</span>
+              <div className="flex items-baseline gap-1.5" title="System uptime in days since last reboot">
+                <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Uptime</span>
+                <span className="text-base font-mono font-semibold text-foreground tabular-nums">{stats?.uptimeDays ?? "—"}d</span>
+              </div>
+              <span className="text-foreground/10">|</span>
+              <div className="flex items-baseline gap-1.5" title="Network throughput — download and upload MB/s">
+                <span className="text-[10px] text-foreground/30 uppercase tracking-wider">Net</span>
+                <span className="text-[11px] font-mono text-emerald-500 tabular-nums">↓{stats?.netDown ?? "0"}</span>
+                <span className="text-[11px] font-mono text-rose-400 tabular-nums">↑{stats?.netUp ?? "0"}</span>
+                <span className="text-[9px] text-foreground/20">MB/s</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Left column: CPU chart, Network chart, System, Backup */}
@@ -576,7 +591,7 @@ export function MetricsSection() {
               </thead>
               <tbody>
                 {stats.containers.map(c => (
-                  <tr key={c.name} className="border-b border-border/40 hover:bg-secondary/5 transition-colors group">
+                  <tr key={c.name} className="border-b border-border/40 hover:bg-secondary/5 transition-colors group" title={`${c.name} — Status: ${statusLabel(c.status)}, CPU: ${c.cpu}, Memory: ${c.mem.split(" / ")[0]}`}>
                     <td className="py-1.5 px-2 font-medium text-foreground/70 capitalize">{c.name}</td>
                     <td className="py-1.5 px-2">
                       <span className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ backgroundColor: `${statusColor(c.status)}12`, color: statusColor(c.status) }}>
