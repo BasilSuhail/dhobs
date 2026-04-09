@@ -11,7 +11,7 @@ import { TerminalPanel } from "@/components/dashboard/terminal-panel"
 import { type DockApp } from "@/components/dashboard/dock"
 import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
-import { Construction, BrainCircuit, Book } from "lucide-react"
+import { Construction, BrainCircuit, Book, X, Minus, Maximize2 } from "lucide-react"
 
 interface ActiveWindow {
   id: string
@@ -20,6 +20,9 @@ interface ActiveWindow {
   component: React.ReactNode
   isMinimized: boolean
   isClosing?: boolean
+  zIndex: number
+  position: { x: number; y: number }
+  size: { w: number; h: number }
 }
 
 export default function HomePage() {
@@ -31,6 +34,7 @@ export default function HomePage() {
   const [execTarget, setExecTarget] = useState<string | undefined>()
   const [currentSection, setCurrentSection] = useState("home")
   const [openWindows, setOpenWindows] = useState<ActiveWindow[]>([])
+  const [dragState, setDragState] = useState<{ id: string; startX: number; startY: number; startLeft: number; startTop: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -50,14 +54,47 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [currentSection])
 
+  // Drag handlers
+  useEffect(() => {
+    if (!dragState) return
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragState.startX
+      const dy = e.clientY - dragState.startY
+      setOpenWindows(prev => prev.map(w =>
+        w.id === dragState.id
+          ? { ...w, position: { x: dragState.startLeft + dx, y: dragState.startTop + dy } }
+          : w
+      ))
+    }
+    const handleMouseUp = () => setDragState(null)
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [dragState])
+
+  const bringToFront = useCallback((id: string) => {
+    setOpenWindows(prev => {
+      const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
+      return prev.map(w => w.id === id ? { ...w, zIndex: maxZ + 1 } : w)
+    })
+  }, [])
+
   const openApp = useCallback((id: string, name: string, icon: any, component: React.ReactNode) => {
     setOpenWindows(prev => {
       const existing = prev.find(w => w.id === id)
       if (existing) {
-        // Restore if closing or minimized
-        return prev.map(w => w.id === id ? { ...w, isMinimized: false, isClosing: false } : w)
+        if (existing.isClosing) return prev
+        // Restore if minimized
+        const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
+        return prev.map(w => w.id === id ? { ...w, isMinimized: false, zIndex: maxZ + 1 } : w)
       }
-      return [...prev, { id, name, icon, component, isMinimized: false }]
+      const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
+      // Stagger window positions
+      const offset = (prev.length % 4) * 30
+      return [...prev, { id, name, icon, component, isMinimized: false, zIndex: maxZ + 1, position: { x: 120 + offset, y: 40 + offset }, size: { w: Math.min(900, window.innerWidth - 200), h: Math.min(700, window.innerHeight - 120) } }]
     })
   }, [])
 
@@ -65,18 +102,25 @@ export default function HomePage() {
     setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isClosing: true, isMinimized: false } : w))
     setTimeout(() => {
       setOpenWindows(prev => prev.filter(w => !(w.id === id && w.isClosing)))
-    }, 12000)
+    }, 400)
   }, [])
 
-  // Sidebar icon click: if active → close (grace period); if closing → reopen
+  const minimizeApp = useCallback((id: string) => {
+    setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: true } : w))
+  }, [])
+
+  // Sidebar icon click: if active → minimize; if minimized → restore; if closing → reopen
   const handleDockClick = useCallback((id: string) => {
     const win = openWindows.find(w => w.id === id)
     if (!win) return
     if (win.isClosing) {
-      if (id === "ollama") openApp("ollama", "Ollama", BrainCircuit, <OllamaSection />)
+      if (id === "ollama") openApp("ollama", "Ollama", BrainCircuit, <OllamaSection isWindow />)
       if (id === "kiwix") openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
+    } else if (win.isMinimized) {
+      bringToFront(id)
+      setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: false } : w))
     } else {
-      closeApp(id)
+      minimizeApp(id)
     }
   }, [openWindows, openApp, closeApp])
 
@@ -167,27 +211,62 @@ export default function HomePage() {
 
       {/* Floating App Panels */}
       {openWindows.map((win) => (
-        <div
-          key={win.id}
-          className="fixed z-30 transition-all duration-500"
-          style={{
-            top: '20px',
-            bottom: '20px',
-            left: '92px',
-            right: '20px',
-            opacity: win.isClosing ? 0 : 1,
-            pointerEvents: win.isClosing ? 'none' : 'auto',
-            borderRadius: '20px',
-            overflow: 'hidden',
-            border: `1px solid ${colorTheme.border}`,
-            backgroundColor: colorTheme.card,
-            backdropFilter: 'blur(40px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(150%)',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
-          }}
-        >
-          {win.component}
-        </div>
+        !win.isMinimized && (
+          <div
+            key={win.id}
+            onClick={() => bringToFront(win.id)}
+            className="fixed transition-all"
+            style={{
+              top: win.position.y,
+              left: win.position.x,
+              width: win.size.w,
+              height: win.size.h,
+              zIndex: win.zIndex,
+              opacity: win.isClosing ? 0 : 1,
+              transform: win.isClosing ? 'scale(0.95)' : 'scale(1)',
+              pointerEvents: win.isClosing ? 'none' : 'auto',
+              transition: win.isClosing ? 'opacity 0.4s, transform 0.4s' : 'box-shadow 0.2s',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              border: `1px solid ${colorTheme.border}`,
+              backgroundColor: colorTheme.card,
+              boxShadow: `0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03)`,
+            }}
+          >
+            {/* Title Bar */}
+            <div
+              className="flex items-center justify-between px-4 py-2.5 select-none"
+              style={{ borderBottom: `1px solid ${colorTheme.border}`, cursor: 'grab' }}
+              onMouseDown={(e) => {
+                setDragState({ id: win.id, startX: e.clientX, startY: e.clientY, startLeft: win.position.x, startTop: win.position.y })
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <win.icon className="w-4 h-4" style={{ color: colorTheme.accent }} />
+                <span className="text-xs font-semibold text-foreground/70">{win.name}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); minimizeApp(win.id) }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-secondary/30 transition-colors"
+                >
+                  <Minus className="w-3.5 h-3.5 text-foreground/30" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); closeApp(win.id) }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-foreground/30 hover:text-red-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Window Content */}
+            <div className="h-[calc(100%-42px)] overflow-hidden">
+              {win.component}
+            </div>
+          </div>
+        )
       ))}
 
 
