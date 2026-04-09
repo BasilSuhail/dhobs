@@ -270,81 +270,86 @@ export function MetricsSection() {
           </div>
         </div>
 
-        {/* CPU + Memory chart */}
-        <div>
-          <SectionHeader title="CPU & Memory" />
-          <div className="h-36 -mx-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
-                <YAxis axisLine={false} tickLine={false} tick={axisTick} domain={[0, 100]} ticks={[0, 50, 100]} />
-                <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
-                <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={1.5} fill="url(#cpuGrad)" isAnimationActive={false} />
-                <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#memGrad)" isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {/* Charts + Storage: 70/30 layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-4">
+          {/* Left: CPU + Network stacked */}
+          <div className="space-y-4">
+            <div>
+              <SectionHeader title="CPU & Memory" />
+              <div className="h-32 -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
+                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
+                    <YAxis axisLine={false} tickLine={false} tick={axisTick} domain={[0, 100]} ticks={[0, 50, 100]} />
+                    <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === "cpu" ? "CPU" : "Memory"]} />
+                    <Area type="monotone" dataKey="cpu" name="cpu" stroke="#0ea5e9" strokeWidth={1.5} fill="url(#cpuGrad)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="memory" name="memory" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#memGrad)" isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-        {/* Network + Storage side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div>
-            <SectionHeader title="Network I/O" />
-            <div className="h-36 -mx-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="dlGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="ulGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
-                  <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
-                  <YAxis axisLine={false} tickLine={false} tick={axisTick} />
-                  <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
-                  <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={1.5} fill="url(#dlGrad)" isAnimationActive={false} />
-                  <Area type="monotone" dataKey="netUp" name="netUp" stroke="#f43f5e" strokeWidth={1.5} fill="url(#ulGrad)" isAnimationActive={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div>
+              <SectionHeader title="Network I/O" />
+              <div className="h-32 -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={history} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="dlGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.12} />
+                        <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="ulGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.12} />
+                        <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="1 3" stroke={gridStroke} vertical={false} />
+                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={axisTick} interval="preserveStartEnd" minTickGap={80} />
+                    <YAxis axisLine={false} tickLine={false} tick={axisTick} />
+                    <Tooltip {...chartTooltip} formatter={(v: number, n: string) => [`${v.toFixed(1)} MB`, n === "netDown" ? "Download" : "Upload"]} />
+                    <Area type="monotone" dataKey="netDown" name="netDown" stroke="#06b6d4" strokeWidth={1.5} fill="url(#dlGrad)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="netUp" name="netUp" stroke="#f43f5e" strokeWidth={1.5} fill="url(#ulGrad)" isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
+          {/* Right: Storage */}
           <div>
             <SectionHeader title="Storage" />
-            <div className="space-y-2">
-              {stats.storage.map((s, i) => {
-                const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
-                const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
-                const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
-                return (
-                  <div key={s.name} className="group">
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-foreground/50 group-hover:text-foreground/70 transition-colors">{s.name}</span>
-                      <span className="text-foreground/25 tabular-nums">{humanSize(parseFloat(s.size))}</span>
+            <div className="bg-secondary/5 rounded-lg p-3 h-full">
+              <div className="space-y-2">
+                {stats.storage.map((s, i) => {
+                  const total = stats.storage.reduce((sum, x) => sum + x.bytes, 0)
+                  const pct = total > 0 ? ((s.bytes / total) * 100).toFixed(1) : "0"
+                  const colors = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#22c55e", "#ec4899", "#06b6d4"]
+                  return (
+                    <div key={s.name} className="group">
+                      <div className="flex items-center justify-between text-[11px] mb-1">
+                        <span className="text-foreground/50 group-hover:text-foreground/70 transition-colors">{s.name}</span>
+                        <span className="text-foreground/25 tabular-nums">{humanSize(parseFloat(s.size))}</span>
+                      </div>
+                      <div className="h-1.5 bg-secondary/10 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(1, Math.min(100, parseFloat(pct)))}%`, backgroundColor: colors[i % colors.length] }} />
+                      </div>
                     </div>
-                    <div className="h-1 bg-secondary/10 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(1, Math.min(100, parseFloat(pct)))}%`, backgroundColor: colors[i % colors.length] }} />
-                    </div>
-                  </div>
-                )
-              })}
-              {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
+                  )
+                })}
+                {stats.storage.length === 0 && <div className="text-[11px] text-foreground/20 py-4">No storage data</div>}
+              </div>
             </div>
           </div>
         </div>
