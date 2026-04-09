@@ -270,10 +270,10 @@ export default function HomePage() {
             <>
               <div
                 style={{
-                  opacity: openWindows.length > 0 ? 0 : 1 - scrollProgress * 1.5,
+                  opacity: openWindows.some(w => !w.isMinimized) ? 0 : 1 - scrollProgress * 1.5,
                   transform: `translateY(${-scrollProgress * 50}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
-                  pointerEvents: openWindows.length > 0 ? 'none' : 'auto',
+                  pointerEvents: openWindows.some(w => !w.isMinimized) ? 'none' : 'auto',
                   position: openWindows.length > 0 ? 'relative' : 'relative',
                 }}
               >

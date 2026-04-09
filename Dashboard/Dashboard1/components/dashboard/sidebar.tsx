@@ -134,8 +134,8 @@ export function Sidebar({
                         >
                           <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
                         </button>
-                        {isActive && (
-                          <span className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: colorTheme.accent }} />
+                        {isClosing ? null : (
+                          <span className={`w-1 h-1 rounded-full mt-0.5 transition-opacity ${isMinimized ? 'opacity-40' : 'opacity-100'}`} style={{ backgroundColor: colorTheme.accent }} />
                         )}
                       </div>
                     </TooltipTrigger>
