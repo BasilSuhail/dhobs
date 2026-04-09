@@ -25,6 +25,7 @@ interface SidebarProps {
   className?: string
   activeSection?: string
   currentSection?: string
+  hasOpenWindow?: boolean
   onNavigate?: (section: string) => void
   terminalOpen?: boolean
   onToggleTerminal?: () => void
@@ -36,6 +37,7 @@ export function Sidebar({
   className,
   activeSection = "home",
   currentSection = "home",
+  hasOpenWindow = false,
   onNavigate,
   terminalOpen, 
   onToggleTerminal,
@@ -90,14 +92,14 @@ export function Sidebar({
           <NavButton
             icon={LayoutGrid}
             label="Home"
-            active={currentSection === "home"}
+            active={!hasOpenWindow && currentSection === "home"}
             onClick={() => onNavigate?.("home")}
             theme={colorTheme}
           />
           <NavButton
             icon={Activity}
             label="Metrics"
-            active={currentSection === "metrics"}
+            active={!hasOpenWindow && currentSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
             theme={colorTheme}
           />
