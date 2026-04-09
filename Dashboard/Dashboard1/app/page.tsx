@@ -195,7 +195,7 @@ export default function HomePage() {
               bottom: '16px',
               left: '104px',
               right: '16px',
-              zIndex: win.zIndex,
+              zIndex: 1000,
               opacity: win.isClosing ? 0 : 1,
               transform: win.isClosing ? 'scale(0.98)' : 'scale(1)',
               pointerEvents: win.isClosing ? 'none' : 'auto',
@@ -270,9 +270,11 @@ export default function HomePage() {
             <>
               <div
                 style={{
-                  opacity: 1 - scrollProgress * 1.5,
+                  opacity: openWindows.length > 0 ? 0 : 1 - scrollProgress * 1.5,
                   transform: `translateY(${-scrollProgress * 50}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                  pointerEvents: openWindows.length > 0 ? 'none' : 'auto',
+                  position: openWindows.length > 0 ? 'relative' : 'relative',
                 }}
               >
                 <WelcomeSection onNavigate={handleNavigate} />
