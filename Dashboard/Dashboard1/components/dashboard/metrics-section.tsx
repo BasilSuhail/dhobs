@@ -270,8 +270,8 @@ export function MetricsSection() {
           </div>
         </div>
 
-        {/* Charts + Storage: 2-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Charts + Storage: 70/30 layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-4">
           {/* Left: CPU + Network stacked */}
           <div className="space-y-4">
             <div>
