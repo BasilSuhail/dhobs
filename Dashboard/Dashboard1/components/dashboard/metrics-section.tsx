@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback } from "react"
-import { Activity, ChevronDown, ArrowUpRight, ArrowDownRight, MoreHorizontal } from "lucide-react"
+import { Activity, ChevronDown, ArrowUpRight, ArrowDownRight, MoreHorizontal, Plus, Download, RotateCcw } from "lucide-react"
 import { Area, AreaChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Line, LineChart } from "recharts"
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -108,6 +108,149 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
     <div className="flex items-center justify-between mb-2">
       <h3 className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider">{title}</h3>
       {action}
+    </div>
+  )
+}
+
+// ── Backup + UPS Row ───────────────────────────────────────────────────────
+
+interface BackupEntry {
+  filename: string
+  sizeBytes: number
+  createdAt: number
+  status: string
+}
+
+function BackupUpsRow({ stats }: { stats: StatsData | null }) {
+  const [backups, setBackups] = useState<BackupEntry[]>([])
+  const [backingUp, setBackingUp] = useState(false)
+  const [restoreMsg, setRestoreMsg] = useState<string | null>(null)
+
+  const fetchBackups = useCallback(() => {
+    fetch('/api/backup')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setBackups(data.slice(0, 5))
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => { fetchBackups() }, [fetchBackups])
+
+  const handleBackup = async () => {
+    setBackingUp(true)
+    try {
+      const res = await fetch('/api/backup', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        fetchBackups()
+      }
+    } catch { /* silent fail */ }
+    finally { setBackingUp(false) }
+  }
+
+  const handleRestore = async (filename: string) => {
+    setRestoreMsg(`Restore initiated: ${filename}`)
+    try {
+      await fetch('/api/backup/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename }),
+      })
+    } catch { /* silent fail */ }
+  }
+
+  const humanSize = (bytes: number) => {
+    if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
+    if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(0)} MB`
+    return `${(bytes / 1024).toFixed(0)} KB`
+  }
+
+  const timeAgo = (ts: number) => {
+    const diff = Math.floor((Date.now() - ts * 1000) / 1000)
+    if (diff < 60) return 'Just now'
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return `${Math.floor(diff / 86400)}d ago`
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Backup Section */}
+      <div>
+        <SectionHeader title="Backup" action={
+          <button
+            onClick={handleBackup}
+            disabled={backingUp}
+            className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
+          >
+            <Plus className="w-2.5 h-2.5" />
+            {backingUp ? 'Creating...' : 'New'}
+          </button>
+        } />
+        <div className="bg-secondary/5 rounded-lg p-2.5">
+          {backups.length > 0 ? (
+            <div className="space-y-1.5">
+              {backups.map((b, i) => (
+                <div key={i} className="flex items-center justify-between text-[10px]">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'success' ? 'bg-emerald-400' : b.status === 'restored' ? 'bg-cyan-400' : 'bg-red-400'}`} />
+                    <span className="text-foreground/50 truncate font-mono" title={b.filename}>{b.filename.replace('homeforge-backup-', '').replace('.tar.gz', '')}</span>
+                    <span className="text-foreground/25 shrink-0">{humanSize(b.sizeBytes)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-foreground/20">{timeAgo(b.createdAt)}</span>
+                    {b.status === 'success' && (
+                      <button
+                        onClick={() => handleRestore(b.filename)}
+                        className="p-0.5 rounded hover:bg-secondary/30 transition-colors"
+                        title="Restore"
+                      >
+                        <RotateCcw className="w-3 h-3 text-foreground/25" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[10px] text-foreground/20 text-center py-3">
+              No backups yet. Click "New" to create one.
+            </div>
+          )}
+          {restoreMsg && <div className="text-[9px] text-cyan-400 mt-1.5">{restoreMsg}</div>}
+        </div>
+      </div>
+
+      {/* UPS Status */}
+      {stats?.ups?.batteryPerc !== null && stats && (
+        <div>
+          <SectionHeader title="UPS" />
+          <div className="bg-secondary/5 rounded-lg p-3">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Battery</div>
+                <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.batteryPerc}%</div>
+              </div>
+              <div>
+                <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
+                <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.loadPerc ? `${stats.ups.loadPerc}%` : "—"}</div>
+              </div>
+              <div>
+                <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Runtime</div>
+                <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.runtimeMin ? `${stats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
+              </div>
+            </div>
+            {stats.ups.status && (
+              <div className="mt-1">
+                <span className="text-[9px] font-medium" style={{ color: stats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
+                  {stats.ups.status === 'OL' ? 'Online' : stats.ups.status}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -457,59 +600,7 @@ export function MetricsSection() {
         )}
 
         {/* Backup + UPS row */}
-        {(stats.backup.lastRunAgo !== null || stats.ups.batteryPerc !== null) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Backup Status */}
-            <div>
-              <SectionHeader title="Backup" />
-              <div className="bg-secondary/5 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Last Backup</div>
-                    <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.backup.lastRunAgo || "Never"}</div>
-                    {stats.backup.size && <div className="text-[9px] text-foreground/15 tabular-nums">{stats.backup.size}</div>}
-                  </div>
-                  {stats.backup.success !== null && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: stats.backup.success ? '#22c55e15' : '#ef444415', color: stats.backup.success ? '#22c55e' : '#ef4444' }}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stats.backup.success ? '#22c55e' : '#ef4444' }} />
-                      {stats.backup.success ? 'Success' : 'Failed'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* UPS Status */}
-            {stats.ups.batteryPerc !== null && (
-              <div>
-                <SectionHeader title="UPS" />
-                <div className="bg-secondary/5 rounded-lg p-3">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Battery</div>
-                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.batteryPerc}%</div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Load</div>
-                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.loadPerc ? `${stats.ups.loadPerc}%` : "—"}</div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-foreground/25 uppercase tracking-wider">Runtime</div>
-                      <div className="text-base font-mono font-semibold text-foreground tabular-nums mt-0.5">{stats.ups.runtimeMin ? `${stats.ups.runtimeMin.toFixed(0)}m` : "—"}</div>
-                    </div>
-                  </div>
-                  {stats.ups.status && (
-                    <div className="mt-1">
-                      <span className="text-[9px] font-medium" style={{ color: stats.ups.status === 'OL' ? '#22c55e' : '#f59e0b' }}>
-                        {stats.ups.status === 'OL' ? 'Online' : stats.ups.status}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <BackupUpsRow stats={stats} />
 
         {/* Containers table */}
         <div>
