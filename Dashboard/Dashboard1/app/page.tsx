@@ -65,11 +65,16 @@ export default function HomePage() {
       const existing = prev.find(w => w.id === id)
       if (existing) {
         if (existing.isClosing) return prev
-        const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
-        return prev.map(w => w.id === id ? { ...w, isMinimized: false, zIndex: maxZ + 1 } : w)
+        // Minimize all others, restore this one
+        const minZ = 10
+        return prev.map(w => w.id === id
+          ? { ...w, isMinimized: false, zIndex: minZ + 1 }
+          : { ...w, isMinimized: true, zIndex: minZ }
+        )
       }
-      const maxZ = Math.max(0, ...prev.map(w => w.zIndex))
-      return [...prev, { id, name, icon, component, isMinimized: false, zIndex: maxZ + 1, position: { x: 0, y: 0 }, size: { w: 0, h: 0 } }]
+      // Open new → minimize all others
+      return prev.map(w => ({ ...w, isMinimized: true, zIndex: 10 }))
+        .concat([{ id, name, icon, component, isMinimized: false, zIndex: 11, position: { x: 0, y: 0 }, size: { w: 0, h: 0 } }])
     })
   }, [])
 
@@ -100,8 +105,12 @@ export default function HomePage() {
       if (id === "ollama") openApp("ollama", "Ollama", BrainCircuit, <OllamaSection isWindow />)
       if (id === "kiwix") openApp("kiwix", "Kiwix", Book, <KiwixSection isWindow />)
     } else if (win.isMinimized) {
+      // Restore this, minimize all others
       bringToFront(id)
-      setOpenWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: false } : w))
+      setOpenWindows(prev => prev.map(w => w.id === id
+        ? { ...w, isMinimized: false, zIndex: 11 }
+        : { ...w, isMinimized: true, zIndex: 10 }
+      ))
     } else {
       minimizeApp(id)
     }
@@ -207,7 +216,7 @@ export default function HomePage() {
               bottom: '16px',
               left: '104px',
               right: '16px',
-              zIndex: 1000,
+              zIndex: 30,
               opacity: win.isMinimized || win.isClosing ? 0 : 1,
               transform: win.isMinimized || win.isClosing ? 'scale(0.98)' : 'scale(1)',
               pointerEvents: win.isMinimized || win.isClosing ? 'none' : 'auto',
