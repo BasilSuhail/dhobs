@@ -19,6 +19,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   dashboard:
     build:
@@ -52,6 +57,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging: *default-logging
 
   db:
     image: mariadb:10.11
@@ -71,6 +77,13 @@ services:
       resources:
         limits:
           memory: 512m
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
 
   nextcloud:
     image: nextcloud:30
@@ -114,6 +127,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    logging: *default-logging
 
   collabora:
     image: collabora/code:24.04.10.2.1
@@ -149,6 +163,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging: *default-logging
 
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest  # Theia only publishes :latest on GHCR
@@ -177,6 +192,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging: *default-logging
 
   synapse-db:
     image: postgres:15-alpine  # data volume was initialized with PG15 — do NOT bump without pg_upgrade
@@ -191,6 +207,13 @@ services:
     volumes:
       - ./data/matrix/db:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MATRIX_DB_USER} -d ${MATRIX_DB_NAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
 
   synapse:
     image: matrixdotorg/synapse:v1.120.0
@@ -221,6 +244,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging: *default-logging
 
   element:
     image: vectorim/element-web:v1.11.90
@@ -230,6 +254,13 @@ services:
     volumes:
       - ./config/matrix/element-config.json:/app/config.json:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
 
   vaultwarden:
     image: vaultwarden/server:1.32.7
@@ -281,6 +312,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    logging: *default-logging
 
   ollama:
     image: ollama/ollama:0.20.0
@@ -305,6 +337,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging: *default-logging
 
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
@@ -323,6 +356,13 @@ services:
         echo 'No ZIM files found. Add .zim files to ./data/kiwix and click Refresh.' && sleep infinity;
       fi"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
 
   kiwix-manager:
     image: filebrowser/filebrowser:v2.31.2
@@ -335,6 +375,13 @@ services:
       - ./data/filebrowser/database.db:/database.db
     command: ["--database", "/database.db", "--noauth", "--root", "/srv"]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
 
   openvpn:
     image: d3vilh/openvpn-server:latest
@@ -349,6 +396,13 @@ services:
     volumes:
       - ./data/vpn:/etc/openvpn
     restart: "no"
+    healthcheck:
+      test: ["CMD", "pgrep", "openvpn"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
 
   openvpn-ui:
     image: d3vilh/openvpn-ui:latest
@@ -367,6 +421,13 @@ services:
       - ./data/vpn/pki:/usr/share/easy-rsa/pki
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
 
   nginx:
     image: nginx:alpine
@@ -398,6 +459,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    logging: *default-logging
 
 networks:
   frontend:
@@ -406,3 +468,4 @@ networks:
     driver: bridge
   database:
     driver: bridge
+    internal: true
