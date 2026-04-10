@@ -4,8 +4,6 @@ services:
     container_name: project-s-jellyfin
     networks:
       - backend
-    ports:
-      - '8096:8096'
     volumes:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
@@ -81,8 +79,6 @@ services:
       - backend
       - database
     restart: always
-    ports:
-      - '8081:80'
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -125,8 +121,6 @@ services:
     networks:
       - backend
     restart: unless-stopped
-    ports:
-      - '9980:9980'
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -165,8 +159,6 @@ services:
     # (container management, terminal with Docker access)
     user: root
     privileged: true
-    ports:
-      - '3030:3000'
     volumes:
       - ./data/workspace:/home/project/workspace
       - /var/run/docker.sock:/var/run/docker.sock
@@ -208,8 +200,6 @@ services:
       - database
     depends_on:
       - synapse-db
-    ports:
-      - '8008:8008'
     volumes:
       - ./data/matrix/synapse:/data
       - ./config/matrix:/etc/synapse-config:ro
@@ -237,8 +227,6 @@ services:
     container_name: project-s-matrix-client
     networks:
       - frontend
-    ports:
-      - '8082:80'
     volumes:
       - ./config/matrix/element-config.json:/app/config.json:ro
     restart: unless-stopped
@@ -248,8 +236,6 @@ services:
     container_name: project-s-vaultwarden
     networks:
       - backend
-    ports:
-      - '8083:80'
     volumes:
       - ./data/vaultwarden:/data
     environment:
@@ -269,8 +255,6 @@ services:
     networks:
       - frontend
       - backend
-    ports:
-      - '8085:8080'
     volumes:
       - ./data/open-webui:/app/backend/data
     environment:
@@ -327,8 +311,6 @@ services:
     container_name: project-s-kiwix-reader
     networks:
       - backend
-    ports:
-      - '8087:8080'
     volumes:
       - ./data/kiwix:/data
     entrypoint: ["sh", "-c"]
@@ -348,8 +330,6 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     networks:
       - frontend
-    ports:
-      - '8086:80'
     volumes:
       - ./data/kiwix:/srv
       - ./data/filebrowser/database.db:/database.db
@@ -378,8 +358,6 @@ services:
     privileged: true
     depends_on:
       - openvpn
-    ports:
-      - '8090:8080'
     environment:
       - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
       - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD}
