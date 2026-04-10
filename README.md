@@ -223,21 +223,57 @@ Install once. Get a private, encrypted, modular platform that runs your digital 
 
 ## How it Works
 
-Project S is an orchestration layer built on Docker. It pulls together best-in-class open-source tools, puts them behind a unified dashboard, and manages them through a single interface.
+HomeForge is an orchestration layer built on Docker. It pulls together best-in-class open-source tools, puts them behind a unified dashboard, and manages them through a single interface.
+
+### System Architecture
 
 ```
-Your browser
-    │
-    ▼
-Project S Dashboard (:3069)  ←── one login, one UI
-    │
-    ├── Nextcloud (:8081) · Collabora (:9980)
-    ├── Jellyfin (:8096) · Theia IDE (:3030)
-    ├── Matrix Synapse (:8008) · Element (:8082)
-    ├── Vaultwarden (:8083) · Kiwix (:8087)
-    ├── Open-WebUI (:8085) · Ollama (:11434)
-    └── OpenVPN (:1194) · OpenVPN UI (:8090)
+┌──────────────────────────────────────────────────────────────────┐
+│                         User's Browser                            │
+│                     http://<LAN_IP>:<port>                         │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      Nginx Reverse Proxy                          │
+│              (:80 :8081 :8082 :8083 :8085 :8087 :8090)           │
+│              (:8096 :9980 :3030 :8008 :8086)                      │
+└──┬────────────┬──────────────┬──────────────┬───────────────────┘
+   │            │              │              │
+   ▼            ▼              ▼              ▼
+┌────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
+│Dashboard│  │ Jellyfin │  │Nextcloud │  │ Vaultwarden│
+│:3069    │  │  :8096   │  │  :8081   │  │   :8083   │
+│:3070 WS │  │          │  │+Collabora│  │           │
+└────┬────┘  └──────────┘  │  :9980   │  └───────────┘
+     │                     └────┬─────┘
+     │                          │
+     ▼                          ▼
+┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
+│Open-WebUI│  │ Element  │  │OpenVPN UI│  │ Kiwix     │
+│  :8085   │  │  :8082   │  │  :8090   │  │  :8087    │
+└────┬─────┘  └──────────┘  └──────────┘  └───────────┘
+     │
+     ▼
+┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
+│  Ollama  │  │  Theia   │  │  Synapse │  │ OpenVPN   │
+│(internal)│  │  :3030   │  │  :8008   │  │ :1194/udp │
+└──────────┘  └──────────┘  └────┬─────┘  └───────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │    Database Network     │
+                    │  MariaDB · Postgres     │
+                    │  (internal only)        │
+                    └─────────────────────────┘
 ```
+
+### Network Topology
+
+| Network | Services |
+|---|---|
+| **frontend** | nginx, dashboard, element, openvpn-ui, kiwix-manager, open-webui |
+| **backend** | jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn |
+| **database** | MariaDB (Nextcloud), Postgres (Synapse) — internal only |
 
 Each service runs in its own Docker container. Project S handles networking, shared data volumes, and service health monitoring so you don't have to.
 
