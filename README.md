@@ -21,6 +21,7 @@
 - [Contributors](#contributors)
 
 **Project Overview**
+- [Architecture](Project_S_Logs/29_Architecture_Overhaul.md)
 - [What is it?](#what-is-it)
 - [Core Features](#core-features)
 - [How it Works](#how-it-works)
@@ -153,9 +154,15 @@ To add more applications to the ecosystem:
 
 ## 📝 Project Documentation & Logs
 
+**Architecture** — Start here to understand the entire system:
+- [Architecture Overhaul](Project_S_Logs/29_Architecture_Overhaul.md) — system diagram, service catalog, network topology, security model, deployment lifecycle
+- [Architecture Decision Records](docs/decisions/) — numbered records for every major architectural decision
+
+**Implementation Logs:**
+
 | Resource | Location |
 |---|---|
-| Technical logs | `Project_S_Logs/` directory |
+| Technical logs (01–28) | `Project_S_Logs/` directory |
 | Static UI preview | `Project_S_Logs/06_Dashboard_Technical_Report.html` |
 
 Open the HTML file in any browser for a functional, high-fidelity mirror of the dashboard frontend.
