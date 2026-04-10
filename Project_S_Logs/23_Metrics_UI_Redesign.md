@@ -370,6 +370,14 @@ From Issue #129 — the #1 user pain point: "tinkering until it breaks, no easy 
 - Container row tooltips — hover any row for full details
 - Null safety — all stat accesses use optional chaining + fallbacks
 
+### PR #149 — Metrics Layout Refinement (70/30)
+**Date:** April 9, 2026 | **Branch:** `metrics/chart-layout`
+
+- CPU chart + Network chart stacked left column (70%)
+- Storage panel full-height right column (30%)
+- Equal chart heights (`h-32`) for visual alignment
+- More space-efficient layout with breathing room
+
 ---
 
 ## Future Work
