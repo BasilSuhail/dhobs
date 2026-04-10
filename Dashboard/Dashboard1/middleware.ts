@@ -1,3 +1,22 @@
+/**
+ * Next.js Edge Middleware — Session Guard
+ *
+ * Runs before every request (edge runtime, not Node.js).
+ *
+ * Flow:
+ * 1. If path is public (/login, /setup, /api/auth, /_next) → pass through
+ * 2. Otherwise → validate iron-session cookie (homeforge_session)
+ * 3. If no session.userId → redirect to /login
+ * 4. If valid → inject x-user-id, x-user-role, x-username headers
+ *    so Server Components can read identity without re-decrypting the cookie
+ *
+ * Cookie encryption: AES-256-GCM via iron-session v8
+ * Password (SESSION_SECRET): derived from entropy key via HKDF-SHA512
+ * TTL: 7 days
+ *
+ * @see {@link lib/session.ts} for session configuration
+ * @see {@link Dashboard/Dashboard1/docs/ARCHITECTURE.md} for full auth chain
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
 import type { SessionData } from '@/lib/session'

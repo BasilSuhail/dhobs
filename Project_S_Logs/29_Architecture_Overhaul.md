@@ -3,7 +3,7 @@
 Date: 2026-04-10
 Author: Basil Suhail
 Related Issue: #176
-Branch: `phase-1/architecture-docs`
+Branches: `phase-1/architecture-docs`, `phase-2/network-segmentation`, `phase-3/nginx-reverse-proxy`, `phase-4/dashboard-internal`
 
 ---
 
@@ -19,6 +19,17 @@ HomeForge has 15 services orchestrated by Docker Compose, a Next.js 16 dashboard
 - Data volume structure
 - Deployment lifecycle
 - Architecture Decision Records (ADRs)
+
+## Status
+
+| Phase | Status | PR |
+|---|---|---|
+| Phase 1 — Documentation (Architecture doc + ADRs) | ✅ Complete | #177 |
+| Phase 2 — Network Segmentation | ✅ Complete | #178 |
+| Phase 3 — Reverse Proxy Integration | ✅ Complete | #179 |
+| Phase 4 — Dashboard Internal Architecture | In progress | — |
+| Phase 5 — Data Volume Contract | Not started | — |
+| Phase 6 — Validation | Not started | — |
 
 ---
 
@@ -110,40 +121,22 @@ openvpn-ui → openvpn
 
 ## 3. Network Topology (Current State)
 
-**As of April 10, 2026:** All services share a single default Docker Compose network. There is no segmentation. Every container can reach every other container.
+Three Docker networks defined in `docker-compose.yml`:
 
 ```
-Default Docker Network (flat)
-├── project-s-dashboard     (:3069, :3070)
-├── project-s-jellyfin      (:8096)
-├── project-s-nextcloud     (:8081)
-├── project-s-nextcloud-db  (internal, MariaDB)
-├── project-s-collabora     (:9980)
-├── project-s-theia         (:3030)
-├── project-s-matrix-server  (:8008)
-├── project-s-matrix-db      (internal, Postgres)
-├── project-s-matrix-client  (:8082)
-├── project-s-vaultwarden    (:8083)
-├── project-s-open-webui    (:8085)
-├── project-s-ollama        (:11434)
-├── project-s-kiwix-reader  (:8087)
-├── project-s-kiwix-manager (:8086)
-├── project-s-openvpn       (:1194/udp)
-└── project-s-openvpn-ui    (:8090)
-```
-
-**Problems with current topology:**
-1. Databases (MariaDB, Postgres) are reachable from every service — no isolation
-2. Ollama's port 11434 is exposed to the host — only Open-WebUI needs it
-3. Nginx reverse proxy config exists (`config/nginx/nginx.conf`) but is NOT in the compose stack
-4. No network boundaries between public-facing and internal services
-
-**Target topology (planned for Phase 2):**
-```
-frontend network  — nginx, dashboard, element, openvpn-ui, kiwix-manager, open-webui
-backend network   — jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn
+frontend network  — dashboard, element, openvpn-ui, kiwix-manager, open-webui, nginx
+backend network   — jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn, nginx
 database network  — db (MariaDB), synapse-db (Postgres)
+
+Cross-network assignments:
+├── dashboard     → frontend + backend (needs to reach all services for health checks)
+├── open-webui    → frontend + backend (needs ollama on backend)
+├── nextcloud     → backend + database (needs MariaDB)
+├── synapse       → backend + database (needs Postgres)
+└── nginx         → frontend + backend (proxies to frontend services + dashboard)
 ```
+
+**User entry point:** All traffic goes through nginx (`http://<LAN_IP>:<port>`). Direct port access removed from all individual services except OpenVPN UDP 1194 (nginx cannot proxy UDP).
 
 ---
 
@@ -155,19 +148,29 @@ database network  — db (MariaDB), synapse-db (Postgres)
 User browser
     │
     ▼
-http://<LAN_IP>:<service_port>     ← Direct port access (no reverse proxy yet)
+http://<LAN_IP>:<port>  ← All traffic through nginx (single entry point, port 80 primary)
     │
     ▼
-Docker Compose port mapping
+nginx reverse proxy (container: project-s-nginx, frontend + backend networks)
+    │
+    ├── :80    → dashboard:3069
+    ├── :8096  → jellyfin:8096
+    ├── :8081  → nextcloud:80
+    ├── :9980  → collabora:9980
+    ├── :3030  → theia:3000
+    ├── :8008  → synapse:8008
+    ├── :8082  → element:80
+    ├── :8083  → vaultwarden:80
+    ├── :8085  → open-webui:8080
+    ├── :8087  → kiwix:8080
+    ├── :8086  → kiwix-manager:80
+    └── :8090  → openvpn-ui:8080
     │
     ▼
-Target container (e.g., nextcloud:80, jellyfin:8096)
+Target container responds via Docker internal DNS
     │
     ▼
-Service responds
-    │
-    ▼
-CSP headers set by docker-compose or nginx (partial)
+CSP headers set by nginx config
     │
     ▼
 Dashboard may iframe the service (Jellyfin, Nextcloud, Element sections)
@@ -469,23 +472,27 @@ HKDF-SHA512 (with unique info strings)
 
 ### ADR-0005: Nginx Reverse Proxy for All User-Facing Services
 
-**Status:** Planned (not yet implemented)
+**Status:** Accepted — implemented PR #179
 **Date:** 2026-04-10
 
-**Context:** 15 services expose raw ports directly to the host. No SSL, no centralized CSP headers, no unified routing. An nginx config exists in `config/nginx/nginx.conf` but is not in the compose stack.
+**Context:** 15 services exposed raw ports directly to the host. No SSL, no centralized CSP headers, no unified routing. An nginx config existed in `config/nginx/nginx.conf` but was not in the compose stack.
 
-**Decision:** Add nginx as a container in docker-compose.yml and make it the single entry point for all user-facing services.
+**Decision:** Add nginx as a container in docker-compose.yml, make it the single entry point for all user-facing services. Remove direct port mappings from individual services (except OpenVPN UDP 1194).
 
 **Rationale:**
 - Centralizes SSL termination (future Let's Encrypt support)
 - Single CSP header management point
 - Clean URLs (e.g., `homeforge.local/media` instead of `:8096`)
-- WebSocket upgrade support for dashboard terminal and Matrix
+- WebSocket upgrade support for dashboard terminal, Collabora, Theia, Matrix, Vaultwarden, Open-WebUI
 - Industry standard for reverse proxying
 
-**Current state:** `config/nginx/nginx.conf` exists with proxy blocks for 5 of 15 services. Not wired into compose.
-
-**Planned:** Full nginx config covering all user-facing services, WebSocket upgrade support, healthcheck, documented SSL placeholder strategy.
+**Implementation:**
+- `nginx:alpine` container on frontend + backend networks
+- Full proxy config for all 15 user-facing services
+- 12 host port mappings consolidated on nginx: 80, 8081, 8082, 8083, 8085, 8086, 8087, 8090, 8096, 9980, 3030, 8008
+- Healthcheck at `/nginx-health`
+- Direct port mappings removed from all individual services
+- OpenVPN UDP 1194 kept on the service (nginx cannot proxy UDP)
 
 ---
 
@@ -517,35 +524,32 @@ HKDF-SHA512 (with unique info strings)
 
 | Issue | Severity | Notes |
 |---|---|---|
-| Nginx not in compose stack | High | `config/nginx/nginx.conf` exists but unused |
-| Flat network — no segmentation | High | All containers can reach all others |
-| Database ports exposed to host | Medium | MariaDB and Postgres should be internal-only |
-| Ollama port 11434 exposed to host | Low | Only Open-WebUI needs it |
-| No SSL/TLS | Medium | All traffic is HTTP on LAN |
+| No SSL/TLS | Medium | All traffic is HTTP on LAN — nginx ready for SSL (future) |
 | OpenVPN restart set to "no" | Low | Known issue on Docker Desktop for Mac (Log 25) |
 | Dashboard runs as root | Medium | Required for Docker socket access |
 | Theia IDE privileged mode | Low | Required for Docker-in-Docker development |
+
+**Resolved:**
+| Issue | Resolution |
+|---|---|
+| Nginx not in compose stack | Fixed — PR #179 |
+| Flat network — no segmentation | Fixed — PR #178 |
+| Database ports exposed to host | Fixed — isolated on database network (PR #178) |
+| Ollama port 11434 exposed to host | Fixed — removed from host (PR #178) |
+| Redundant direct ports | Fixed — all consolidated through nginx (PR #179) |
 
 ---
 
 ## 10. What Needs to Change (Future Phases)
 
-### Phase 2 — Network Segmentation
-- Three networks: `frontend`, `backend`, `database`
-- Remove host ports from internal-only services
-- Database isolation
+### Phase 1 — Documentation ✅ COMPLETE
+### Phase 2 — Network Segmentation ✅ COMPLETE
+### Phase 3 — Reverse Proxy Integration ✅ COMPLETE
 
-### Phase 3 — Reverse Proxy Integration
-- Add nginx to compose
-- Complete proxy config for all 15 services
-- WebSocket upgrade support
-- SSL certificate strategy
-
-### Phase 4 — Dashboard Internal Architecture
-- `Dashboard/Dashboard1/docs/ARCHITECTURE.md`
-- Layer diagram: middleware → auth → session → DB → API → WebSocket
-- API route map with auth requirements
-- WebSocket ticket flow
+### Phase 4 — Dashboard Internal Architecture (In progress)
+- `Dashboard/Dashboard1/docs/ARCHITECTURE.md` — layer diagram, auth chain, API route map, WebSocket flow, backup flow
+- Entropy key derivation chain documented visually
+- Inline architecture comments in key files
 
 ### Phase 5 — Data Volume Contract
 - Documented backup inclusion/exclusion list
@@ -560,4 +564,4 @@ HKDF-SHA512 (with unique info strings)
 ---
 
 **Status:** Living document. Updated as architecture evolves.
-**Next Update:** After Phase 2 (network segmentation) implementation.
+**Next Update:** After Phase 4 (dashboard internal architecture) implementation.
