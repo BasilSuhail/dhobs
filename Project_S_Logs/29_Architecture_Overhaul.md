@@ -20,6 +20,17 @@ HomeForge has 15 services orchestrated by Docker Compose, a Next.js 16 dashboard
 - Deployment lifecycle
 - Architecture Decision Records (ADRs)
 
+## Status
+
+| Phase | Status | PR |
+|---|---|---|
+| Phase 1 — Documentation (Architecture doc + ADRs) | ✅ Complete | #177 |
+| Phase 2 — Network Segmentation | ✅ Complete | #178 |
+| Phase 3 — Reverse Proxy Integration | ✅ Complete | #179 |
+| Phase 4 — Dashboard Internal Architecture | ✅ Complete | #180 |
+| Phase 5 — Data Volume Contract | In progress | — |
+| Phase 6 — Validation | Not started | — |
+
 ---
 
 ## 1. System Overview
@@ -259,32 +270,35 @@ Subsequent logins:
 
 ## 6. Data Volume Structure
 
-All persistent data lives under `./data/` on the host:
+All persistent data lives under `./data/` on the host. The full authoritative reference is at [`data/README.md`](../data/README.md).
+
+**Summary hierarchy:**
 
 ```
 data/
-├── jellyfin/
-│   ├── config/          # Jellyfin configuration
-│   └── cache/           # Transcoded media cache
-├── nextcloud/
-│   ├── html/            # Nextcloud web root
-│   ├── data/            # User files (Nextcloud data dir)
-│   └── db/              # MariaDB database files
-├── matrix/
-│   ├── db/              # Postgres data (Synapse DB volume)
-│   └── synapse/         # Synapse homeserver data
-├── vaultwarden/         # Password vault data
-├── open-webui/          # Open-WebUI backend data
-├── ollama/              # LLM models
-├── kiwix/               # ZIM files + library.xml
-├── vpn/                 # OpenVPN config, certs, PKI
-│   ├── db/              # OpenVPN UI database
-│   └── pki/             # Easy-RSA PKI
-├── workspace/           # Shared workspace (Theia IDE)
-├── filebrowser/         # Kiwix manager database
-├── security/            # Dashboard entropy-encrypted user DB
-└── backups/             # User-initiated backups
+├── jellyfin/        # Jellyfin config + cache
+├── media/           # User media files (movies, music, photos)
+├── nextcloud/       # Nextcloud html + user data + MariaDB
+├── matrix/          # Synapse data + Postgres database
+├── vaultwarden/     # Password vault data
+├── open-webui/      # AI chat backend data
+├── ollama/          # LLM models
+├── kiwix/           # ZIM files (offline knowledge bases)
+├── vpn/             # OpenVPN config + certs + PKI
+├── workspace/       # Shared workspace (Theia IDE)
+├── filebrowser/     # Kiwix manager DB
+├── security/        # Dashboard entropy-encrypted user DB
+└── backups/         # User-initiated backup archives
 ```
+
+**Mount types:**
+- Dashboard mounts `./data` as read-only (`:ro`) for metrics
+- Dashboard mounts `./data/security` and `./data/backups` as read-write
+- Each service mounts its own data directory read-write
+- No cross-service data writes — each service owns its directory
+
+**Backup contract:**
+The automated backup (`app/api/backup/route.ts`) creates a `.tar.gz` of `data/` excluding: `backups/`, `node_modules/`, `.git/`, `.next/`, `*.log`, `tmp/`. See [`data/README.md`](../data/README.md) for full inclusion/exclusion details and a known issue with large user-managed directories (media, kiwix, ollama) being included.
 
 **Mount types:**
 - Named bind mounts from host `./data/` → container paths
@@ -547,10 +561,11 @@ HKDF-SHA512 (with unique info strings)
 - API route map with auth requirements
 - WebSocket ticket flow
 
-### Phase 5 — Data Volume Contract
-- Documented backup inclusion/exclusion list
-- Data hierarchy reference
-- Mount type documentation (ro vs rw)
+### Phase 5 — Data Volume Contract ✅ COMPLETE
+- `data/README.md` — full data hierarchy with service ownership, mount types, backup inclusion/exclusion
+- Backup contract documented (known issue: large user directories included in tar)
+- Critical data paths identified
+- Log 29 updated with reference to data/README.md
 
 ### Phase 6 — Validation
 - Full stack rebuild
