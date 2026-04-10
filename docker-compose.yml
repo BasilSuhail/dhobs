@@ -2,6 +2,8 @@ services:
   jellyfin:
     image: jellyfin/jellyfin:10.10.6
     container_name: project-s-jellyfin
+    networks:
+      - backend
     ports:
       - '8096:8096'
     volumes:
@@ -27,6 +29,9 @@ services:
     container_name: project-s-dashboard
     hostname: homeforge-dashboard
     user: root
+    networks:
+      - frontend
+      - backend
     ports:
       - '3069:3069'
       - '3070:3070'
@@ -53,6 +58,8 @@ services:
   db:
     image: mariadb:10.11
     container_name: project-s-nextcloud-db
+    networks:
+      - database
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     restart: always
     volumes:
@@ -70,6 +77,9 @@ services:
   nextcloud:
     image: nextcloud:30
     container_name: project-s-nextcloud
+    networks:
+      - backend
+      - database
     restart: always
     ports:
       - '8081:80'
@@ -112,6 +122,8 @@ services:
   collabora:
     image: collabora/code:24.04.10.2.1
     container_name: project-s-collabora
+    networks:
+      - backend
     restart: unless-stopped
     ports:
       - '9980:9980'
@@ -147,6 +159,8 @@ services:
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest  # Theia only publishes :latest on GHCR
     container_name: project-s-theia
+    networks:
+      - backend
     # Theia requires root + privileged for Docker integration features
     # (container management, terminal with Docker access)
     user: root
@@ -175,6 +189,8 @@ services:
   synapse-db:
     image: postgres:15-alpine  # data volume was initialized with PG15 — do NOT bump without pg_upgrade
     container_name: project-s-matrix-db
+    networks:
+      - database
     environment:
       - POSTGRES_USER=${MATRIX_DB_USER}
       - POSTGRES_PASSWORD=${MATRIX_DB_PASSWORD}
@@ -187,6 +203,9 @@ services:
   synapse:
     image: matrixdotorg/synapse:v1.120.0
     container_name: project-s-matrix-server
+    networks:
+      - backend
+      - database
     depends_on:
       - synapse-db
     ports:
@@ -216,6 +235,8 @@ services:
   element:
     image: vectorim/element-web:v1.11.90
     container_name: project-s-matrix-client
+    networks:
+      - frontend
     ports:
       - '8082:80'
     volumes:
@@ -225,6 +246,8 @@ services:
   vaultwarden:
     image: vaultwarden/server:1.32.7
     container_name: project-s-vaultwarden
+    networks:
+      - backend
     ports:
       - '8083:80'
     volumes:
@@ -243,6 +266,9 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:0.8.12
     container_name: project-s-open-webui
+    networks:
+      - frontend
+      - backend
     ports:
       - '8085:8080'
     volumes:
@@ -275,8 +301,8 @@ services:
   ollama:
     image: ollama/ollama:0.20.0
     container_name: project-s-ollama
-    ports:
-      - '11434:11434'
+    networks:
+      - backend
     volumes:
       - ./data/ollama:/root/.ollama
       - ./data/workspace:/workspace
@@ -299,6 +325,8 @@ services:
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader
+    networks:
+      - backend
     ports:
       - '8087:8080'
     volumes:
@@ -318,6 +346,8 @@ services:
     image: filebrowser/filebrowser:v2.31.2
     container_name: project-s-kiwix-manager
     user: "${UID:-1000}:${GID:-1000}"
+    networks:
+      - frontend
     ports:
       - '8086:80'
     volumes:
@@ -329,6 +359,8 @@ services:
   openvpn:
     image: d3vilh/openvpn-server:latest
     container_name: project-s-openvpn
+    networks:
+      - backend
     privileged: true
     cap_add:
       - NET_ADMIN
@@ -336,11 +368,13 @@ services:
       - '1194:1194/udp'
     volumes:
       - ./data/vpn:/etc/openvpn
-    restart: unless-stopped
+    restart: "no"
 
   openvpn-ui:
     image: d3vilh/openvpn-ui:latest
     container_name: project-s-openvpn-ui
+    networks:
+      - frontend
     privileged: true
     depends_on:
       - openvpn
@@ -355,3 +389,11 @@ services:
       - ./data/vpn/pki:/usr/share/easy-rsa/pki
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+  database:
+    driver: bridge
