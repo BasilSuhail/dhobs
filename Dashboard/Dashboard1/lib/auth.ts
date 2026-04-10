@@ -1,3 +1,19 @@
+/**
+ * Session Guards — Server Component / Route Handler helpers
+ *
+ * These functions are the second layer of auth after middleware.ts.
+ * Middleware validates the cookie on every request, but Server Components
+ * and Route Handlers need programmatic access to the session data.
+ *
+ * Flow:
+ * getSession()     → read and decrypt iron-session cookie, return user data or null
+ * requireSession() → getSession() + redirect to /login if no session
+ * requireAdmin()   → requireSession() + redirect to / if role !== 'admin'
+ *
+ * @see {@link middleware.ts} for the edge runtime session guard
+ * @see {@link lib/session.ts} for session configuration
+ * @see {@link Dashboard/Dashboard1/docs/ARCHITECTURE.md} for full auth chain
+ */
 import { getIronSession } from 'iron-session'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'

@@ -1,3 +1,21 @@
+/**
+ * iron-session v8 Configuration
+ *
+ * The session cookie is the primary auth mechanism for the entire dashboard.
+ *
+ * Cookie: homeforge_session
+ * Encryption: AES-256-GCM (iron-session v8)
+ * Password: SESSION_SECRET — derived from entropy key via HKDF-SHA512
+ * TTL: 7 days (604800 seconds)
+ * Transport: HTTP-only, signed, encrypted
+ * Secure: true in production (HTTPS required), false in dev
+ *
+ * The password getter throws if SESSION_SECRET is not set, ensuring the server
+ * cannot start without proper bootstrap (start.sh → bootstrap.js).
+ *
+ * @see {@link lib/auth.ts} for session guards
+ * @see {@link Dashboard/Dashboard1/docs/ARCHITECTURE.md} for entropy key derivation
+ */
 import type { SessionOptions } from 'iron-session'
 
 export interface SessionData {
