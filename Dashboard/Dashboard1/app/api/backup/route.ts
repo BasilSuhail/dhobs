@@ -83,7 +83,8 @@ export async function POST() {
 
     // Use absolute paths and simpler tar command
     // The container mounts /data from the host, so we tar from there
-    const cmd = `cd / && tar -czf "${filepath}" --exclude='backups' --exclude='node_modules' --exclude='.git' --exclude='.next' --exclude='*.log' --exclude='tmp' data/`
+    // Excludes large user-managed directories (media, kiwix, ollama) to keep backups under ~5GB
+    const cmd = `cd / && tar -czf "${filepath}" --exclude='backups' --exclude='node_modules' --exclude='.git' --exclude='.next' --exclude='*.log' --exclude='tmp' --exclude='data/media' --exclude='data/kiwix' --exclude='data/ollama' data/`
 
     const { stdout, stderr } = await execAsync(cmd, { timeout: 300000, maxBuffer: 10 * 1024 * 1024 })
     if (stderr) console.error('Backup stderr:', stderr)

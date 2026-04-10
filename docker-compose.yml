@@ -91,7 +91,7 @@ services:
     networks:
       - backend
       - database
-    restart: always
+    restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -134,7 +134,7 @@ services:
     container_name: project-s-collabora
     networks:
       - backend
-    restart: unless-stopped
+    restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -233,7 +233,7 @@ services:
       - MATRIX_DB_USER=${MATRIX_DB_USER}
       - MATRIX_DB_PASSWORD=${MATRIX_DB_PASSWORD}
     entrypoint: ["/bin/sh", "-c", "python3 /etc/synapse-config/gen_config.py && cp /etc/synapse-config/localhost.log.config /data/localhost.log.config && exec python -m synapse.app.homeserver -c /data/homeserver.yaml -c /data/localhost.log.config"]
-    restart: unless-stopped
+    restart: on-failure:5
     deploy:
       resources:
         limits:
@@ -436,7 +436,7 @@ services:
       - frontend
       - backend
     ports:
-      - '80:80'
+      - '8088:80'
       - '8081:8081'
       - '8082:8082'
       - '8083:8083'
