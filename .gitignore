@@ -37,3 +37,4 @@ Dashboard/Dashboard1/tsconfig.tsbuildinfo
 config/matrix/element-config.json
 config/matrix/homeserver.yaml
 config/nginx/ssl/
+data/secrets/*

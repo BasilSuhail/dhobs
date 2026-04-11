@@ -57,7 +57,7 @@ services:
       - '3069:3069'
       - '3070:3070'
     volumes:
-      - socket-proxy:/var/run/docker-proxy.sock
+      - socket-data:/var/run/docker-proxy.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
     environment:
@@ -88,10 +88,13 @@ services:
     volumes:
       - ./data/nextcloud/db:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root_password
+      - MYSQL_PASSWORD_FILE=/run/secrets/mysql_password
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
+    secrets:
+      - mysql_root_password
+      - mysql_password
     deploy:
       resources:
         limits:
@@ -120,7 +123,7 @@ services:
       - ./config/nextcloud/setup-office.sh:/docker-entrypoint-hooks.d/before-starting/setup-office.sh:ro
       - ./config/nextcloud/setup-office-post-install.sh:/docker-entrypoint-hooks.d/post-installation/setup-office-post-install.sh:ro
     environment:
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_PASSWORD_FILE=/run/secrets/mysql_password
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_HOST=db
@@ -130,8 +133,11 @@ services:
       - NEXTCLOUD_DATA_DIR=/var/www/nextcloud_data
       - NEXTCLOUD_INIT_HTACCESS=true
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_ADMIN_PASSWORD_FILE=/run/secrets/nextcloud_admin_password
       - HOMEFORGE_LAN_IP=${HOMEFORGE_LAN_IP:-localhost}
+    secrets:
+      - mysql_password
+      - nextcloud_admin_password
     depends_on:
       db:
         condition: service_started
@@ -158,8 +164,10 @@ services:
     restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    entrypoint: ["/read-secrets.sh", "coolwsd"]
     volumes:
       - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
+      - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
     environment:
       # Only the Docker-internal hostname needed — Collabora callbacks use
       # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
@@ -167,8 +175,10 @@ services:
       - server_name=${HOMEFORGE_LAN_IP:-localhost}:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
-      - password=${COLLABORA_PASSWORD}
+      - password_file=/run/secrets/collabora_password
       - extra_params=--o:ssl.enable=false --o:ssl.termination=false
+    secrets:
+      - collabora_password
     cap_add:
       - MKNOD
       - SYS_ADMIN
@@ -224,11 +234,13 @@ services:
       - database
     environment:
       - POSTGRES_USER=${MATRIX_DB_USER}
-      - POSTGRES_PASSWORD=${MATRIX_DB_PASSWORD}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/mysql_password
       - POSTGRES_DB=${MATRIX_DB_NAME}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - ./data/matrix/db:/var/lib/postgresql/data
+    secrets:
+      - mysql_password
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${MATRIX_DB_USER} -d ${MATRIX_DB_NAME}"]
@@ -251,11 +263,16 @@ services:
       - ./data/matrix/synapse:/data
       - ./config/matrix:/etc/synapse-config:ro
     environment:
-      - MATRIX_REGISTRATION_SECRET=${MATRIX_REGISTRATION_SECRET}
-      - MATRIX_MACAROON_SECRET_KEY=${MATRIX_MACAROON_SECRET_KEY}
-      - MATRIX_FORM_SECRET=${MATRIX_FORM_SECRET}
+      - MATRIX_REGISTRATION_SECRET_FILE=/run/secrets/matrix_registration_secret
+      - MATRIX_MACAROON_SECRET_KEY_FILE=/run/secrets/matrix_macaroon_secret_key
+      - MATRIX_FORM_SECRET_FILE=/run/secrets/matrix_form_secret
       - MATRIX_DB_USER=${MATRIX_DB_USER}
-      - MATRIX_DB_PASSWORD=${MATRIX_DB_PASSWORD}
+      - MATRIX_DB_PASSWORD_FILE=/run/secrets/mysql_password
+    secrets:
+      - matrix_registration_secret
+      - matrix_macaroon_secret_key
+      - matrix_form_secret
+      - mysql_password
     entrypoint: ["/bin/sh", "-c", "python3 /etc/synapse-config/gen_config.py && cp /etc/synapse-config/localhost.log.config /data/localhost.log.config && exec python -m synapse.app.homeserver -c /data/homeserver.yaml -c /data/localhost.log.config"]
     restart: on-failure:5
     deploy:
@@ -313,10 +330,13 @@ services:
     networks:
       - frontend
       - backend
+    entrypoint: ["/read-secrets.sh", "bash", "-c", "bash start.sh"]
     volumes:
       - ./data/open-webui:/app/backend/data
+      - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY_FILE=/run/secrets/webui_secret_key
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - CORS_ALLOW_ORIGIN=*
       - WEBUI_AUTH=true
@@ -325,6 +345,8 @@ services:
       - ENABLE_WEBSOCKET_SUPPORT=true
       - WEBUI_URL=http://${HOMEFORGE_LAN_IP:-localhost}:8085
       - WEBUI_NAME=HomeForge AI
+    secrets:
+      - webui_secret_key
     depends_on:
       ollama:
         condition: service_healthy
@@ -447,12 +469,16 @@ services:
       - openvpn
     environment:
       - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
-      - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD}
+      - OPENVPN_ADMIN_PASSWORD_FILE=/run/secrets/vpn_admin_password
+    secrets:
+      - vpn_admin_password
+    entrypoint: ["/read-secrets.sh", "/opt/openvpn-ui/start.sh"]
     volumes:
       - ./data/vpn:/etc/openvpn
       - ./data/vpn/db:/opt/openvpn-ui/db
       - ./data/vpn/pki:/usr/share/easy-rsa/pki
-      - socket-proxy:/var/run/docker-proxy.sock:ro
+      - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
+      - socket-data:/var/run/docker-proxy.sock:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
@@ -508,7 +534,7 @@ services:
       - database
       - frontend
     volumes:
-      - socket-proxy:/var/run/docker-proxy.sock:ro
+      - socket-data:/var/run/docker-proxy.sock:ro
       - ./data/security:/data/security:ro
       - ./data:/snapshots/dashboard:ro
       - ./data/jellyfin/config:/snapshots/jellyfin:ro
@@ -541,4 +567,24 @@ networks:
 
 volumes:
   backup-db:
-  socket-proxy:
+  socket-data:
+
+secrets:
+  mysql_root_password:
+    file: ./data/secrets/mysql_root_password
+  mysql_password:
+    file: ./data/secrets/mysql_password
+  nextcloud_admin_password:
+    file: ./data/secrets/nextcloud_admin_password
+  collabora_password:
+    file: ./data/secrets/collabora_password
+  matrix_registration_secret:
+    file: ./data/secrets/matrix_registration_secret
+  matrix_macaroon_secret_key:
+    file: ./data/secrets/matrix_macaroon_secret_key
+  matrix_form_secret:
+    file: ./data/secrets/matrix_form_secret
+  webui_secret_key:
+    file: ./data/secrets/webui_secret_key
+  vpn_admin_password:
+    file: ./data/secrets/vpn_admin_password

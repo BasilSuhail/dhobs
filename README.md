@@ -336,20 +336,20 @@ Project S is built encryption-first. The dashboard uses a layered security stack
 - **Memory limits** — each service has a memory cap to prevent resource starvation
 
 ### Secrets Management
-Runtime secrets (`SESSION_SECRET`, `WS_SECRET`, `DB_KEY`) are derived from the entropy key at startup — they are never written to disk or `.env`. Infrastructure secrets in `.env.example`:
+Runtime secrets (`SESSION_SECRET`, `WS_SECRET`, `DB_KEY`) are derived from the entropy key at startup — they are never written to disk or `.env`. Infrastructure secrets are now stored in `data/secrets/` (Docker Secrets):
 
 | Variable | Used by |
 |---|---|
-| `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` | Nextcloud MariaDB |
-| `NEXTCLOUD_ADMIN_PASSWORD` | Nextcloud admin account |
-| `COLLABORA_PASSWORD` | Collabora Online admin |
-| `MATRIX_REGISTRATION_SECRET` | Synapse federation registration |
-| `MATRIX_MACAROON_SECRET_KEY` | Synapse macaroon tokens |
-| `MATRIX_FORM_SECRET` | Synapse CSRF protection |
-| `WEBUI_SECRET_KEY` | Open-WebUI session signing |
-| `VPN_ADMIN_PASSWORD` | OpenVPN UI admin account |
+| `mysql_root_password` | Nextcloud MariaDB |
+| `mysql_password` | Nextcloud MariaDB, Synapse Postgres |
+| `nextcloud_admin_password` | Nextcloud admin account || `collabora_password` | Collabora Online admin |
+| `matrix_registration_secret` | Synapse federation registration |
+| `matrix_macaroon_secret_key` | Synapse macaroon tokens |
+| `matrix_form_secret` | Synapse CSRF protection |
+| `webui_secret_key` | Open-WebUI session signing |
+| `vpn_admin_password` | OpenVPN UI admin account |
 
-Generate secrets with: `openssl rand -hex 32` (or `-base64 32` for `WEBUI_SECRET_KEY`)
+Run `bash scripts/migrate-secrets.sh` to automatically generate secret files from your `.env` or generate new random secrets.
 
 ---
 

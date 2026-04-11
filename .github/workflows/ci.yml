@@ -23,7 +23,7 @@ jobs:
           cache-dependency-path: Dashboard/Dashboard1/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npx eslint . --max-warnings 0 || true  # Don't fail on lint warnings yet
+      - run: npx eslint . --max-warnings 0 || true
 
   docker-build:
     name: Docker Compose Build
@@ -32,11 +32,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create .env from example
         run: cp .env.example .env
+      - name: Setup Dummy Secrets
+        run: |
+          mkdir -p data/secrets
+          for secret in mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password; do
+            echo "ci_test_secret" > data/secrets/$secret
+          done
+          echo "Secrets created:"
+          ls -la data/secrets/
       - name: Validate docker-compose.yml
         run: docker compose config --quiet
       - name: Build all services
         run: docker compose build dashboard
-        # Only build dashboard (our code) - other services are pre-built images
 
   security-check:
     name: Security Scan
@@ -58,3 +65,4 @@ jobs:
         run: |
           ! grep -rn "password=" docker-compose.yml | grep -v '${' | grep -v '#' || echo "WARNING: Possible hardcoded secrets found"
           ! grep -rn "MYSQL_ROOT_PASSWORD=\|MYSQL_PASSWORD=\|NEXTCLOUD_ADMIN_PASSWORD=" docker-compose.yml | grep -v '${' || echo "WARNING: Hardcoded DB passwords found"
+# Trigger CI re-run
