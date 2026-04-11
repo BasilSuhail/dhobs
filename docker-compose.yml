@@ -26,6 +26,23 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Secure Docker Socket Proxy
+  # Prevents containers from having full root access to the host via the socket.
+  # Docs: https://github.com/Tecnativa/docker-socket-proxy
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: project-s-socket-proxy
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ALLOWED_ACCESS=CONTAINERS=1,EVENTS=1,IMAGES=1,INFO=1,POST=1
+    # For Dashboard and OpenVPN-UI we restrict to read-only + POST (exec)
+    # For Theia we need full access, so it will use the raw socket.
+    # For Backup Sidecar we need CONTAINERS + EVENTS + POST (pause/unpause).
+
   dashboard:
     build:
       context: ./Dashboard/Dashboard1
@@ -40,12 +57,13 @@ services:
       - '3069:3069'
       - '3070:3070'
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - socket-proxy:/var/run/docker-proxy.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
     environment:
       - PORT=3069
       - WS_PORT=3070
+      - DOCKER_HOST=unix:///var/run/docker-proxy.sock
       - SECURITY_DIR=/app/data/security
     restart: 'unless-stopped'
     depends_on:
@@ -423,6 +441,7 @@ services:
     container_name: project-s-openvpn-ui
     networks:
       - frontend
+      - backend
     privileged: true
     depends_on:
       - openvpn
@@ -433,7 +452,7 @@ services:
       - ./data/vpn:/etc/openvpn
       - ./data/vpn/db:/opt/openvpn-ui/db
       - ./data/vpn/pki:/usr/share/easy-rsa/pki
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - socket-proxy:/var/run/docker-proxy.sock:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
@@ -489,7 +508,7 @@ services:
       - database
       - frontend
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - socket-proxy:/var/run/docker-proxy.sock:ro
       - ./data/security:/data/security:ro
       - ./data:/snapshots/dashboard:ro
       - ./data/jellyfin/config:/snapshots/jellyfin:ro
@@ -505,6 +524,7 @@ services:
       - BACKUP_PORT=3070
       - SNAPSHOT_DIR=/backups
       - SECURITY_DIR=/data/security
+      - DOCKER_HOST=unix:///var/run/docker-proxy.sock
     expose:
       - "3070"
     depends_on:
@@ -521,3 +541,4 @@ networks:
 
 volumes:
   backup-db:
+  socket-proxy:
