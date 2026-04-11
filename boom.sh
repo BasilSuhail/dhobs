@@ -95,6 +95,23 @@ fi
 mkdir -p ./data/security
 chmod 700 ./data/security
 mkdir -p ./config/matrix
+mkdir -p ./config/collabora
+
+# Ensure Collabora Config exists
+# Docker creates a directory if the file doesn't exist, which crashes the container.
+if [ ! -f ./config/collabora/coolwsd-override.xml ]; then
+    cat > ./config/collabora/coolwsd-override.xml << 'XMLEOF'
+<config>
+    <storage>
+        <wopi>
+            <host desc="localhost" allow="true">localhost</host>
+            <host desc="host.docker.internal" allow="true">host.docker.internal</host>
+        </wopi>
+    </storage>
+</config>
+XMLEOF
+    echo "✅ Created Collabora WOPI config"
+fi
 
 # Ensure Docker Secrets exist for all services
 # This must happen BEFORE docker compose up, otherwise Docker fails to mount the files.
