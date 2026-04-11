@@ -357,14 +357,15 @@ Run `bash scripts/migrate-secrets.sh` to automatically generate secret files fro
 
 | Phase | Focus | Status |
 |---|---|---|
-| 1 | Research & open-source tool selection | Complete |
-| 2 | Authentication, encryption & user management | Complete |
-| 3 | Dashboard design & UI | Partially complete |
-| 4 | Core service integration | Partially complete |
-| 5 | Optional modules & one-click installer | Not started |
-| 6 | Smart home, automation & public beta | Not started |
+| 1 | Research & open-source tool selection | ✅ Complete |
+| 2 | Authentication, encryption & user management | ✅ Complete |
+| 3 | Dashboard design & UI | 🔄 In Progress |
+| 4 | Core service integration | 🔄 In Progress |
+| 5 | Architecture Audit (Security & Ops) | ✅ Complete |
+| 6 | Optional modules & one-click installer | ⏳ Not started |
+| 7 | Smart home, automation & public beta | ⏳ Not started |
 
-**Target release:** `v0.1.0` public beta on completion of all planned tasks.
+**Target release:** `v0.1.0` public beta on completion of Phases 3-7.
 
 ---
 
