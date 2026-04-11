@@ -1,7 +1,8 @@
 #!/bin/bash
 # Migrates existing .env secrets to Docker Secrets files.
 # Run this BEFORE `docker compose up -d`.
-set -euo pipefail
+# Note: Using -eo pipefail instead of -u to avoid unbound variable errors if .env is partial.
+set -eo pipefail
 
 SECRETS_DIR="./data/secrets"
 mkdir -p "$SECRETS_DIR"

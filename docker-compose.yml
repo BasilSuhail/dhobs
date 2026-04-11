@@ -57,13 +57,15 @@ services:
       - '3069:3069'
       - '3070:3070'
     volumes:
-      - socket-data:/var/run/docker-proxy.sock
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
+      # Host metrics for Linux support (graceful degrade on macOS/Windows)
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
     environment:
       - PORT=3069
       - WS_PORT=3070
-      - DOCKER_HOST=unix:///var/run/docker-proxy.sock
       - SECURITY_DIR=/app/data/security
     restart: 'unless-stopped'
     depends_on:
@@ -164,10 +166,8 @@ services:
     restart: on-failure:5
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    entrypoint: ["/read-secrets.sh", "coolwsd"]
     volumes:
       - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
-      - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
     environment:
       # Only the Docker-internal hostname needed — Collabora callbacks use
       # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
@@ -175,10 +175,15 @@ services:
       - server_name=${HOMEFORGE_LAN_IP:-localhost}:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
-      - password_file=/run/secrets/collabora_password
+      - password=${COLLABORA_PASSWORD}
       - extra_params=--o:ssl.enable=false --o:ssl.termination=false
-    secrets:
-      - collabora_password
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9980/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
     cap_add:
       - MKNOD
       - SYS_ADMIN
@@ -188,13 +193,6 @@ services:
       resources:
         limits:
           memory: 1536m
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9980/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging: *default-logging
 
   # Pin: :latest only (upstream only publishes :latest)
   theia:
@@ -330,7 +328,7 @@ services:
     networks:
       - frontend
       - backend
-    entrypoint: ["/read-secrets.sh", "bash", "-c", "bash start.sh"]
+    entrypoint: ["/bin/sh", "-c", "if [ -f /read-secrets.sh ]; then . /read-secrets.sh; fi && exec bash start.sh"]
     volumes:
       - ./data/open-webui:/app/backend/data
       - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
@@ -472,7 +470,7 @@ services:
       - OPENVPN_ADMIN_PASSWORD_FILE=/run/secrets/vpn_admin_password
     secrets:
       - vpn_admin_password
-    entrypoint: ["/read-secrets.sh", "/opt/openvpn-ui/start.sh"]
+    entrypoint: ["/bin/sh", "-c", "if [ -f /read-secrets.sh ]; then . /read-secrets.sh; fi && exec /opt/openvpn-ui/start.sh"]
     volumes:
       - ./data/vpn:/etc/openvpn
       - ./data/vpn/db:/opt/openvpn-ui/db
