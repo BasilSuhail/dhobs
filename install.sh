@@ -288,3 +288,22 @@ elif command -v open &> /dev/null; then
 else
     echo "Open http://localhost:3069 in your browser"
 fi
+
+# ──────────────────────────────────────────────
+# External Health Monitor
+# ──────────────────────────────────────────────
+echo ""
+echo "Setting up external health monitor..."
+HEALTH_SCRIPT="$(pwd)/health.sh"
+
+# Make the script executable
+chmod +x "$HEALTH_SCRIPT"
+
+# Add to crontab to run every 5 minutes (if not already there)
+if crontab -l 2>/dev/null | grep -q "health.sh"; then
+    echo "   Health monitor already configured in crontab."
+else
+    (crontab -l 2>/dev/null; echo "*/5 * * * * $HEALTH_SCRIPT --log") | crontab -
+    echo "   ✅ Health monitor added to crontab (runs every 5 minutes)."
+    echo "   Logs will be written to /var/log/homeforge-health.log"
+fi
