@@ -32,6 +32,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create .env from example
         run: cp .env.example .env
+      - name: Setup Dummy Secrets
+        run: |
+          mkdir -p data/secrets
+          for secret in mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password; do
+            echo "ci_test_secret" > data/secrets/$secret
+          done
       - name: Validate docker-compose.yml
         run: docker compose config --quiet
       - name: Build all services
