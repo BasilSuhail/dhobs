@@ -115,16 +115,23 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
 // ── Backup + UPS Row ───────────────────────────────────────────────────────
 
 interface BackupEntry {
-  filename: string
-  sizeBytes: number
-  createdAt: number
+  job_id: string
+  archive_size: number
+  created_at: number
   status: string
+  services: string
+  error?: string
 }
 
 function BackupWidget() {
   const [backups, setBackups] = useState<BackupEntry[]>([])
   const [backingUp, setBackingUp] = useState(false)
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null)
+  const [showRestoreModal, setShowRestoreModal] = useState<string | null>(null)
+  const [selectedServices, setSelectedServices] = useState<string[]>(['all'])
+  const pollRef = useRef<NodeJS.Timeout | null>(null)
+
+  const availableServices = ['dashboard', 'jellyfin', 'nextcloud', 'mariadb', 'matrix', 'vaultwarden']
 
   const fetchBackups = useCallback(() => {
     fetch('/api/backup')
@@ -135,32 +142,64 @@ function BackupWidget() {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { fetchBackups() }, [fetchBackups])
+  useEffect(() => {
+    fetchBackups()
+    pollRef.current = setInterval(fetchBackups, 5000)
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [fetchBackups])
 
   const handleBackup = async () => {
     setBackingUp(true)
     try {
-      const res = await fetch('/api/backup', { method: 'POST' })
+      const res = await fetch('/api/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ services: availableServices })
+      })
       const data = await res.json()
-      if (data.success) {
+      if (data.job_id || data.jobId) {
         fetchBackups()
       }
     } catch { /* silent fail */ }
     finally { setBackingUp(false) }
   }
 
-  const handleRestore = async (filename: string) => {
-    setRestoreMsg(`Restore initiated: ${filename}`)
+  const handleRestore = async (jobId: string) => {
+    setShowRestoreModal(null)
+    setRestoreMsg(`Restore initiated: ${(jobId || '').substring(0, 8)}`)
     try {
+      // we assume all services in the backup should be restored, or maybe just the ones backed up
+      const backup = backups.find(b => b.job_id === jobId)
+      let services: string[] = []
+      try {
+        services = backup ? JSON.parse(backup.services) : []
+      } catch (e) {
+        console.error('Failed to parse services', e)
+      }
       await fetch('/api/backup/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename }),
+        body: JSON.stringify({ jobId, services }),
       })
     } catch { /* silent fail */ }
   }
 
+  const toggleService = (svc: string) => {
+    if (svc === 'all') {
+      setSelectedServices(['all'])
+      return
+    }
+    const next = selectedServices.filter(s => s !== 'all')
+    if (next.includes(svc)) {
+      const filtered = next.filter(s => s !== svc)
+      setSelectedServices(filtered.length === 0 ? ['all'] : filtered)
+    } else {
+      setSelectedServices([...next, svc])
+    }
+  }
+
   const humanSize = (bytes: number) => {
+    if (!bytes) return '0 KB'
     if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
     if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(0)} MB`
     return `${(bytes / 1024).toFixed(0)} KB`
@@ -177,34 +216,55 @@ function BackupWidget() {
   return (
     <div>
       <SectionHeader title="Backup" action={
-        <button
-          onClick={handleBackup}
-          disabled={backingUp}
-          className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
-        >
-          <Plus className="w-2.5 h-2.5" />
-          {backingUp ? 'Creating...' : 'New'}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative group z-10">
+            <button className="text-[9px] text-foreground/50 border border-border px-1.5 py-0.5 rounded">
+              {selectedServices.includes('all') ? 'All Services' : `${selectedServices.length} Selected`}
+            </button>
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-card border border-border rounded shadow-lg p-2 min-w-[120px]">
+              <div className="flex items-center gap-2 mb-1">
+                <input type="checkbox" checked={selectedServices.includes('all')} onChange={() => toggleService('all')} />
+                <span className="text-[10px]">All Services</span>
+              </div>
+              <hr className="border-border my-1" />
+              {availableServices.map(s => (
+                <div key={s} className="flex items-center gap-2 mb-1">
+                  <input type="checkbox" checked={!selectedServices.includes('all') && selectedServices.includes(s)} onChange={() => toggleService(s)} />
+                  <span className="text-[10px] capitalize">{s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={handleBackup}
+            disabled={backingUp || backups.some(b => b.status === 'in_progress')}
+            className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
+          >
+            <Plus className="w-2.5 h-2.5" />
+            {backingUp ? 'Creating...' : 'New'}
+          </button>
+        </div>
       } />
       <div className="bg-secondary/5 rounded-lg p-2.5">
         {backups.length > 0 ? (
           <div className="space-y-1.5">
-            {backups.map((b, i) => (
-              <div key={i} className="flex items-center justify-between text-[10px]">
+            {backups.map((b) => (
+              <div key={b.job_id || Math.random()} className="flex items-center justify-between text-[10px]">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'success' ? 'bg-emerald-400' : b.status === 'restored' ? 'bg-cyan-400' : 'bg-red-400'}`} />
-                  <span className="text-foreground/50 truncate font-mono" title={b.filename}>{b.filename.replace('homeforge-backup-', '').replace('.tar.gz', '')}</span>
-                  <span className="text-foreground/25 shrink-0">{humanSize(b.sizeBytes)}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.status === 'success' ? 'bg-emerald-400' : b.status === 'restored' ? 'bg-cyan-400' : b.status === 'in_progress' ? 'bg-amber-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span className="text-foreground/50 truncate font-mono" title={b.job_id}>{(b.job_id || '').substring(0, 8)}</span>
+                  <span className="text-foreground/25 shrink-0">{humanSize(b.archive_size / (1024 * 1024))}</span>
+                  {b.error && <span className="text-red-400 text-[8px] truncate max-w-[60px]" title={b.error}>{b.error}</span>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <span className="text-foreground/20">{timeAgo(b.createdAt)}</span>
-                  {b.status === 'success' && (
+                  <span className="text-foreground/20">{timeAgo(b.created_at)}</span>
+                  {(b.status === 'success' || b.status === 'restored') && (
                     <button
-                      onClick={() => handleRestore(b.filename)}
+                      onClick={() => setShowRestoreModal(b.job_id)}
                       className="p-0.5 rounded hover:bg-secondary/30 transition-colors"
                       title="Restore"
                     >
-                      <RotateCcw className="w-3 h-3 text-foreground/25" />
+                      <RotateCcw className="w-3 h-3 text-foreground/25 hover:text-cyan-400 transition-colors" />
                     </button>
                   )}
                 </div>
@@ -218,6 +278,31 @@ function BackupWidget() {
         )}
         {restoreMsg && <div className="text-[9px] text-cyan-400 mt-1.5">{restoreMsg}</div>}
       </div>
+
+      {showRestoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card border border-border rounded-lg p-4 max-w-sm w-full mx-4 shadow-2xl">
+            <h3 className="text-sm font-semibold text-rose-500 mb-2">Confirm Restore</h3>
+            <p className="text-[11px] text-foreground/70 mb-4 leading-relaxed">
+              This will stop the associated services, replace their data with the selected backup, and restart them. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowRestoreModal(null)}
+                className="px-3 py-1.5 text-[11px] font-medium text-foreground/60 hover:text-foreground bg-secondary/10 hover:bg-secondary/20 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRestore(showRestoreModal)}
+                className="px-3 py-1.5 text-[11px] font-medium text-white bg-rose-500 hover:bg-rose-600 rounded transition-colors"
+              >
+                Yes, Restore Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

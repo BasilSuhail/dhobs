@@ -52,14 +52,6 @@ export function getDb(): Database.Database {
       net_up      REAL
     );
 
-    CREATE TABLE IF NOT EXISTS backup_history (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
-      filename    TEXT NOT NULL,
-      size_bytes  INTEGER NOT NULL,
-      status      TEXT NOT NULL CHECK(status IN ('success', 'failed', 'restored'))
-    );
-
     -- Keep only last 24h of metrics (auto-cleanup on each read)
     -- Run periodically via index check
 

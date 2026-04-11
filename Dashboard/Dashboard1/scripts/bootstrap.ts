@@ -41,6 +41,10 @@ function main(): void {
     sessionSecret = deriveSubKey(entropyKey, 'iron-session-v1', 32).toString('hex')
     wsSecret      = deriveSubKey(entropyKey, 'ws-auth-v1',      32).toString('hex')
     dbKey         = deriveSubKey(entropyKey, 'sqlite-db-v1',    32).toString('hex')
+    
+    // Derive internal token for sidecar communication
+    const internalToken = deriveSubKey(entropyKey, 'homeforge-internal-token-v1', 32).toString('hex')
+    process.stdout.write(`export INTERNAL_TOKEN="${internalToken}"\n`)
   }
 
   // Write shell-eval-compatible exports to stdout.

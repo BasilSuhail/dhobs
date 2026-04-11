@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { WelcomeSection } from "@/components/dashboard/welcome-section"
 import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MetricsSection } from "@/components/dashboard/metrics-section"
+import { BackupSection } from "@/components/dashboard/backup-section"
 import { OllamaSection } from "@/components/dashboard/ollama-section"
 import { KiwixSection } from "@/components/dashboard/kiwix-section"
 import { TerminalPanel } from "@/components/dashboard/terminal-panel"
@@ -269,27 +270,13 @@ export default function HomePage() {
       <main className="relative z-10 h-full w-full">
         <div className={cn(
           "h-full w-full transition-all duration-500",
-          (currentSection === "home" || currentSection === "metrics") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
+          (currentSection === "home" || currentSection === "metrics" || currentSection === "backups") ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute inset-0"
         )}>
-          {currentSection === "metrics" && IS_LANDING ? (
-            <div className="min-h-screen px-8 py-16 pl-24 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-4 p-10 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl text-center max-w-sm">
-                <Construction className="h-10 w-10" style={{ color: accentColor }} />
-                <h2 className="text-xl font-bold" style={{ color: colorTheme?.foreground ?? '#fff' }}>
-                  Metrics Dashboard
-                </h2>
-                <p className="text-sm" style={{ color: `${colorTheme?.foreground ?? '#fff'}70` }}>
-                  Still under construction. Live system metrics coming soon.
-                </p>
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase"
-                  style={{ borderColor: `${accentColor}40`, color: accentColor }}
-                >
-                  Coming soon
-                </div>
-              </div>
-            </div>
-          ) : currentSection === "home" ? (
+          {currentSection === "metrics" ? (
+             <MetricsSection />
+          ) : currentSection === "backups" ? (
+             <BackupSection />
+          ) : (
             <>
               <div
                 style={{
@@ -312,8 +299,6 @@ export default function HomePage() {
                 <DashboardSection onExecContainer={(name) => { setExecTarget(name); setTerminalOpen(true) }} />
               </div>
             </>
-          ) : (
-            <MetricsSection />
           )}
         </div>
       </main>

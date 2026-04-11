@@ -10,6 +10,7 @@ import {
   X,
   TerminalSquare,
   Activity,
+  Database,
   Check,
   type LucideIcon,
 } from "lucide-react"
@@ -101,6 +102,13 @@ export function Sidebar({
             label="Metrics"
             active={!hasOpenWindow && currentSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
+            theme={colorTheme}
+          />
+          <NavButton
+            icon={Database}
+            label="Backups"
+            active={!hasOpenWindow && currentSection === "backups"}
+            onClick={() => onNavigate?.("backups")}
             theme={colorTheme}
           />
 

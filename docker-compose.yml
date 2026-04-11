@@ -43,7 +43,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
-      - ./data/backups:/data/backups
     environment:
       - PORT=3069
       - WS_PORT=3070
@@ -479,6 +478,38 @@ services:
       start_period: 10s
     logging: *default-logging
 
+  homeforge-backup:
+    build:
+      context: ./backup-sidecar
+      dockerfile: Dockerfile
+    container_name: homeforge-backup
+    restart: unless-stopped
+    networks:
+      - backend
+      - database
+      - frontend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/security:/data/security:ro
+      - ./data:/snapshots/dashboard:ro
+      - ./data/jellyfin/config:/snapshots/jellyfin:ro
+      - ./data/nextcloud/data:/snapshots/nextcloud:ro
+      - ./data/nextcloud/db:/snapshots/mariadb:ro
+      - ./data/matrix/db:/snapshots/matrix:ro
+      - ./data/vaultwarden:/snapshots/vaultwarden:ro
+      - ./data/media:/snapshots/media:ro
+      - ./data/backups:/backups
+      - backup-db:/app/data
+    environment:
+      - NODE_ENV=production
+      - BACKUP_PORT=3070
+      - SNAPSHOT_DIR=/backups
+      - SECURITY_DIR=/data/security
+    expose:
+      - "3070"
+    depends_on:
+      - dashboard
+
 networks:
   frontend:
     driver: bridge
@@ -487,3 +518,6 @@ networks:
   database:
     driver: bridge
     internal: true
+
+volumes:
+  backup-db:
