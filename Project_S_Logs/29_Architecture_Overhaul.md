@@ -31,8 +31,11 @@ HomeForge has 15 services orchestrated by Docker Compose, a Next.js 16 dashboard
 | Phase 5 — Data Volume Contract | ✅ Complete | #181 |
 | Phase 6 — Validation | ✅ Complete | — |
 | Phase 7 — Security Hardening | ✅ Complete | #183 |
-| Phase 8 — Operational Reliability | Not started | — |
-| Phase 9 — Update & Rollback Strategy | Not started | — |
+| Phase 8 — Operational Reliability | ✅ Complete | #184 |
+| Phase 9 — Update & Rollback Strategy | ✅ Complete | #185 |
+| Phase 10 — Docker Socket Proxy | ⏸️ Skipped (overkill for trusted LAN) | — |
+| Phase 11 — SSL/TLS | ✅ Complete | #189 |
+| Phase 12 — External Health Monitoring | Not started | #188 |
 
 ---
 
