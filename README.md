@@ -14,6 +14,7 @@
 
 **Getting Started**
 - [Quick Start](#-quick-start)
+- [Update & Rollback](#-update--rollback)
 - [First-Time Security Setup](#-first-time-security-setup)
 - [Integrated Services](#-integrated-services)
 - [Adding New Services](#-adding-new-services)
@@ -81,6 +82,28 @@ docker compose up -d
 
 > `boom.sh` and `install.sh` handle `.env` creation automatically. Only use this option if running `docker compose` directly.
 
+## 🔄 Update & Rollback
+
+Before updating any services, run the pre-update check:
+
+```bash
+bash scripts/pre-update-check.sh
+```
+
+To safely update all services (creates backup first, validates it, then applies):
+
+```bash
+bash scripts/update.sh
+```
+
+If an update breaks something, rollback to the latest backup:
+
+```bash
+bash scripts/rollback.sh
+```
+
+> The update script automatically aborts if the backup fails. Your current setup is never touched until a valid backup is confirmed.
+
 ---
 
 ## 🔐 First-Time Security Setup
@@ -121,11 +144,12 @@ Navigate to `http://localhost:3069` and log in with the admin credentials create
 
 ## 📦 Integrated Services
 
-The following services are currently running and accessible via their own ports:
+All services are proxied through nginx at `http://<LAN_IP>:<port>`. Internal services (databases, Ollama) are not directly accessible.
 
 | Service | Description | Port |
 |---|---|---|
-| Main Dashboard | Project S control panel | `:3069` |
+| Nginx Reverse Proxy | Single entry point for all services | `:8088` |
+| Main Dashboard | Project S control panel | `:8088` / `:3069` |
 | Jellyfin | Media & entertainment server | `:8096` |
 | Nextcloud | Cloud productivity & file management | `:8081` |
 | Nextcloud Office (Collabora) | Document editing — auto-configured on start | `:9980` |
@@ -136,8 +160,8 @@ The following services are currently running and accessible via their own ports:
 | Kiwix Manager | File browser for uploading `.zim` files | `:8086` |
 | Kiwix Reader | Offline knowledge base (Wikipedia, etc.) | `:8087` |
 | OpenVPN UI | VPN client management interface | `:8090` |
-| Ollama | Local LLM inference engine | `:11434` |
 | OpenVPN Server | Self-hosted VPN | `:1194/udp` |
+| Ollama | Local LLM inference engine | *(internal only)* |
 
 ---
 
@@ -145,10 +169,11 @@ The following services are currently running and accessible via their own ports:
 
 To add more applications to the ecosystem:
 
-1. **Docker** — add the service to `docker-compose.yml` and expose its host port
-2. **Launcher** — add the app to the `applications` array in `welcome-section.tsx`
-3. **Metrics** — add the app's metadata to the `appMeta` object in `app/page.tsx` if you want it tracked in the metrics tab
-4. **Startup config** — if the service requires Nextcloud app settings (e.g. a WOPI URL), add an `occ` command to `config/nextcloud/setup-office.sh` — it runs automatically on every container start
+1. **Docker** — add the service to `docker-compose.yml` and assign it to the correct network (`frontend` for user-facing, `backend` for internal services, `database` if it needs a DB)
+2. **Nginx** — add a proxy block to `config/nginx/nginx.conf` with the service's internal port
+3. **Launcher** — add the app to the `applications` array in `welcome-section.tsx`
+4. **Metrics** — add the app's metadata to the `appMeta` object in `app/page.tsx` if you want it tracked in the metrics tab
+5. **Startup config** — if the service requires Nextcloud app settings (e.g. a WOPI URL), add an `occ` command to `config/nextcloud/setup-office.sh` — it runs automatically on every container start
 
 ---
 
@@ -156,13 +181,15 @@ To add more applications to the ecosystem:
 
 **Architecture** — Start here to understand the entire system:
 - [Architecture Overhaul](Project_S_Logs/29_Architecture_Overhaul.md) — system diagram, service catalog, network topology, security model, deployment lifecycle
-- [Architecture Decision Records](docs/decisions/) — numbered records for every major architectural decision
+- [Architecture Decision Records](docs/decisions/) — 6 numbered records for every major architectural decision
+- [Data Volume Contract](docs/data-volumes.md) — full data hierarchy, service ownership, backup rules
+- [Dashboard Internal Architecture](Dashboard/Dashboard1/docs/ARCHITECTURE.md) — layer diagram, API route map, auth chain
 
 **Implementation Logs:**
 
 | Resource | Location |
 |---|---|
-| Technical logs (01–28) | `Project_S_Logs/` directory |
+| Technical logs (01–37) | `Project_S_Logs/` directory |
 | Static UI preview | `Project_S_Logs/06_Dashboard_Technical_Report.html` |
 
 Open the HTML file in any browser for a functional, high-fidelity mirror of the dashboard frontend.
@@ -217,7 +244,7 @@ Install once. Get a private, encrypted, modular platform that runs your digital 
 | Workflow automation | n8n |
 | Smart home | Home Assistant |
 | Version control | Gitea |
-| Reverse proxy & SSL | Nginx |
+| SSL/TLS automation | Let's Encrypt (pending) |
 
 ---
 
@@ -301,6 +328,12 @@ Project S is built encryption-first. The dashboard uses a layered security stack
 - **WS ticket auth** — terminal WebSocket connections require a short-lived HMAC-SHA256 ticket (`GET /api/auth/ws-ticket`); tickets expire after 30 seconds
 - **PTY idle timeout** — terminal sessions auto-close after 30 minutes of inactivity
 - **Container allowlist** — WebSocket shell access is restricted to explicitly whitelisted container names
+
+### Container Security
+- **Log rotation** — all 15 services use `json-file` driver with `max-size: 10m`, `max-file: 3` (prevents disk exhaustion)
+- **Healthchecks** — every service has a healthcheck; dashboard monitors all containers
+- **Network segmentation** — three Docker networks (`frontend`, `backend`, `database`); databases are isolated with `internal: true` (no internet access)
+- **Memory limits** — each service has a memory cap to prevent resource starvation
 
 ### Secrets Management
 Runtime secrets (`SESSION_SECRET`, `WS_SECRET`, `DB_KEY`) are derived from the entropy key at startup — they are never written to disk or `.env`. Infrastructure secrets in `.env.example`:
