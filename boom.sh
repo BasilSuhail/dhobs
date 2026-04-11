@@ -1,33 +1,43 @@
 #!/bin/bash
+# Project S "BOOM" Startup Script — Self-Healing Edition
+# One-click to BUILD and START the entire ecosystem.
+# This script repairs missing files/permissions before starting Docker.
+
 set -e
 
-# Project S "BOOM" Startup Script
-# One-click to BUILD and START the entire ecosystem
-
-# Check for required tools
+# ──────────────────────────────────────────────
+# 1. PREREQUISITE CHECKS
+# ──────────────────────────────────────────────
 if ! command -v docker &> /dev/null; then
-    echo "Error: Docker is not installed. Please install Docker first."
+    echo "❌ Error: Docker is not installed. Please install Docker first."
     exit 1
 fi
-if ! command -v python3 &> /dev/null; then
-    echo "Error: python3 is required but not installed."
+if ! docker compose version &> /dev/null; then
+    echo "❌ Error: Docker Compose is not installed."
     exit 1
 fi
 
-# Load .env if it exists, create from example if not
+echo "🚀 Launching Project S (Build & Run Mode)..."
+
+# ──────────────────────────────────────────────
+# 2. ENVIRONMENT SETUP
+# ──────────────────────────────────────────────
+
+# Create .env if missing
 if [ ! -f .env ]; then
     if [ -f .env.example ]; then
-        echo "Creating .env from .env.example..."
+        echo "📝 Creating .env from .env.example..."
         cp .env.example .env
-        echo "IMPORTANT: Edit .env to set your passwords before continuing!"
-        echo "Press Enter to continue or Ctrl+C to edit first..."
-        read
+        echo "✅ Created .env. (Edit it manually if you need custom passwords)"
+    else
+        echo "❌ Error: .env.example not found."
+        exit 1
     fi
 fi
 
-# Auto-detect LAN IP if not set or set to placeholder 'localhost' in .env
+# Auto-detect LAN IP
 CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
-if [ -f .env ] && { [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; }; then
+if [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; then
     DETECTED_IP=""
     if [[ "$OSTYPE" == "darwin"* ]]; then
         DETECTED_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
@@ -35,70 +45,70 @@ if [ -f .env ] && { [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost
         DETECTED_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
     fi
     if [ -n "$DETECTED_IP" ]; then
-        echo "Detected LAN IP: $DETECTED_IP"
-        python3 -c "
-import sys, re
-with open('.env', 'r') as f: content = f.read()
-content = re.sub(r'^HOMEFORGE_LAN_IP=.*', 'HOMEFORGE_LAN_IP=' + sys.argv[1], content, flags=re.MULTILINE)
-with open('.env', 'w') as f: f.write(content)
-" "$DETECTED_IP"
+        echo "🌍 Detected LAN IP: $DETECTED_IP"
+        # Cross-platform safe IP update using awk (works on both Mac & Linux)
+        if grep -q "^HOMEFORGE_LAN_IP=" .env; then
+            awk -v ip="$DETECTED_IP" '/^HOMEFORGE_LAN_IP=/ { sub(/=.*/, "="ip); print; next } { print }' .env > .env.tmp && mv .env.tmp .env
+        else
+            echo "HOMEFORGE_LAN_IP=$DETECTED_IP" >> .env
+        fi
     fi
 fi
 
-# Regenerate Element config with correct hostname
-ELEMENT_HOST="localhost"
-if [ -f .env ]; then
-    LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env | cut -d'=' -f2-)
-    [ -n "$LAN_IP" ] && ELEMENT_HOST="$LAN_IP"
-fi
+# Sync Matrix secrets into homeserver.yaml template
+LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- || echo "localhost")
+REG_SECRET=$(grep "^MATRIX_REGISTRATION_SECRET=" .env 2>/dev/null | cut -d'=' -f2- || echo "dummy")
+MAC_SECRET=$(grep "^MATRIX_MACAROON_SECRET_KEY=" .env 2>/dev/null | cut -d'=' -f2- || echo "dummy")
+FORM_SECRET=$(grep "^MATRIX_FORM_SECRET=" .env 2>/dev/null | cut -d'=' -f2- || echo "dummy")
+
+cat <<EOF > ./config/matrix/homeserver.yaml.tpl
+server_name: "localhost"
+pid_file: /data/homeserver.pid
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: "${DB_PASS:-change_me_generate_with_openssl_rand_hex_32}"
+    database: synapse
+    host: synapse-db
+    cp_min: 5
+    cp_max: 10
+log_config: "/data/localhost.log.config"
+media_store_path: /data/media_store
+registration_shared_secret: "$REG_SECRET"
+macaroon_secret_key: "$MAC_SECRET"
+form_secret: "$FORM_SECRET"
+report_stats: false
+EOF
+
+# Generate Element config
 cat <<EOF > ./config/matrix/element-config.json
 {
     "default_server_config": {
         "m.homeserver": {
-            "base_url": "http://$ELEMENT_HOST:8008",
+            "base_url": "http://$LAN_IP:8008",
             "server_name": "localhost"
-        },
-        "m.identity_server": {
-            "base_url": "https://vector.im"
         }
     },
-    "disable_custom_urls": false,
-    "disable_guests": false,
-    "disable_login_language_selector": false,
-    "disable_3pid_login": false,
-    "brand": "Element",
     "default_theme": "dark"
 }
 EOF
 
-echo "🚀 Launching Project S (Build & Run Mode)..."
+# ──────────────────────────────────────────────
+# 3. SELF-HEALING CONFIGURATION
+# ──────────────────────────────────────────────
+echo "🔧 Verifying configuration..."
 
-# Ensure data directories exist (install.sh creates these, but boom.sh should too)
-mkdir -p ./data/jellyfin/config ./data/jellyfin/cache ./data/media
-mkdir -p ./data/nextcloud/html ./data/nextcloud/data ./data/nextcloud/db
-mkdir -p ./data/matrix/db ./data/matrix/synapse
-mkdir -p ./data/vaultwarden ./data/kiwix ./data/workspace
-mkdir -p ./data/ollama ./data/open-webui
-mkdir -p ./data/filebrowser
-# Docker can create database.db as a directory if the file didn't exist at mount time.
-# Remove it if so, then create it as a proper empty file.
-[ -d ./data/filebrowser/database.db ] && rm -rf ./data/filebrowser/database.db
-touch ./data/filebrowser/database.db
-mkdir -p ./data/vpn/{pki,clients,config,staticclients,log,db}
-# Copy VPN seed configs only on first run — never overwrite a live PKI
-if [ ! -f ./data/vpn/server.conf ]; then
-    cp -r ./config/vpn/. ./data/vpn/
-    echo "VPN seed configs copied to ./data/vpn/"
-fi
-# Security directory for entropy key, encrypted key file, and user database
-# Must exist on the host before the container starts so Docker mounts it correctly
-mkdir -p ./data/security
-chmod 700 ./data/security
-mkdir -p ./config/matrix
+# Fix: Ensure Collabora config is a file
 mkdir -p ./config/collabora
-
-# Ensure Collabora Config exists
-# Docker creates a directory if the file doesn't exist, which crashes the container.
 if [ ! -f ./config/collabora/coolwsd-override.xml ]; then
     cat > ./config/collabora/coolwsd-override.xml << 'XMLEOF'
 <config>
@@ -110,23 +120,32 @@ if [ ! -f ./config/collabora/coolwsd-override.xml ]; then
     </storage>
 </config>
 XMLEOF
-    echo "✅ Created Collabora WOPI config"
+    echo "   ✅ Created Collabora config"
 fi
 
-# Ensure Docker Secrets exist for all services
-# This must happen BEFORE docker compose up, otherwise Docker fails to mount the files.
+# Fix: Ensure Matrix log is a file
+if [ -d ./data/matrix/synapse/homeserver.log ]; then
+    rm -rf ./data/matrix/synapse/homeserver.log
+fi
+touch ./data/matrix/synapse/homeserver.log
+chmod 666 ./data/matrix/synapse/homeserver.log
+
+# Fix: Ensure Filebrowser DB is a file
+if [ -d ./data/filebrowser/database.db ]; then
+    rm -rf ./data/filebrowser/database.db
+fi
+mkdir -p ./data/filebrowser
+touch ./data/filebrowser/database.db
+
+# Fix: Ensure Secrets exist (Self-Healing)
 if [ ! -f ./data/secrets/mysql_root_password ]; then
     mkdir -p ./data/secrets
     echo "🔐 Initializing Docker Secrets..."
     
-    # Try migration script first
-    if [ -f scripts/migrate-secrets.sh ]; then
-        bash scripts/migrate-secrets.sh || true
-    fi
-
-    # Fallback: Generate random secrets for any missing files
-    # This ensures the container starts even if .env is incomplete or migration fails.
-    for secret in mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password; do
+    # List of all required secrets
+    SECRETS=(mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password)
+    
+    for secret in "${SECRETS[@]}"; do
         if [ ! -f "./data/secrets/$secret" ]; then
             openssl rand -hex 32 > "./data/secrets/$secret"
             echo "   ✅ Generated random secret: $secret"
@@ -134,148 +153,77 @@ if [ ! -f ./data/secrets/mysql_root_password ]; then
     done
 fi
 
-# Ensure Docker Secrets exist for all services
-# This must happen BEFORE docker compose up, otherwise Docker fails to mount the files.
-if [ ! -f ./data/secrets/mysql_root_password ]; then
-    mkdir -p ./data/secrets
-    echo "🔐 Initializing Docker Secrets..."
-    
-    # Try migration script first
-    if [ -f scripts/migrate-secrets.sh ]; then
-        bash scripts/migrate-secrets.sh || true
-    fi
+# Fix: Ensure Security directory permissions
+mkdir -p ./data/security
+chmod 700 ./data/security
 
-    # Fallback: Generate random secrets for any missing files
-    # This ensures the container starts even if .env is incomplete or migration fails.
-    for secret in mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password; do
-        if [ ! -f "./data/secrets/$secret" ]; then
-            openssl rand -hex 32 > "./data/secrets/$secret"
-            echo "   ✅ Generated random secret: $secret"
-        fi
-    done
-fi
-
-# Check for native Ollama process holding port 11434 (common on macOS)
-if lsof -i :11434 -sTCP:LISTEN &>/dev/null 2>&1; then
-    echo "⚠️  Port 11434 is already in use (native Ollama running)."
-    echo "   The Docker Ollama container will fail to bind this port."
-    echo -n "   Stop native Ollama now and continue? [y/N] "
-    read -r KILL_OLLAMA
-    if [[ "$KILL_OLLAMA" =~ ^[Yy]$ ]]; then
-        pkill -x ollama 2>/dev/null && echo "   ✅ Native Ollama stopped." || echo "   ⚠️  Could not stop Ollama — kill it manually and re-run."
-        sleep 1
-    else
-        echo "   Skipping — Ollama container may not start correctly."
+# ──────────────────────────────────────────────
+# 4. PORT CONFLICT CHECK
+# ──────────────────────────────────────────────
+if command -v lsof &> /dev/null; then
+    if lsof -i :3069 -sTCP:LISTEN &>/dev/null 2>&1; then
+        echo "⚠️  Port 3069 is already in use."
+        echo "   Is another instance of Project S running?"
+        exit 1
     fi
 fi
 
-# Sync Synapse secrets and DB password
-# Uses python3 for cross-platform file replacement (avoids sed -i differences)
-replace_in_file() {
-    local file="$1" old="$2" new="$3"
-    python3 -c "
-import sys
-with open(sys.argv[1], 'r') as f:
-    content = f.read()
-content = content.replace(sys.argv[2], sys.argv[3])
-with open(sys.argv[1], 'w') as f:
-    f.write(content)
-" "$file" "$old" "$new"
-}
-
-if grep -q "change_me_generate_with_openssl_rand_hex_32" .env 2>/dev/null; then
-    echo "Generating random secrets for Matrix/Synapse..."
-    REG_SECRET=$(openssl rand -hex 32)
-    MAC_SECRET=$(openssl rand -hex 32)
-    FORM_SECRET=$(openssl rand -hex 32)
-    replace_in_file .env "change_me_generate_with_openssl_rand_hex_32" "$REG_SECRET"
-    # Replace remaining two occurrences individually
-    sed -i "s|MATRIX_MACAROON_SECRET_KEY=.*|MATRIX_MACAROON_SECRET_KEY=$MAC_SECRET|" .env
-    sed -i "s|MATRIX_FORM_SECRET=.*|MATRIX_FORM_SECRET=$FORM_SECRET|" .env
-fi
-# 1. Clean up old containers
-echo "🧹 Cleaning up environment..."
-docker compose down --remove-orphans > /dev/null 2>&1
-
-# 2. Fix Matrix logging permissions
-echo "🔒 Ensuring file permissions..."
-touch data/matrix/synapse/homeserver.log > /dev/null 2>&1
-chmod 666 data/matrix/synapse/homeserver.log > /dev/null 2>&1
-
-# 3. Build and Start services
+# ──────────────────────────────────────────────
+# 5. START SERVICES
+# ──────────────────────────────────────────────
 echo "📦 Building and Starting Docker containers..."
+# Down first to clear out orphans
+docker compose down --remove-orphans > /dev/null 2>&1 || true
 docker compose up -d --build
 
-# Inject ollama alias into Theia so 'ollama' works natively in the dashboard terminal
+# ──────────────────────────────────────────────
+# 6. POST-START CONFIGURATION
+# ──────────────────────────────────────────────
+
+# Inject ollama alias into Theia
 echo "🤖 Configuring ollama alias in Theia..."
 docker exec project-s-theia bash -c \
   "grep -q 'alias ollama' /root/.bashrc 2>/dev/null || echo \"alias ollama='docker exec -it project-s-ollama ollama'\" >> /root/.bashrc" \
-  2>/dev/null || echo "   ⚠️  Theia not ready yet — alias will be added on next boom.sh run."
+  2>/dev/null || true
 
-# Auto-build Ollama Modelfiles from config/ollama/
+# Auto-build Ollama Modelfiles
 if ls ./config/ollama/*.Modelfile 1>/dev/null 2>&1; then
     echo "🧠 Building Ollama Modelfiles..."
-    # Wait briefly for Ollama to be ready
-    OLLAMA_RETRIES=0
-    until docker exec project-s-ollama ollama list &>/dev/null || [ "$OLLAMA_RETRIES" -ge 15 ]; do
-        OLLAMA_RETRIES=$((OLLAMA_RETRIES + 1))
-        printf '.'
-        sleep 2
-    done
-    echo ""
+    sleep 5 # Give Ollama time to start
     for mf in ./config/ollama/*.Modelfile; do
         model_name=$(basename "$mf" .Modelfile)
-        echo "   Building: $model_name"
-        docker exec project-s-ollama ollama create "$model_name" -f "/modelfiles/$(basename "$mf")" \
+        docker exec project-s-ollama ollama create "$model_name" -f "/modelfiles/$(basename "$mf")" 2>/dev/null \
             && echo "   ✅ $model_name built" \
-            || echo "   ⚠️  Failed to build $model_name — base model may not be pulled yet. Run: docker exec project-s-ollama ollama create $model_name -f /modelfiles/$(basename "$mf")"
+            || echo "   ⚠️  Failed to build $model_name"
     done
-else
-    echo "ℹ️  No Modelfiles found in config/ollama/ — skipping."
 fi
 
-# 4. Wait for Dashboard (with timeout)
-echo "⏳ Waiting for dashboard to be ready..."
+# Wait for Dashboard
+echo "⏳ Waiting for dashboard..."
 RETRIES=0
-MAX_RETRIES=30
-until $(curl --output /dev/null --silent --head --fail http://localhost:3069); do
-    RETRIES=$((RETRIES + 1))
-    if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-        echo -e "\nDashboard did not start in time. Check: docker compose logs dashboard"
-        break
-    fi
+until $(curl --output /dev/null --silent --head --fail http://localhost:3069) || [ $RETRIES -ge 30 ]; do
     printf '.'
     sleep 2
+    RETRIES=$((RETRIES + 1))
 done
 
-echo -e "\n✅ Project S is LIVE!"
+echo ""
+echo "✅ Project S is LIVE!"
 echo "🔗 Access your dashboard at: http://localhost:3069"
 
-# Check if the dashboard has been set up before — key file presence means setup is done
+# First-time setup prompt
 if [ ! -f ./data/security/.homeforge.key ]; then
     echo ""
     echo "┌─────────────────────────────────────────────────────┐"
     echo "│  FIRST-TIME DASHBOARD SETUP REQUIRED                │"
-    echo "│                                                     │"
     echo "│  1. Open http://localhost:3069                      │"
-    echo "│     You will be redirected to /setup automatically  │"
-    echo "│                                                     │"
-    echo "│  2. Move your mouse over the canvas to generate     │"
-    echo "│     your 128-character encryption key               │"
-    echo "│                                                     │"
-    echo "│  3. Copy and store the key somewhere safe —         │"
-    echo "│     you will need it if you ever need to recover    │"
-    echo "│                                                     │"
-    echo "│  4. Create your admin account to finish setup       │"
+    echo "│  2. Generate entropy key & create admin account     │"
     echo "└─────────────────────────────────────────────────────┘"
-    echo ""
 fi
 
-# 5. Open in default browser (cross-platform)
+# Open browser
 if command -v xdg-open &> /dev/null; then
     xdg-open http://localhost:3069
 elif command -v open &> /dev/null; then
     open http://localhost:3069
-else
-    echo "Open http://localhost:3069 in your browser"
 fi
