@@ -1,30 +1,70 @@
 #!/bin/bash
-# Project S: Service Health Check
+# HomeForge External Health Monitor
+# Run this on the host machine to check if all services are alive.
+# Usage: ./health.sh [--log]
+# If --log is used, appends output to /var/log/homeforge-health.log
 
-echo "Project S — Service Health Check"
-echo "================================"
+set -uo pipefail
 
-check_service() {
-    local name=$1
-    local url=$2
-    local status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url" 2>/dev/null)
-    if [ "$status" -ge 200 ] && [ "$status" -lt 400 ]; then
-        printf "  %-20s %s\n" "$name" "OK ($status)"
+LOG_FILE="/var/log/homeforge-health.log"
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+LOGGING=false
+
+if [[ "${1:-}" == "--log" ]]; then
+    LOGGING=true
+fi
+
+declare -A SERVICES=(
+    ["Dashboard"]="http://localhost:3069"
+    ["Nginx"]="http://localhost:443"
+    ["Nextcloud"]="http://localhost:8081/status.php"
+    ["Jellyfin"]="http://localhost:8096/health"
+    ["Matrix"]="http://localhost:8008/health"
+    ["Vaultwarden"]="http://localhost:8083/alive"
+    ["OpenWebUI"]="http://localhost:8085"
+    ["Kiwix"]="http://localhost:8087"
+    ["Theia"]="http://localhost:3030"
+    ["Collabora"]="http://localhost:9980"
+)
+
+if $LOGGING; then
+    echo "🩺 Health Check: $TIMESTAMP" >> "$LOG_FILE"
+else
+    echo "🩺 HomeForge Health Check: $TIMESTAMP"
+    echo "========================================="
+fi
+
+ALERT_COUNT=0
+TOTAL=${#SERVICES[@]}
+
+for SERVICE in "${!SERVICES[@]}"; do
+    URL="${SERVICES[$SERVICE]}"
+    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$URL" 2>/dev/null)
+    
+    if [[ "$STATUS_CODE" =~ ^[23] ]]; then
+        STATUS="✅ UP"
     else
-        printf "  %-20s %s\n" "$name" "DOWN ($status)"
+        STATUS="❌ DOWN ($STATUS_CODE)"
+        ((ALERT_COUNT++))
     fi
-}
 
-check_service "Dashboard" "http://localhost:3069"
-check_service "Jellyfin" "http://localhost:8096"
-check_service "Nextcloud" "http://localhost:8081"
-check_service "Collabora" "http://localhost:9980"
-check_service "Theia IDE" "http://localhost:3030"
-check_service "Matrix" "http://localhost:8008"
-check_service "Element" "http://localhost:8082"
-check_service "Vaultwarden" "http://localhost:8083"
-check_service "Kiwix" "http://localhost:8087"
+    if $LOGGING; then
+        echo "   $SERVICE -> $STATUS" >> "$LOG_FILE"
+    else
+        printf "  %-20s %s\n" "$SERVICE" "$STATUS"
+    fi
+done
 
-echo ""
-echo "Docker Containers:"
-docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || docker-compose ps 2>/dev/null
+if $LOGGING; then
+    echo "   Summary: $((TOTAL - ALERT_COUNT))/$TOTAL services healthy." >> "$LOG_FILE"
+    if [ $ALERT_COUNT -gt 0 ]; then
+        echo "   ⚠️  ALERT: $ALERT_COUNT services down!" >> "$LOG_FILE"
+    fi
+    echo "----------------------------------------" >> "$LOG_FILE"
+else
+    echo ""
+    echo "   Summary: $((TOTAL - ALERT_COUNT))/$TOTAL services healthy."
+    if [ $ALERT_COUNT -gt 0 ]; then
+        echo "   ⚠️  ALERT: $ALERT_COUNT services are down!"
+    fi
+fi
