@@ -57,7 +57,7 @@ services:
       - '3069:3069'
       - '3070:3070'
     volumes:
-      - socket-data:/var/run/docker-proxy.sock
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
       # Host metrics for Linux support (graceful degrade on macOS/Windows)
@@ -66,7 +66,6 @@ services:
     environment:
       - PORT=3069
       - WS_PORT=3070
-      - DOCKER_HOST=unix:///var/run/docker-proxy.sock
       - SECURITY_DIR=/app/data/security
     restart: 'unless-stopped'
     depends_on:
@@ -329,7 +328,7 @@ services:
     networks:
       - frontend
       - backend
-    entrypoint: ["/read-secrets.sh", "bash", "-c", "bash start.sh"]
+    entrypoint: ["/bin/sh", "-c", "if [ -f /read-secrets.sh ]; then . /read-secrets.sh; fi && exec bash start.sh"]
     volumes:
       - ./data/open-webui:/app/backend/data
       - ./config/scripts/read-secrets.sh:/read-secrets.sh:ro
@@ -471,7 +470,7 @@ services:
       - OPENVPN_ADMIN_PASSWORD_FILE=/run/secrets/vpn_admin_password
     secrets:
       - vpn_admin_password
-    entrypoint: ["/read-secrets.sh", "/opt/openvpn-ui/start.sh"]
+    entrypoint: ["/bin/sh", "-c", "if [ -f /read-secrets.sh ]; then . /read-secrets.sh; fi && exec /opt/openvpn-ui/start.sh"]
     volumes:
       - ./data/vpn:/etc/openvpn
       - ./data/vpn/db:/opt/openvpn-ui/db
