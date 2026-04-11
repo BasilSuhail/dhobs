@@ -1,4 +1,5 @@
 services:
+  # Pin: major.minor.patch (stable releases, safe to pin)
   jellyfin:
     image: jellyfin/jellyfin:10.10.6
     container_name: project-s-jellyfin
@@ -59,6 +60,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: major.minor (migration between major versions is one-way)
   db:
     image: mariadb:10.11
     container_name: project-s-nextcloud-db
@@ -85,6 +87,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: major only (minor updates include security fixes)
   nextcloud:
     image: nextcloud:30
     container_name: project-s-nextcloud
@@ -129,6 +132,7 @@ services:
       start_period: 60s
     logging: *default-logging
 
+  # Pin: full version (known compatibility with Nextcloud 30)
   collabora:
     image: collabora/code:24.04.10.2.1
     container_name: project-s-collabora
@@ -165,6 +169,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: :latest only (upstream only publishes :latest)
   theia:
     image: ghcr.io/eclipse-theia/theia-ide/theia-ide:latest  # Theia only publishes :latest on GHCR
     container_name: project-s-theia
@@ -194,6 +199,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: major.minor (migration between major versions is one-way)
   synapse-db:
     image: postgres:15-alpine  # data volume was initialized with PG15 — do NOT bump without pg_upgrade
     container_name: project-s-matrix-db
@@ -215,6 +221,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: full version (breaking changes between minors)
   synapse:
     image: matrixdotorg/synapse:v1.120.0
     container_name: project-s-matrix-server
@@ -246,6 +253,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: full version (cosmetic updates only, safe to follow)
   element:
     image: vectorim/element-web:v1.11.90
     container_name: project-s-matrix-client
@@ -262,6 +270,7 @@ services:
       start_period: 15s
     logging: *default-logging
 
+  # Pin: full version (database schema changes between minors)
   vaultwarden:
     image: vaultwarden/server:1.32.7
     container_name: project-s-vaultwarden
@@ -280,6 +289,7 @@ services:
       retries: 3
       start_period: 15s
 
+  # Pin: full version (API changes between minors)
   open-webui:
     image: ghcr.io/open-webui/open-webui:0.8.12
     container_name: project-s-open-webui
@@ -314,6 +324,7 @@ services:
       start_period: 60s
     logging: *default-logging
 
+  # Pin: full version (model compatibility between versions)
   ollama:
     image: ollama/ollama:0.20.0
     container_name: project-s-ollama
@@ -339,6 +350,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: full version (ZIM format changes rarely)
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:3.7.0
     container_name: project-s-kiwix-reader
@@ -364,6 +376,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: full version (cosmetic, stable)
   kiwix-manager:
     image: filebrowser/filebrowser:v2.31.2
     container_name: project-s-kiwix-manager
@@ -383,6 +396,7 @@ services:
       start_period: 15s
     logging: *default-logging
 
+  # Pin: :latest (stable, no breaking changes in years)
   openvpn:
     image: d3vilh/openvpn-server:latest
     container_name: project-s-openvpn
@@ -404,6 +418,7 @@ services:
       start_period: 30s
     logging: *default-logging
 
+  # Pin: :latest (stable, cosmetic updates only)
   openvpn-ui:
     image: d3vilh/openvpn-ui:latest
     container_name: project-s-openvpn-ui
@@ -429,6 +444,7 @@ services:
       start_period: 15s
     logging: *default-logging
 
+  # Pin: alpine (stable, security patches only)
   nginx:
     image: nginx:alpine
     container_name: project-s-nginx
