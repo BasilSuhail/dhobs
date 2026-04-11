@@ -64,3 +64,4 @@ jobs:
         run: |
           ! grep -rn "password=" docker-compose.yml | grep -v '${' | grep -v '#' || echo "WARNING: Possible hardcoded secrets found"
           ! grep -rn "MYSQL_ROOT_PASSWORD=\|MYSQL_PASSWORD=\|NEXTCLOUD_ADMIN_PASSWORD=" docker-compose.yml | grep -v '${' || echo "WARNING: Hardcoded DB passwords found"
+# Trigger CI re-run
