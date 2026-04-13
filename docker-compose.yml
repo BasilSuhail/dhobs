@@ -233,7 +233,7 @@ services:
       # Only the Docker-internal hostname needed — Collabora callbacks use
       # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
       - aliasgroup1=http://nextcloud:80
-      - server_name=${HOMEFORGE_LAN_IP:-localhost}:9980
+      - server_name=localhost:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password=${COLLABORA_PASSWORD}
