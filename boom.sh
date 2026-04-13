@@ -142,16 +142,22 @@ touch ./data/filebrowser/database.db
 if [ ! -f ./data/secrets/mysql_root_password ]; then
     mkdir -p ./data/secrets
     echo "🔐 Initializing Docker Secrets..."
-    
+
     # List of all required secrets
     SECRETS=(mysql_root_password mysql_password nextcloud_admin_password collabora_password matrix_registration_secret matrix_macaroon_secret_key matrix_form_secret webui_secret_key vpn_admin_password)
-    
+
     for secret in "${SECRETS[@]}"; do
         if [ ! -f "./data/secrets/$secret" ]; then
             openssl rand -hex 32 > "./data/secrets/$secret"
             echo "   ✅ Generated random secret: $secret"
         fi
     done
+
+    # Tailscale auth key is optional (user-provided)
+    if [ ! -f ./data/secrets/tailscale_authkey ]; then
+        touch ./data/secrets/tailscale_authkey
+        echo "   ℹ️  Tailscale auth key not set (empty file). Remote access disabled until configured."
+    fi
 fi
 
 # Fix: Ensure Security directory permissions
@@ -232,4 +238,16 @@ if command -v xdg-open &> /dev/null; then
     xdg-open http://localhost:3069
 elif command -v open &> /dev/null; then
     open http://localhost:3069
+fi
+
+# Tailscale status
+if docker compose ps tailscale 2>/dev/null | grep -q "Up"; then
+    echo "🌐 Checking Tailscale..."
+    sleep 3
+    TS_STATUS=$(docker exec project-s-tailscale tailscale status --json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Self',{}).get('TailscaleIPs',['Not connected'])[0])" 2>/dev/null || echo "Not connected")
+    if [ "$TS_STATUS" != "Not connected" ] && [ -n "$TS_STATUS" ]; then
+        echo "   ✅ Tailscale connected: $TS_STATUS"
+    else
+        echo "   ⚠️  Tailscale not connected. Run: ./scripts/setup-tailscale.sh"
+    fi
 fi
