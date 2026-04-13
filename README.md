@@ -144,24 +144,49 @@ Navigate to `http://localhost:3069` and log in with the admin credentials create
 
 ## 📦 Integrated Services
 
-All services are proxied through nginx at `http://<LAN_IP>:<port>`. Internal services (databases, Ollama) are not directly accessible.
+All services are routed through **Traefik** reverse proxy with automatic HTTPS. Direct port access is also available for dashboard iframe embedding.
 
-| Service | Description | Port |
-|---|---|---|
-| Nginx Reverse Proxy | Single entry point for all services | `:8088` |
-| Main Dashboard | Project S control panel | `:8088` / `:3069` |
-| Jellyfin | Media & entertainment server | `:8096` |
-| Nextcloud | Cloud productivity & file management | `:8081` |
-| Nextcloud Office (Collabora) | Document editing — auto-configured on start | `:9980` |
-| Theia IDE | Browser-based IDE with terminal & Docker access | `:3030` |
-| Matrix / Element | Secure, encrypted self-hosted chat | `:8082` |
-| Vaultwarden | Password manager (Bitwarden-compatible) | `:8083` |
-| Open-WebUI | Local AI chat interface (connected to Ollama) | `:8085` |
-| Kiwix Manager | File browser for uploading `.zim` files | `:8086` |
-| Kiwix Reader | Offline knowledge base (Wikipedia, etc.) | `:8087` |
-| OpenVPN UI | VPN client management interface | `:8090` |
-| OpenVPN Server | Self-hosted VPN | `:1194/udp` |
-| Ollama | Local LLM inference engine | *(internal only)* |
+### External Access (Traefik HTTPS)
+| Service | URL |
+|---|---|
+| Traefik Dashboard | `https://traefik.<LAN-IP>.nip.io` |
+| Main Dashboard | `https://dashboard.<LAN-IP>.nip.io` |
+| Jellyfin | `https://jellyfin.<LAN-IP>.nip.io` |
+| Nextcloud | `https://nextcloud.<LAN-IP>.nip.io` |
+| Nextcloud Office (Collabora) | `https://collabora.<LAN-IP>.nip.io` |
+| Theia IDE | `https://theia.<LAN-IP>.nip.io` |
+| Matrix / Element | `https://element.<LAN-IP>.nip.io` |
+| Vaultwarden | `https://vaultwarden.<LAN-IP>.nip.io` |
+| Open-WebUI | `https://webui.<LAN-IP>.nip.io` |
+| Kiwix Reader | `https://kiwix.<LAN-IP>.nip.io` |
+| Kiwix Manager | `https://kiwix-manager.<LAN-IP>.nip.io` |
+| OpenVPN UI | `https://openvpn.<LAN-IP>.nip.io` |
+
+### Direct Ports (Dashboard iframes)
+| Service | Port | Service | Port |
+|---|---|---|---|
+| Dashboard | `:3069` | Vaultwarden | `:8083` |
+| Jellyfin | `:8096` | Open-WebUI | `:8085` |
+| Nextcloud | `:8081` | Kiwix Manager | `:8086` |
+| Theia IDE | `:3030` | Kiwix Reader | `:8087` |
+| Element | `:8082` | OpenVPN UI | `:8090` |
+| Collabora | `:9980` | Synapse | `:8008` |
+
+### Remote Access (Tailscale — optional)
+When Tailscale is configured, all services are accessible from anywhere via MagicDNS:
+- Dashboard: `http://homeforge:3069`
+- Nextcloud: `http://nextcloud:8081`
+- Jellyfin: `http://jellyfin:8096`
+- And all other services by their direct port.
+
+Run `./scripts/setup-tailscale.sh <AUTHKEY>` to activate.
+
+### Internal Only
+| Service | Description |
+|---|---|
+| Ollama | Local LLM inference engine |
+| MariaDB | Nextcloud database |
+| Postgres | Matrix Synapse database |
 
 ---
 
@@ -170,10 +195,12 @@ All services are proxied through nginx at `http://<LAN_IP>:<port>`. Internal ser
 To add more applications to the ecosystem:
 
 1. **Docker** — add the service to `docker-compose.yml` and assign it to the correct network (`frontend` for user-facing, `backend` for internal services, `database` if it needs a DB)
-2. **Nginx** — add a proxy block to `config/nginx/nginx.conf` with the service's internal port
-3. **Launcher** — add the app to the `applications` array in `welcome-section.tsx`
-4. **Metrics** — add the app's metadata to the `appMeta` object in `app/page.tsx` if you want it tracked in the metrics tab
-5. **Startup config** — if the service requires Nextcloud app settings (e.g. a WOPI URL), add an `occ` command to `config/nextcloud/setup-office.sh` — it runs automatically on every container start
+2. **Traefik** — add `traefik.enable=true` and routing labels to the service (see existing services for examples)
+3. **Direct port** — add a port mapping if the service is embedded in a dashboard iframe
+4. **Launcher** — add the app to the `applications` array in `welcome-section.tsx`
+5. **Startup config** — if the service requires Nextcloud app settings, add an `occ` command to `config/nextcloud/setup-office.sh`
+
+Traefik auto-discovers new services — no nginx config edits needed.
 
 ---
 
@@ -235,7 +262,9 @@ Install once. Get a private, encrypted, modular platform that runs your digital 
 | Password manager | Vault for all credentials | Vaultwarden |
 | AI assistant | Local LLM chat interface | Open-WebUI + Ollama |
 | Offline knowledge | Wikipedia & more, no internet required | Kiwix |
-| VPN | Self-hosted private network | OpenVPN |
+| VPN | Self-hosted private network | OpenVPN + Tailscale |
+| Reverse proxy | Auto-discovering HTTPS router | Traefik |
+| Backups | Incremental, encrypted snapshots | Restic |
 
 **Planned modules:**
 
@@ -244,7 +273,7 @@ Install once. Get a private, encrypted, modular platform that runs your digital 
 | Workflow automation | n8n |
 | Smart home | Home Assistant |
 | Version control | Gitea |
-| SSL/TLS automation | Let's Encrypt (pending) |
+| Local CA (mkcert) | Trusted LAN HTTPS |
 
 ---
 
@@ -257,14 +286,15 @@ HomeForge is an orchestration layer built on Docker. It pulls together best-in-c
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                         User's Browser                            │
-│                     http://<LAN_IP>:<port>                         │
+│        http://<LAN_IP>:<port>  or  https://<service>.nip.io       │
+│        or  http://homeforge:<port> (via Tailscale)                │
 └──────────────────────────────┬───────────────────────────────────┘
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                      Nginx Reverse Proxy                          │
-│        (:8088 :8081 :8082 :8083 :8085 :8087 :8090)               │
-│        (:8096 :9980 :3030 :8008 :8086)                            │
+│                      Traefik Reverse Proxy                        │
+│               HTTPS on :443  |  HTTP redirect :80                 │
+│         Auto-discovers services via Docker labels                 │
 └──┬────────────┬──────────────┬──────────────┬───────────────────┘
    │            │              │              │
    ▼            ▼              ▼              ▼
@@ -298,8 +328,8 @@ HomeForge is an orchestration layer built on Docker. It pulls together best-in-c
 
 | Network | Services |
 |---|---|
-| **frontend** | nginx, dashboard, element, openvpn-ui, kiwix-manager, open-webui |
-| **backend** | jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn |
+| **frontend** | traefik, dashboard, element, openvpn-ui, kiwix-manager, open-webui, theia, synapse, jellyfin |
+| **backend** | socket-proxy, jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn, homeforge-backup, tailscale |
 | **database** | MariaDB (Nextcloud), Postgres (Synapse) — internal only |
 
 Each service runs in its own Docker container. Project S handles networking, shared data volumes, and service health monitoring so you don't have to.
@@ -342,12 +372,15 @@ Runtime secrets (`SESSION_SECRET`, `WS_SECRET`, `DB_KEY`) are derived from the e
 |---|---|
 | `mysql_root_password` | Nextcloud MariaDB |
 | `mysql_password` | Nextcloud MariaDB, Synapse Postgres |
-| `nextcloud_admin_password` | Nextcloud admin account || `collabora_password` | Collabora Online admin |
+| `nextcloud_admin_password` | Nextcloud admin account |
+| `collabora_password` | Collabora Online admin |
 | `matrix_registration_secret` | Synapse federation registration |
 | `matrix_macaroon_secret_key` | Synapse macaroon tokens |
 | `matrix_form_secret` | Synapse CSRF protection |
 | `webui_secret_key` | Open-WebUI session signing |
 | `vpn_admin_password` | OpenVPN UI admin account |
+| `restic_password` | Restic backup encryption |
+| `tailscale_authkey` | Tailscale remote access (user-provided) |
 
 Run `bash scripts/migrate-secrets.sh` to automatically generate secret files from your `.env` or generate new random secrets.
 
@@ -362,8 +395,9 @@ Run `bash scripts/migrate-secrets.sh` to automatically generate secret files fro
 | 3 | Dashboard design & UI | 🔄 In Progress |
 | 4 | Core service integration | 🔄 In Progress |
 | 5 | Architecture Audit (Security & Ops) | ✅ Complete |
-| 6 | Optional modules & one-click installer | ⏳ Not started |
-| 7 | Smart home, automation & public beta | ⏳ Not started |
+| 6 | Traefik, Tailscale, Restic migration | ✅ Complete |
+| 7 | Optional modules & one-click installer | ⏳ Not started |
+| 8 | Smart home, automation & public beta | ⏳ Not started |
 
 **Target release:** `v0.1.0` public beta on completion of Phases 3-7.
 

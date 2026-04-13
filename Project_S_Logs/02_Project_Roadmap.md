@@ -633,5 +633,22 @@
 * Priority Critical (v1.0 blocker)
 * Duration 2 days
 * Owner Basil Suhail
-* Status In Progress — Awaiting user testing
-* Notes Branch: `feat/traefik-migration`. Rollback script included (`scripts/rollback-traefik.sh`).
+* Status ✅ Complete — Merged via PR #204
+
+### Task 62 Tailscale Remote Access Integration
+* Category Remote Access
+* Description Add Tailscale container for secure remote access via WireGuard mesh. Dashboard API for status display. Optional — OpenVPN remains available.
+* Dependencies Issue #201, Log 43
+* Priority Critical (v1.0 blocker)
+* Duration 1 day
+* Owner Basil Suhail
+* Status ✅ Complete — Merged via PR #205
+
+### Task 63 Restic Incremental Backups
+* Category Backup Modernization
+* Description Replace full tar.gz archives with Restic incremental, deduplicated, encrypted snapshots. /api/snapshots endpoint for dashboard integration.
+* Dependencies Issue #203, Log 44
+* Priority Critical (v1.0 blocker)
+* Duration 1 day
+* Owner Basil Suhail
+* Status ✅ Complete — Merged via PR #206
