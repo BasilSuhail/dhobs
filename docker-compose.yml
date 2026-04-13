@@ -688,6 +688,25 @@ services:
     depends_on:
       - dashboard
 
+  # Tailscale — secure remote access via WireGuard mesh
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: project-s-tailscale
+    hostname: homeforge
+    restart: unless-stopped
+    networks:
+      - frontend
+    cap_add:
+      - net_admin
+      - sys_module
+    volumes:
+      - ./data/tailscale/state:/var/lib/tailscale
+      - ./data/secrets/tailscale_authkey:/run/secrets/tailscale_authkey:ro
+    environment:
+      - TS_AUTHKEY_FILE=/run/secrets/tailscale_authkey
+      - TS_EXTRA_ARGS=--accept-routes --accept-dns=false
+      - TS_USERSPACE=false
+
 networks:
   frontend:
     driver: bridge
