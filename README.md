@@ -273,7 +273,6 @@ Install once. Get a private, encrypted, modular platform that runs your digital 
 | Workflow automation | n8n |
 | Smart home | Home Assistant |
 | Version control | Gitea |
-| Local CA (mkcert) | Trusted LAN HTTPS |
 
 ---
 

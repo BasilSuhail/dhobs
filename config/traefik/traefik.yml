@@ -30,8 +30,8 @@ providers:
     directory: /etc/traefik/dynamic
     watch: true
 
-# No certificates yet — use self-signed for local LAN
-# Later: configure ACME with Let's Encrypt or local CA (mkcert)
+# Auto-generated self-signed cert for local LAN access.
+# Tailscale provides encrypted transport for remote access.
 
 log:
   level: INFO
