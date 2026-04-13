@@ -180,8 +180,6 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_HOST=db
       - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1 ${HOMEFORGE_LAN_IP:-}
-      - OVERWRITEHOST=${HOMEFORGE_LAN_IP:-localhost}:8081
-      - OVERWRITEPROTOCOL=http
       - NEXTCLOUD_DATA_DIR=/var/www/nextcloud_data
       - NEXTCLOUD_INIT_HTACCESS=true
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
