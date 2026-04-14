@@ -126,7 +126,7 @@ Dashboard stays at `:3069` (direct port for initial access).
 | Risk | Mitigation |
 |---|---|
 | Downtime during migration | Rollback script restores nginx in <30s |
-| Self-signed cert warnings | Using `nip.io` — later replace with mkcert local CA |
+| Self-signed cert warnings | Harmless; Tailscale encryptes remote traffic |
 | WebSocket routing | Each WS service has separate router label |
 | Service discovery failure | Traefik watches Docker API — auto-recover on restart |
 | Port 443 conflict | `boom.sh` checks for conflicts before starting |
@@ -135,7 +135,6 @@ Dashboard stays at `:3069` (direct port for initial access).
 
 ## Future Work
 
-1. **Local CA (mkcert)**: Replace self-signed certs with trusted LAN CA
-2. **Let's Encrypt**: For users with public domains
-3. **Middleware chain**: Add rate limiting, auth middleware for sensitive services
-4. **Dashboard integration**: Show Traefik status + routing table in UI
+1. **Let's Encrypt**: For users with public domains
+2. **Middleware chain**: Add rate limiting, auth middleware for sensitive services
+3. **Dashboard integration**: Show Traefik status + routing table in UI
