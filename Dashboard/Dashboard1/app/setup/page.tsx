@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 import { Label }  from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { cn } from '@/lib/utils'
 import { bytesToMnemonic, parseMnemonic, validateMnemonic } from '@/lib/mnemonic'
 
-type Step = 'collect' | 'confirm' | 'account' | 'done'
+type Step = 'collect' | 'confirm' | 'account' | 'totp' | 'done'
 
 // ── Entropy derivation (Web Crypto API, runs in the browser) ─────────────────
 
@@ -158,6 +159,9 @@ export default function SetupPage() {
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
   const [showHex,    setShowHex]    = useState(false)
+  const [totpSecret, setTotpSecret] = useState('')
+  const [qrDataUri,  setQrDataUri]  = useState('')
+  const [totpCode,   setTotpCode]   = useState('')
 
   // Redirect away if setup is already complete
   useEffect(() => {
@@ -200,6 +204,19 @@ export default function SetupPage() {
       })
 
       if (res.ok) {
+        // Fetch TOTP setup data
+        try {
+          const totpRes = await fetch('/api/auth/totp/setup')
+          if (totpRes.ok) {
+            const totpData = await totpRes.json()
+            if (!totpData.enabled && totpData.secret) {
+              setTotpSecret(totpData.secret)
+              setQrDataUri(totpData.qrDataUri)
+              setStep('totp')
+              return
+            }
+          }
+        } catch { /* ignore — go to done */ }
         setStep('done')
         setTimeout(() => router.replace('/'), 1500)
       } else {
@@ -215,13 +232,14 @@ export default function SetupPage() {
 
   // ── Step indicator labels ──────────────────────────────────────────────────
   const stepLabels: Record<Step, string> = {
-    collect: 'Step 1 of 3 — Generate your entropy key',
-    confirm: 'Step 2 of 3 — Save your recovery key',
-    account: 'Step 3 of 3 — Create your admin account',
+    collect: 'Step 1 of 4 — Generate your entropy key',
+    confirm: 'Step 2 of 4 — Save your recovery phrase',
+    account: 'Step 3 of 4 — Create your admin account',
+    totp:    'Step 4 of 4 — Set up two-factor authentication',
     done:    'Setup complete — redirecting…',
   }
 
-  const stepIndex = { collect: 0, confirm: 1, account: 2, done: 3 }
+  const stepIndex = { collect: 0, confirm: 1, account: 2, totp: 3, done: 4 }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -245,7 +263,7 @@ export default function SetupPage() {
 
         {/* Step progress bar */}
         <div className="flex gap-2 mb-6">
-          {[0, 1, 2].map(i => (
+          {[0, 1, 2, 3].map(i => (
             <div
               key={i}
               className={cn(
@@ -480,6 +498,53 @@ export default function SetupPage() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Step 4: TOTP Setup ── */}
+        {step === 'totp' && (
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-base">Set Up Two-Factor Authentication</CardTitle>
+              <CardDescription>
+                Scan the QR code with your authenticator app (Google Authenticator, Authy, or 1Password).
+                Then enter the 6-digit code to verify.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex justify-center">
+                <img src={qrDataUri} alt="TOTP QR Code" className="w-48 h-48 rounded-lg border border-border/50" />
+              </div>
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">Can't scan? Enter manually</summary>
+                <div className="mt-2 font-mono text-xs bg-muted/30 rounded-lg border border-border/50 p-3 text-center select-all break-all">{totpSecret}</div>
+              </details>
+              <div className="flex flex-col gap-1.5 items-center">
+                <Label htmlFor="totp-setup">Enter 6-digit code</Label>
+                <InputOTP maxLength={6} value={totpCode} onChange={setTotpCode} id="totp-setup">
+                  <InputOTPGroup>
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              {error && <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 text-center">{error}</p>}
+              <Button type="button" className="w-full" disabled={totpCode.length < 6 || loading} onClick={async () => {
+                setLoading(true); setError('')
+                try {
+                  const res = await fetch('/api/auth/totp/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: totpCode }),
+                  })
+                  if (res.ok) { setStep('done') } else {
+                    const data = await res.json(); setError(data.error || 'Invalid code'); setTotpCode('')
+                  }
+                } catch { setError('Network error — please try again') } finally { setLoading(false) }
+              }}>{loading ? 'Verifying…' : 'Verify & Complete Setup'}</Button>
+              <Button type="button" variant="ghost" className="text-xs text-muted-foreground" onClick={() => setStep('done')}>Skip for now (set up later in settings)</Button>
             </CardContent>
           </Card>
         )}

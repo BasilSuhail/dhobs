@@ -19,9 +19,10 @@
 import type { SessionOptions } from 'iron-session'
 
 export interface SessionData {
-  userId:   number
-  username: string
-  role:     'admin' | 'viewer'
+  userId:       number
+  username:     string
+  role:         'admin' | 'viewer'
+  totpVerified?: boolean
 }
 
 /**

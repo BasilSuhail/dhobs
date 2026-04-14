@@ -6,14 +6,18 @@ export interface User {
   username:      string
   password_hash: string
   role:          'admin' | 'viewer'
+  totp_secret:   string | null
+  totp_enabled:  boolean
   created_at:    number
 }
 
 export interface PublicUser {
-  id:         number
-  username:   string
-  role:       'admin' | 'viewer'
-  created_at: number
+  id:            number
+  username:      string
+  role:          'admin' | 'viewer'
+  totp_secret:   string | null
+  totp_enabled:  boolean
+  created_at:    number
 }
 
 const ARGON2_OPTIONS: argon2.Options = {
@@ -26,13 +30,14 @@ const ARGON2_OPTIONS: argon2.Options = {
 export async function createUser(
   username: string,
   password: string,
-  role: 'admin' | 'viewer' = 'viewer'
+  role: 'admin' | 'viewer' = 'viewer',
+  totpSecret?: string
 ): Promise<PublicUser> {
   const hash = await argon2.hash(password, ARGON2_OPTIONS)
   const db   = getDb()
   const info = db
-    .prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)')
-    .run(username, hash, role)
+    .prepare('INSERT INTO users (username, password_hash, role, totp_secret) VALUES (?, ?, ?, ?)')
+    .run(username, hash, role, totpSecret ?? null)
   return getUserById(info.lastInsertRowid as number)!
 }
 
@@ -47,20 +52,20 @@ export async function verifyUser(
   if (!user) return null
   const valid = await argon2.verify(user.password_hash, password)
   if (!valid) return null
-  return { id: user.id, username: user.username, role: user.role, created_at: user.created_at }
+  return { id: user.id, username: user.username, role: user.role, totp_secret: user.totp_secret, totp_enabled: !!user.totp_enabled, created_at: user.created_at }
 }
 
 export function getUserById(id: number): PublicUser | null {
   const db   = getDb()
   const user = db
-    .prepare('SELECT id, username, role, created_at FROM users WHERE id = ?')
+    .prepare('SELECT id, username, role, totp_secret, totp_enabled, created_at FROM users WHERE id = ?')
     .get(id) as PublicUser | undefined
-  return user ?? null
+  return user ? { ...user, totp_enabled: !!user.totp_enabled } : null
 }
 
 export function listUsers(): PublicUser[] {
   return getDb()
-    .prepare('SELECT id, username, role, created_at FROM users ORDER BY created_at ASC')
+    .prepare('SELECT id, username, role, totp_secret, totp_enabled, created_at FROM users ORDER BY created_at ASC')
     .all() as PublicUser[]
 }
 
