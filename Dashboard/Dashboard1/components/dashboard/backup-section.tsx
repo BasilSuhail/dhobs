@@ -161,13 +161,24 @@ export function BackupSection() {
   }
 
   const toggleService = (svc: string) => {
-    if (svc === 'all') { setSelectedServices(['all']); return }
+    if (svc === 'all') {
+      if (selectedServices.includes('all')) {
+        setSelectedServices([])
+      } else {
+        setSelectedServices(['all'])
+      }
+      return
+    }
     const next = selectedServices.filter(s => s !== 'all')
     if (next.includes(svc)) {
-      const filtered = next.filter(s => s !== svc)
-      setSelectedServices(filtered.length === 0 ? ['all'] : filtered)
+      setSelectedServices(next.filter(s => s !== svc))
     } else {
-      setSelectedServices([...next, svc])
+      const updated = [...next, svc]
+      if (updated.length === availableServices.length) {
+        setSelectedServices(['all'])
+      } else {
+        setSelectedServices(updated)
+      }
     }
   }
 
@@ -259,27 +270,30 @@ export function BackupSection() {
           <div className="space-y-4">
             <div>
               <SectionHeader title="Create New Snapshot" />
-              <div className="bg-secondary/5 rounded-lg p-3 relative overflow-hidden group border border-border/50">
+              <div className="relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 opacity-[0.02] group-hover:opacity-[0.04] transition-opacity">
                   <Database className="w-32 h-32" />
                 </div>
                 
-                <div className="relative z-10 space-y-4">
+                <div className="relative z-10 space-y-4 pt-1">
                   <p className="text-[11px] text-foreground/50 max-w-md leading-relaxed">
                     Trigger a manual system-wide snapshot. Services will be briefly paused to ensure data consistency.
                   </p>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/30">Target Services</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/30">Target Services</span>
+                    <div className="flex flex-wrap gap-1.5">
                       <button 
                         onClick={() => toggleService('all')}
-                        className="text-[9px] text-emerald-400/60 hover:text-emerald-400 font-bold uppercase"
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border transition-all ${
+                          selectedServices.includes('all')
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-secondary/10 text-foreground/30 border-border hover:border-emerald-500/20'
+                        }`}
                       >
                         {selectedServices.includes('all') ? 'Deselect All' : 'Select All'}
                       </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
+                      <div className="w-[1px] h-4 bg-border/50 mx-0.5 self-center" />
                       {['dashboard', 'jellyfin', 'nextcloud', 'mariadb', 'matrix', 'vaultwarden'].map(svc => {
                         const isSelected = selectedServices.includes('all') || selectedServices.includes(svc)
                         return (
@@ -315,8 +329,8 @@ export function BackupSection() {
                   <div className="flex items-center gap-3 pt-1">
                     <button
                       onClick={handleBackup}
-                      disabled={backingUp || backups.some(b => b.status === 'in_progress')}
-                      className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95"
+                      disabled={backingUp || backups.some(b => b.status === 'in_progress') || selectedServices.length === 0}
+                      className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-20 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95"
                     >
                       {backingUp ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                       {backingUp ? 'Capturing...' : 'Start Backup'}
@@ -405,7 +419,7 @@ export function BackupSection() {
             </button>
           </div>
 
-          <div className="bg-secondary/5 rounded-lg border border-border/50 overflow-hidden">
+          <div className="overflow-hidden">
             {/* Empty State */}
             {!isLoading && backups.length === 0 && activeTab === 'history' && (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-3">
