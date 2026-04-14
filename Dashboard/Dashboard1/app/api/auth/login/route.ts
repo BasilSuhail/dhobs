@@ -14,6 +14,15 @@ const LoginSchema = z.object({
 const LOGIN_LIMIT = { windowMs: 15 * 60 * 1000, max: 10 }
 
 export async function POST(req: NextRequest) {
+  // Clean up expired temp TOTP tokens
+  const tokenStore = globalThis as typeof globalThis & { _totpTokens?: Map<string, { expires: number }> }
+  if (tokenStore._totpTokens) {
+    const now = Date.now()
+    for (const [key, val] of tokenStore._totpTokens) {
+      if (val.expires < now) tokenStore._totpTokens.delete(key)
+    }
+  }
+
   if (!isSetupComplete()) {
     return NextResponse.json({ error: 'Setup not complete' }, { status: 403 })
   }
@@ -51,6 +60,27 @@ export async function POST(req: NextRequest) {
     // Small random delay to blunt timing-based username enumeration
     await new Promise(r => setTimeout(r, 200 + Math.random() * 100))
     return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+  }
+
+  // If user has TOTP enabled, require second factor before creating session
+  if (user.totp_enabled) {
+    const tempToken = Buffer.from(
+      `${user.id}:${user.username}:${user.role}:${Date.now()}`
+    ).toString('base64url')
+
+    const store = globalThis as typeof globalThis & { _totpTokens?: Map<string, { userId: number; username: string; role: string; expires: number }> }
+    if (!store._totpTokens) store._totpTokens = new Map()
+    store._totpTokens.set(tempToken, {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      expires: Date.now() + 5 * 60 * 1000,
+    })
+
+    return NextResponse.json(
+      { needsTotp: true, tempToken },
+      { headers: rlHeaders }
+    )
   }
 
   const res     = NextResponse.json({ ok: true, role: user.role }, { headers: rlHeaders })

@@ -58,6 +58,18 @@ export function getDb(): Database.Database {
     INSERT OR IGNORE INTO app_state(key, value) VALUES ('setup_complete', '0');
   `)
 
+  // Add TOTP columns if they don't exist (idempotent)
+  try {
+    _db.prepare('ALTER TABLE users ADD COLUMN totp_secret TEXT').run()
+  } catch {
+    // Column already exists
+  }
+  try {
+    _db.prepare('ALTER TABLE users ADD COLUMN totp_enabled INTEGER DEFAULT 0').run()
+  } catch {
+    // Column already exists
+  }
+
   return _db
 }
 
