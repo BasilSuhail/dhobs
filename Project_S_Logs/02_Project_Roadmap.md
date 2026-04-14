@@ -661,3 +661,12 @@
 * Duration 0.5 days
 * Owner Basil Suhail
 * Status ✅ Complete — Merged via PR #208
+
+### Task 65 Backup UI Polish and Theme Alignment
+* Category User Experience
+* Description Standardize Backup & Recovery tab with high-density Metrics page layout. Add loading skeletons, mobile card view, and real-time disk usage visualization.
+* Dependencies Issue #211, Log 48
+* Priority High (v1.0 polish)
+* Duration 1 day
+* Owner Basil Suhail
+* Status ✅ Complete — Merged via PR #214
