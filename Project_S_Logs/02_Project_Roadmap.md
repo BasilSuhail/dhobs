@@ -652,3 +652,12 @@
 * Duration 1 day
 * Owner Basil Suhail
 * Status ✅ Complete — Merged via PR #206
+
+### Task 64 12-Word Mnemonic Recovery Phrase
+* Category User Experience
+* Description Replace scary 128-char hex key with BIP-39 style 12-word mnemonic. Easier to write down and verify.
+* Dependencies Log 45, PR #208
+* Priority Medium (v1.0 polish)
+* Duration 0.5 days
+* Owner Basil Suhail
+* Status ✅ Complete — Merged via PR #208
