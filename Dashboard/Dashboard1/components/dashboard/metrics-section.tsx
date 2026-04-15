@@ -40,6 +40,9 @@ interface StatsData {
   power: { watts: number | null; kwhEstimate: number | null }
   backup: { lastRun: number | null; lastRunAgo: string | null; success: boolean | null; size: string | null }
   ups: { batteryPerc: number | null; loadPerc: number | null; runtimeMin: number | null; status: string | null }
+  platform: string
+  agentConnected: boolean
+  metricsSource: string
 }
 
 interface HistoryPoint {
@@ -409,9 +412,26 @@ export function MetricsSection() {
 
       {/* Header bar */}
       <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 shrink-0 border-b border-border">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Metrics</h2>
-          <p className="text-[10px] text-foreground/25 mt-0.5">Real-time · 5s refresh</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Metrics</h2>
+            <p className="text-[10px] text-foreground/25 mt-0.5">Real-time · 5s refresh</p>
+          </div>
+          {/* Platform badge */}
+          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border ${
+            stats.platform === 'linux' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+            stats.platform === 'darwin' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+            stats.platform === 'win32' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+            'bg-secondary/10 text-foreground/30 border-border'
+          }`}>
+            {stats.platform === 'darwin' ? 'macOS' : stats.platform === 'win32' ? 'Windows' : stats.platform}
+          </span>
+          {/* Agent status */}
+          {stats.agentConnected && (
+            <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" title="Host agent providing metrics">
+              Agent Connected
+            </span>
+          )}
         </div>
         <div className="relative" ref={rangeRef}>
           <button onClick={() => setRangeOpen(!rangeOpen)} className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-foreground/50 bg-secondary/10 rounded-md border border-border hover:bg-secondary/20 transition-colors">

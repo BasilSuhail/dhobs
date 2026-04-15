@@ -9,12 +9,64 @@ import { getDb } from '@/lib/db'
 const execAsync = promisify(exec)
 
 // Helper to fetch metrics from the Host Agent (macOS/Windows support)
+// Tier 1: host.docker.internal:9101 (macOS/Windows agent)
+// Tier 2: /host/proc and /host/sys (Linux mounts)
+// Tier 3: Docker stats only (fallback)
 async function fetchAgentMetrics(): Promise<any | null> {
   try {
-    // Docker Desktop exposes host.docker.internal to the container
+    // Tier 1: Try host agent first (macOS/Windows)
     const res = await fetch('http://host.docker.internal:9101/metrics', { signal: AbortSignal.timeout(2000) })
-    if (res.ok) return await res.json()
+    if (res.ok) {
+      const data = await res.json()
+      return { ...data, source: 'agent' }
+    }
   } catch { /* Agent not running or unreachable */ }
+  
+  // Tier 2: Check if Linux mounts are available
+  if (fs.existsSync('/host/proc/uptime')) {
+    try {
+      const uptimeRaw = fs.readFileSync('/host/proc/uptime', 'utf-8').trim()
+      const uptimeDays = Math.floor(parseFloat(uptimeRaw.split(' ')[0]) / 86400)
+      
+      // Read memory from /host/proc/meminfo
+      let memTotal = 0, memFree = 0
+      const meminfo = fs.readFileSync('/host/proc/meminfo', 'utf-8')
+      for (const line of meminfo.split('\n')) {
+        if (line.startsWith('MemTotal:')) memTotal = parseInt(line.split(/\s+/)[1]) * 1024
+        if (line.startsWith('MemAvailable:')) memFree = parseInt(line.split(/\s+/)[1]) * 1024
+      }
+      
+      // Read load average from /host/proc/loadavg
+      let loadAvg = [0, 0, 0]
+      const loadavg = fs.readFileSync('/host/proc/loadavg', 'utf-8').trim()
+      loadAvg = loadavg.split(' ').slice(0, 3).map(Number)
+      
+      // Read CPU temp from /host/sys/class/thermal if available
+      let cpuTemp = null
+      if (fs.existsSync('/host/sys/class/thermal')) {
+        try {
+          const zones = fs.readdirSync('/host/sys/class/thermal').filter(f => f.startsWith('thermal_zone'))
+          for (const zone of zones) {
+            const temp = parseInt(fs.readFileSync(`/host/sys/class/thermal/${zone}/temp`, 'utf-8').trim()) / 1000
+            if (temp > 0) { cpuTemp = temp; break }
+          }
+        } catch { /* ignore */ }
+      }
+      
+      return {
+        source: 'linux-mounts',
+        platform: 'linux',
+        uptime: uptimeDays,
+        memory: { total: memTotal, free: memFree, used: memTotal - memFree, usedPerc: Math.round(((memTotal - memFree) / memTotal) * 100 * 10) / 10 },
+        cpu: { loadAvg, usage: null, cores: null },
+        temps: { cpu: cpuTemp, sys: null },
+        disk: [],
+        network: { rxBytes: 0, txBytes: 0, rxErrors: 0, txErrors: 0 }
+      }
+    } catch { /* Linux mounts read failed */ }
+  }
+  
+  // Tier 3: No host access — Docker VM only
   return null
 }
 
@@ -479,6 +531,8 @@ export async function GET() {
       backup: backupData,
       ups: upsData,
       platform: agentData?.platform || (fs.existsSync('/host/proc') ? 'linux' : 'docker-vm'),
+      agentConnected: agentData?.source === 'agent',
+      metricsSource: agentData?.source || 'docker-only',
     }
 
     // Write to SQLite history (every poll)
