@@ -21,6 +21,6 @@ floating card with the service name, tagline, and 3-step flow.
 
 ## Deployment
 
-GitHub Pages URL: `https://basilsuhail.github.io/ProjectS-HomeForge`
+GitHub Pages URL: `https://basilsuhail.github.io/dhobs-HomeForge`
 Deploy branch: `gh-pages`
 Trigger: push to `feature/landing-page` or `main`
