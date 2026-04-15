@@ -15,10 +15,16 @@ We take security seriously. If you discover a vulnerability in HomeForge, please
 
 ### How to Report
 
-Send an email with details of the vulnerability to:
+**Option 1: GitHub Security Advisory (Recommended)**
 
-- **Basil Suhail** — [basilsuhail3@gmail.com](mailto:basilsuhail3@gmail.com)
-- **Saad Shafique** — [shafiquesaad15@gmail.com](mailto:shafiquesaad15@gmail.com)
+Go to the **Security** tab of this repository and click **Report a vulnerability**. This creates a private discussion visible only to maintainers.
+
+**Option 2: Email**
+
+If you prefer email, use the contact form on the GitHub profile of:
+
+- **Basil Suhail** — github.com/BasilSuhail
+- **Saad Shafique** — github.com/saadsh15
 
 ### What to Include
 
