@@ -1,7 +1,7 @@
 # Log 23 — Metrics UI Redesign
 
 **Date:** April 8, 2026  
-**Author:** BasilSuhail + Qwen-Coder  
+**Author:** Author + Qwen-Coder  
 **PR:** #146 — `redesign/metrics-ui`  
 **Branch:** `redesign/metrics-ui`
 

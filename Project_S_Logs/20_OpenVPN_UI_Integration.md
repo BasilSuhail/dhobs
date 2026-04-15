@@ -3,7 +3,7 @@
 **Date:** 2026-04-03
 **Branch:** `feat/openvpn-ui-integration`
 **Status:** Design approved — ready for implementation
-**Proposed by:** Saad Shafique
+**Proposed by:** Contributor
 **Upstream repo:** https://github.com/d3vilh/openvpn-ui
 
 ---

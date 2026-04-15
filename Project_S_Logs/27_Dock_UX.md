@@ -1,7 +1,7 @@
 # Log 27 — Dock UX: Bounce, Floating Windows, Minimize
 
 **Date:** April 9, 2026  
-**Author:** BasilSuhail + Qwen-Coder  
+**Author:** Author + Qwen-Coder  
 **PRs:** #156, #157  
 **Issue:** #112 (Dock UX — app launch animation, floating windows)
 

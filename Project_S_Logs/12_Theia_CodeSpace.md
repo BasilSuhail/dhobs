@@ -87,7 +87,7 @@ The CodeSpace is accessible via two entry points in the Dashboard UI:
 
 ---
 
-## 6. Collaborative Contributions (`saadsh15`)
+## 6. Collaborative Contributions (`Contributor`)
 
 - **Service Architecture:** Saad established the `privileged` root user strategy to ensure the IDE has full control over the HomeForge environment.
 - **Port Orchestration:** Configured the `3030` port mapping to prevent conflicts with the Dashboard (3069) or Nextcloud (8081).
@@ -116,8 +116,8 @@ The CodeSpace is accessible via two entry points in the Dashboard UI:
 ## 9. Credits & Reference
 
 - **Eclipse Foundation:** For the industry-standard open IDE framework.
-- **Implementation:** Saad Shafique (@saadsh15).
-- **Strategy & Review:** Basil Suhail.
+- **Implementation:** Contributor (@Contributor).
+- **Strategy & Review:** Author.
 - **Reference:** Task 5 in `Project_S_Roadmap.md`.
 
 **Status:** Research & Core Implementation Completed.

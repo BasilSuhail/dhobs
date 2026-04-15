@@ -1,7 +1,7 @@
 # 45 — 12-Word Mnemonic Recovery Phrase (Issue #201)
 
 **Date:** April 13, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #201  
 **PR:** #208  
 **Status:** ✅ Merged to main (`74e3e08`)

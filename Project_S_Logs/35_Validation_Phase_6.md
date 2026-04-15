@@ -1,7 +1,7 @@
 # 35 — Validation (Phase 6)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #176
 Branch: `phase-5/data-volume-contract` (included)
 PR: #181 (merged with Phase 5)

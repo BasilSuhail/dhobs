@@ -1,6 +1,6 @@
 # Proposed Development Cycle
 
-Proposed by Saad Shafique for Product S. This document outlines the high-level process and stage-by-stage strategy for building the platform.
+Proposed by Contributor for Product S. This document outlines the high-level process and stage-by-stage strategy for building the platform.
 
 ---
 

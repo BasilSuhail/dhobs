@@ -1,7 +1,7 @@
 # 36 — Operational Reliability (Phase 8)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #182
 Branch: `phase-8/operational-reliability`
 PR: TBD

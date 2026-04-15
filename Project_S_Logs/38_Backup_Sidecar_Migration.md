@@ -1,7 +1,7 @@
 # 38 — Backup Sidecar Migration
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #161, #162, #165
 Branch: `feature/backup-sidecar`
 PR: TBD

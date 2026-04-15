@@ -1,7 +1,7 @@
 # 34 — Data Volume Contract (Phase 5)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #176
 Branch: `phase-5/data-volume-contract`
 PR: #181

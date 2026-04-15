@@ -90,7 +90,7 @@ Nextcloud is integrated as a dedicated section in the HomeForge Dashboard, ensur
 
 ---
 
-## 5. Collaborative Contributions (`saadsh15`)
+## 5. Collaborative Contributions (`Contributor`)
 
 - **Database Tuning:** Saad configured MariaDB with specific flags (`--transaction-isolation=READ-COMMITTED`) to optimize performance for Nextcloud sync logic.
 - **Automation:** Pre-configured `NEXTCLOUD_TRUSTED_DOMAINS` to ensure the dashboard can iframe the service out-of-the-box.
@@ -130,7 +130,7 @@ Nextcloud is licensed under **GNU AGPLv3**. Basil established a compliance strat
 
 - **Nextcloud Team:** For the leading self-hosted collaboration platform.
 - **MariaDB Foundation:** For the rock-solid SQL backend.
-- **Implementation:** Saad Shafique (@saadsh15).
+- **Implementation:** Contributor (@Contributor).
 - **Reference:** Task 4 in `Project_S_Roadmap.md`.
 
 **Status:** Operational (v1.0).

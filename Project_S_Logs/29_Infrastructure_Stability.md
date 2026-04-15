@@ -1,7 +1,7 @@
 # 29 — Infrastructure Stability & Cross-Platform Metrics
 
 **Date:** April 12, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **PRs:** #197 (Metrics), #200 (Self-Healing Script)  
 
 ---

@@ -1,7 +1,7 @@
 # 43 — Tailscale Integration (Issue #201)
 
 **Date:** April 13, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #201  
 **Branch:** `feat/tailscale-integration`  
 **Status:** Implementation complete

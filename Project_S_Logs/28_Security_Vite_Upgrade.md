@@ -1,7 +1,7 @@
 # Log 28 — Security: Vite Dependency Upgrade
 
 **Date:** April 9, 2026  
-**Author:** BasilSuhail + Qwen-Coder  
+**Author:** Author + Qwen-Coder  
 **PR:** #170  
 **Issue:** #169
 

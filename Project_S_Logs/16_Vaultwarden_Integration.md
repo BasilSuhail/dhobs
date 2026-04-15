@@ -69,7 +69,7 @@ OpenSource HomeLabbing/
 
 ---
 
-## 5. Collaborative Contributions (`saadsh15`)
+## 5. Collaborative Contributions (`Contributor`)
 
 - **Security Implementation:** Saad implemented the core Vaultwarden service with proper environment variable scoping.
 - **Infrastructure:** Saad correctly mapped the volume persistence strategy to ensure vault data survives container rebuilds.
@@ -98,8 +98,8 @@ OpenSource HomeLabbing/
 
 - **Vaultwarden Team:** For the leading Rust-based password manager.
 - **Bitwarden Team:** For the industry-standard open-source password protocol.
-- **Implementation:** Saad Shafique (@saadsh15).
-- **Strategy & Review:** Basil Suhail.
+- **Implementation:** Contributor (@Contributor).
+- **Strategy & Review:** Author.
 - **Reference:** Task 14 and Task 41 in `Project_S_Roadmap.md`.
 
 **Status:** Operational (v1.0).

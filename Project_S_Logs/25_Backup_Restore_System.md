@@ -1,7 +1,7 @@
 # Log 25 — Backup & Restore System
 
 **Date:** April 9, 2026  
-**Author:** BasilSuhail + Qwen-Coder  
+**Author:** Author + Qwen-Coder  
 **PRs:** #161, #162, #165  
 **Issue:** #160 (Snapshot & Backup), #163 (Backup bug)
 

@@ -95,7 +95,7 @@ To launch the full HomeForge environment from scratch:
 
 - **Docker/Compose:** Apache 2.0.
 - **Alpine Linux:** MIT.
-- **Orchestration Logic:** Designed and implemented by Saad Shafique (@saadsh15).
+- **Orchestration Logic:** Designed and implemented by Contributor (@Contributor).
 - **Audit Reference:** Follows the security guidelines established in `07_Docker_Integration_Audit.md`.
 
 **Status:** Operational.

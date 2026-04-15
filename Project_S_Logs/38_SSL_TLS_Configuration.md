@@ -1,7 +1,7 @@
 # 38 — SSL/TLS Configuration (Phase 11)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #188
 Branch: `phase-11/ssl-tls`
 PR: TBD

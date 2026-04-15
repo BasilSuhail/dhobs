@@ -1,7 +1,7 @@
 # Log 24 — Authentication System Technical Documentation
 
 **Date:** April 9, 2026  
-**Author:** BasilSuhail + Qwen-Coder  
+**Author:** Author + Qwen-Coder  
 **Issue:** #107 — Multi-User Authentication & Entropy-Based Application Encryption  
 **Status:** Implemented in PR #119 (merged). This document provides the technical reference.
 

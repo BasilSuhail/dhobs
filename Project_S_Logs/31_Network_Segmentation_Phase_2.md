@@ -1,7 +1,7 @@
 # 31 — Network Segmentation (Phase 2)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #176
 Branch: `phase-2/network-segmentation`
 PR: #178

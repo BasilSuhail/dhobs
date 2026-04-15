@@ -1,7 +1,7 @@
 # 46 — TOTP Two-Factor Authentication (Issue #209)
 
 **Date:** April 13, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #209  
 **PR:** #210  
 **Branch:** `feat/2fa-totp`  

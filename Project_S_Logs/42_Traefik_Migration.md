@@ -1,7 +1,7 @@
 # 42 — Traefik Migration (Issue #202)
 
 **Date:** April 12, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #202  
 **Branch:** `feat/traefik-migration`  
 **Status:** Awaiting user testing

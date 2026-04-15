@@ -86,7 +86,7 @@ At the top of the section, a 4-column grid provides real-time (simulated) capaci
 
 ---
 
-## 5. Collaborative Contributions (`saadsh15`)
+## 5. Collaborative Contributions (`Contributor`)
 
 - **UI Development:** Saad built the entire `storage-section.tsx` component, ensuring it matched the Project S design tokens.
 - **State Management:** Implemented the `useState` and `useCallback` hooks for file list and drag states.
@@ -117,7 +117,7 @@ At the top of the section, a 4-column grid provides real-time (simulated) capaci
 
 - **shadcn/ui:** For the robust component foundations.
 - **Lucide:** For the clean, consistent iconography.
-- **Implementation:** Saad Shafique (@saadsh15).
+- **Implementation:** Contributor (@Contributor).
 - **Reference:** Task 5 in `Project_S_Roadmap.md`.
 
 **Status:** Completed (v1.0).

@@ -1,7 +1,7 @@
 # 30 — Security Hardening (Phase 7)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #182
 Branch: `phase-7/security-hardening`
 PR: #183

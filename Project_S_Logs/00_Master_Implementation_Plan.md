@@ -38,7 +38,7 @@
 * Dependencies None
 * Priority Critical
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Criteria established and documented in Log 01 and Log 03.
 * Basil Findings: Research Libre Chat (https://github.com/danny-avila/LibreChat.git) as the frontend interface for local LLM capabilities within Project S. This tool provides a ChatGPT-like experience that connects to Ollama models running on the user's hardware. Our co-founder identified this as a strategic fit because it offers conversation history, model switching, and tool-calling features that would take 3-4 months to build from scratch.
@@ -53,7 +53,7 @@
 * Dependencies Step 1
 * Priority Critical
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Audit performed and documented in Log 07 and Log 13. Decision made to use FSL-1.1-Apache-2.0 for Project S core.
 * Basil Findings Identified 5 non-MIT tools in the proposed stack (Nextcloud AGPL, ERPNext GPL, Kiwix GPL, Vaultwarden AGPL, n8n Fair Code). Opened Discussion #4 to align on AGPL/GPL integration policy before completing the audit. Key decision needed on whether Apache 2.0 should be treated as first-class alongside MIT.
@@ -64,7 +64,7 @@
 * Dependencies Step 2
 * Priority Critical
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Jellyfin confirmed MIT license. Integrated into HomeForge stack (Log 09).
 
@@ -74,7 +74,7 @@
 * Dependencies Step 2
 * Priority Critical
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Nextcloud integrated as a dual-container AGPL service (Log 10).
 
@@ -84,7 +84,7 @@
 * Dependencies Step 2
 * Priority High
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Strategic shift to Eclipse Theia (EPL-2.0) documented in Log 12.
 
@@ -94,7 +94,7 @@
 * Dependencies Step 5
 * Priority High
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Both confirmed MIT license
 
@@ -104,7 +104,7 @@
 * Dependencies Step 2
 * Priority High
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Matrix Synapse (Apache 2.0) and Element Web integrated (Log 14).
 
@@ -114,7 +114,7 @@
 * Dependencies Step 2
 * Priority Critical
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Nginx integrated as reverse proxy (Log 08).
 
@@ -124,7 +124,7 @@
 * Dependencies Step 2
 * Priority High
 * Duration 1 day
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Gitea uses MIT license and is a strong candidate for bundled Git UI
 
@@ -134,7 +134,7 @@
 * Dependencies Step 2
 * Priority Medium
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes ERPNext uses GPL so it must be a paid premium add on or user installed optional module
 
@@ -144,7 +144,7 @@
 * Dependencies Step 2
 * Priority High
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes n8n Sustainable Use License means it cannot be natively embedded and must remain user deployed
 
@@ -154,7 +154,7 @@
 * Dependencies Step 2
 * Priority Medium
 * Duration 1 day
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Kiwix is GPL licensed so treat as an optional user module
 
@@ -164,7 +164,7 @@
 * Dependencies Step 2
 * Priority Medium
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Home Assistant is Apache 2.0 which is compatible with integration strategy
 
@@ -174,7 +174,7 @@
 * Dependencies Step 2
 * Priority Critical
 * Duration 1 day
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Vaultwarden is AGPL so assess whether a wrapper approach satisfies integration policy
 
@@ -184,7 +184,7 @@
 * Dependencies Steps 2 through 14
 * Priority Critical
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes This document gates all subsequent development work
 
@@ -196,7 +196,7 @@
 * Dependencies Step 15
 * Priority Critical
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Implement using Web Crypto API window.crypto.getRandomValues seeded with mouse movement deltas
 
@@ -206,7 +206,7 @@
 * Dependencies Step 16
 * Priority Critical
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Store only the derived key and never raw mouse data. Show a visual entropy meter to guide the user.
 
@@ -216,7 +216,7 @@
 * Dependencies Step 17
 * Priority Critical
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Master credentials are immutable by design so make the warning clear in the UI
 
@@ -226,7 +226,7 @@
 * Dependencies Step 17
 * Priority Critical
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Use PBKDF2 or Argon2 as the KDF before AES encryption for added hardening
 
@@ -236,7 +236,7 @@
 * Dependencies Step 18
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes This becomes the foundation of the Project S IAM layer
 
@@ -246,7 +246,7 @@
 * Dependencies Step 20
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Roles must be extensible so the Master User should be able to clone and customise existing roles
 
@@ -256,7 +256,7 @@
 * Dependencies Step 21
 * Priority High
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Design this to scale so a team of over 20 users must be manageable without friction
 
@@ -266,7 +266,7 @@
 * Dependencies Steps 16 through 22
 * Priority Medium
 * Duration 2 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Consider offering an encrypted key export to a USB drive as a backup option
 
@@ -278,7 +278,7 @@
 * Dependencies Step 15
 * Priority Critical
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes No module should require more than 2 clicks to reach from the home screen
 
@@ -288,7 +288,7 @@
 * Dependencies Step 24
 * Priority High
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Brand identity must convey trust and openness and technical precision without being cold
 
@@ -298,7 +298,7 @@
 * Dependencies Steps 24 through 25
 * Priority Critical
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Integrated into Dashboard as a native section (Log 11).
 
@@ -308,7 +308,7 @@
 * Dependencies Steps 25 through 26
 * Priority Critical
 * Duration 6 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Dashboard shell implemented with floating sidebar and glassmorphism (Log 05).
 
@@ -318,7 +318,7 @@
 * Dependencies Step 27
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Card system integrated into WelcomeSection (Log 05).
 
@@ -328,7 +328,7 @@
 * Dependencies Step 27
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes TerminalPanel implemented in Dashboard (Log 05).
 
@@ -338,7 +338,7 @@
 * Dependencies Step 27
 * Priority Medium
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Design for future push notification support via the React Native mobile app
 
@@ -350,7 +350,7 @@
 * Dependencies Step 15
 * Priority Critical
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Master DinD image and core compose stack established (Log 08).
 
@@ -360,7 +360,7 @@
 * Dependencies Step 31
 * Priority Critical
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Integrated into Dashboard as a native section (Log 09).
 
@@ -370,7 +370,7 @@
 * Dependencies Step 31
 * Priority Critical
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Embedded as a dedicated Dashboard section (Log 10).
 
@@ -380,7 +380,7 @@
 * Dependencies Step 31
 * Priority Critical
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Eclipse Theia integrated with Docker socket mount for orchestration (Log 12).
 
@@ -390,7 +390,7 @@
 * Dependencies Step 34
 * Priority Medium
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes This appeals to power users who prefer keyboard driven development workflows
 
@@ -400,7 +400,7 @@
 * Dependencies Step 34
 * Priority High
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Include a headless Chrome and Firefox node in the default Selenium Grid configuration
 
@@ -410,7 +410,7 @@
 * Dependencies Step 34
 * Priority High
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Expo requires network accessibility so document the LAN address configuration for device testing
 
@@ -420,7 +420,7 @@
 * Dependencies Step 31
 * Priority High
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Matrix Synapse and Element client integrated into Dashboard (Log 14).
 
@@ -430,7 +430,7 @@
 * Dependencies Step 31
 * Priority Critical
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Completed
 * Notes Nginx integrated as reverse proxy (Log 08).
 
@@ -440,7 +440,7 @@
 * Dependencies Step 31
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Gitea repositories can serve as the deployment source for user automation workflows
 
@@ -450,7 +450,7 @@
 * Dependencies Step 31
 * Priority Critical
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Users must be clearly informed that their Vaultwarden vault has a separate master password from Project S
 
@@ -460,7 +460,7 @@
 * Dependencies Step 31
 * Priority High
 * Duration 6 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Use Docker socket proxy to restrict what the inner Docker layer can access for security
 
@@ -470,7 +470,7 @@
 * Dependencies Steps 27 through 42
 * Priority High
 * Duration 10 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Mobile app should work seamlessly over LAN and via HTTPS tunnel
 
@@ -480,7 +480,7 @@
 * Dependencies Steps 32 through 43
 * Priority Critical
 * Duration 7 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Use Selenium Grid to automate dashboard UI regression tests
 
@@ -490,7 +490,7 @@
 * Dependencies Step 44
 * Priority High
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Documentation should be available offline within Project S using Kiwix or a static MkDocs deployment
 
@@ -502,7 +502,7 @@
 * Dependencies Step 44
 * Priority Critical
 * Duration 6 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Each installable module must have a health check endpoint that the dashboard polls post install to confirm success
 
@@ -512,7 +512,7 @@
 * Dependencies Step 46
 * Priority Medium
 * Duration 6 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes GPL license means ERPNext is user deployed via the one click installer
 
@@ -522,7 +522,7 @@
 * Dependencies Step 46
 * Priority High
 * Duration 7 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Mail server reputation and deliverability setup should be prominently documented
 
@@ -532,7 +532,7 @@
 * Dependencies Step 46
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes n8n fair code license means it cannot be pre installed and the installer approach respects this boundary
 
@@ -542,7 +542,7 @@
 * Dependencies Step 46
 * Priority Medium
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Kiwix ZIM files can be very large so surface storage impact clearly in the installer UI
 
@@ -552,7 +552,7 @@
 * Dependencies Steps 47 through 50
 * Priority Critical
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Simulate a failed install midway through to verify rollback and cleanup logic
 
@@ -562,7 +562,7 @@
 * Dependencies Step 51
 * Priority High
 * Duration 3 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Premium module documentation should clearly explain the value proposition for paid tiers
 
@@ -574,7 +574,7 @@
 * Dependencies Step 15
 * Priority Medium
 * Duration 7 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Focus on ESP32 or ESP8266 based devices and Zigbee sensors
 
@@ -584,7 +584,7 @@
 * Dependencies Step 46
 * Priority High
 * Duration 6 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Home Assistant is Apache 2.0 and is a strong candidate for deeper native integration
 
@@ -594,7 +594,7 @@
 * Dependencies Step 54
 * Priority Medium
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes ESPHome and Tasmota are excellent candidates for deep integration
 
@@ -604,7 +604,7 @@
 * Dependencies Step 53
 * Priority Medium
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Inventory module should link to the online marketplace component
 
@@ -614,7 +614,7 @@
 * Dependencies Step 56
 * Priority Medium
 * Duration 5 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Marketplace revenue model should be clearly separated from the Project S software subscription model
 
@@ -624,7 +624,7 @@
 * Dependencies Step 55
 * Priority Critical
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes The smart home that does not spy on you tagline must be backed by verifiable technical claims
 
@@ -634,7 +634,7 @@
 * Dependencies Step 58
 * Priority High
 * Duration 4 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes This documentation is a key marketing asset
 
@@ -644,7 +644,7 @@
 * Dependencies Steps 1 through 59
 * Priority Critical
 * Duration 10 days
-* Owner Saad Shafique
+* Owner Contributor
 * Status Not Started
 * Notes Tag this commit as Project S v0.1.0 beta in Gitea
 

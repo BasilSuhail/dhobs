@@ -1,7 +1,7 @@
 # 44 — Restic Incremental Backups (Issue #203)
 
 **Date:** April 13, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #203  
 **Branch:** `feat/restic-backups`  
 **Status:** In progress

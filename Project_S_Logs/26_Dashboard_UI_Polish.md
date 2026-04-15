@@ -1,7 +1,7 @@
 # Log 26 — Dashboard UI Polish (#144 Completion)
 
 **Date:** April 9, 2026  
-**Author:** BasilSuhail + Qwen-Coder  
+**Author:** Author + Qwen-Coder  
 **PRs:** #166, #167  
 **Issue:** #144 (Dashboard UI Overhaul — Visual Polish & UX Refinement)
 

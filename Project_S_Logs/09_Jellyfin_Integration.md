@@ -77,7 +77,7 @@ The `MediaSection` component in `Dashboard/Dashboard1/components/dashboard/media
 
 ---
 
-## 5. Collaborative Contributions (`saadsh15`)
+## 5. Collaborative Contributions (`Contributor`)
 
 - **Dockerization:** Saad implemented the initial `jellyfin` service block and established the volume mapping strategy.
 - **DinD Support:** Integrated Jellyfin into the `Dockerfile.dind` master image for isolated sandbox testing.
@@ -106,7 +106,7 @@ The `MediaSection` component in `Dashboard/Dashboard1/components/dashboard/media
 ## 8. Credits & Reference
 
 - **Jellyfin Team:** For the best open-source media solution.
-- **Implementation:** Saad Shafique (@saadsh15).
+- **Implementation:** Contributor (@Contributor).
 - **Reference:** Task 3 in `Project_S_Roadmap.md`.
 
 **Status:** Operational (v1.0).

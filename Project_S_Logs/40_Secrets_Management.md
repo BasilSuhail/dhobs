@@ -1,7 +1,7 @@
 # 40 — Secrets Management (Docker Secrets)
 
 **Date:** April 11, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #193, #182  
 **PR:** #194
 

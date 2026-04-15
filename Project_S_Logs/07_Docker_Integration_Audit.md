@@ -1,7 +1,7 @@
 # 07 — Docker Integration Audit
 
 Date: 2026-03-26
-Author: Basil Suhail (basilsuhailkhan@proton.me)
+Author: Author (basilsuhailkhan@proton.me)
 Related Issues: #12 (hardcoded IP), #13 (Docker setup blockers)
 Branch: `fix/replace-hardcoded-ip`
 
@@ -9,7 +9,7 @@ Branch: `fix/replace-hardcoded-ip`
 
 ## Context
 
-Saad Shafique added Docker containerization for the Project S stack in commits `66bb1a9` through `8910721`. This includes a `docker-compose.yml` with Jellyfin, Nextcloud, MariaDB, and the dashboard, plus a Docker-in-Docker setup for isolated environments.
+Contributor added Docker containerization for the Project S stack in commits `66bb1a9` through `8910721`. This includes a `docker-compose.yml` with Jellyfin, Nextcloud, MariaDB, and the dashboard, plus a Docker-in-Docker setup for isolated environments.
 
 This audit was performed after pulling his changes and finding that `localhost:8081` (Nextcloud) and `localhost:8096` (Jellyfin) returned `ERR_CONNECTION_REFUSED`.
 

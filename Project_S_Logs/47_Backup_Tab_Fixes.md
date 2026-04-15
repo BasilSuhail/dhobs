@@ -1,7 +1,7 @@
 # 47 — Backup Tab Frontend Fixes (Issue #212)
 
 **Date:** April 14, 2026  
-**Author:** Basil Suhail  
+**Author:** Author  
 **Related Issue:** #212  
 **PR:** #213  
 **Branch:** `feat/backup-tab-fix`  

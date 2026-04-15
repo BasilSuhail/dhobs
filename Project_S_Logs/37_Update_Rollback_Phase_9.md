@@ -1,7 +1,7 @@
 # 37 — Update & Rollback Strategy (Phase 9)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #182
 Branch: `phase-9/update-rollback`
 PR: TBD

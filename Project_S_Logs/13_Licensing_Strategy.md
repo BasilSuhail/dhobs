@@ -9,7 +9,7 @@ This document records the strategic decision-making process for the Project S co
 Project S aims to be a self-hosted platform that users can trust, but it also requires a sustainable business model to ensure long-term maintenance and protection against "strip-mining" by large cloud providers or competitors.
 
 ### Primary Objectives:
-- **Protect Market Share:** Ensure that the original founders (Basil Suhail) maintain the majority market share and primary sales channel for hardware/software bundles.
+- **Protect Market Share:** Ensure that the original founders (Author) maintain the majority market share and primary sales channel for hardware/software bundles.
 - **Transparency:** Keep the source code public and auditable for security and privacy.
 - **Self-Hosting Freedom:** Allow individual users to self-host, modify, and contribute to the project for free.
 - **Path to True OSS:** Ensure the code eventually belongs to the public domain or a permissive license to build long-term ecosystem trust.
@@ -60,8 +60,8 @@ This creates a "Rolling Moat." We always have a 2-year lead on the commercial ma
 ## 5. Credits & Reference
 
 - **Sentry.io:** For pioneering the FSL model.
-- **Strategy & Research:** Basil Suhail.
-- **Implementation:** Basil Suhail.
+- **Strategy & Research:** Author.
+- **Implementation:** Author.
 - **Reference:** Decision Log #13 (Commercialization & Moat Strategy).
 
 **Status:** Finalized & Implemented.

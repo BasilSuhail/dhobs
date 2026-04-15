@@ -1,7 +1,7 @@
 # 32 — Nginx Reverse Proxy (Phase 3)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #176
 Branch: `phase-3/nginx-reverse-proxy`
 PR: #179

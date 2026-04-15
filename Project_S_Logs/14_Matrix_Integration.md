@@ -95,7 +95,7 @@ OpenSource HomeLabbing/
 
 ---
 
-## 5. Collaborative Contributions (`saadsh15`)
+## 5. Collaborative Contributions (`Contributor`)
 
 - **Service Definition:** Saad established the core three-container service stack (Server, Client, DB).
 - **Postgres Integration:** Saad correctly identified the need for a robust SQL backend and implemented the initial database schema mapping.
@@ -125,8 +125,8 @@ OpenSource HomeLabbing/
 ## 8. Credits & Reference
 
 - **Matrix.org Foundation:** For the communication protocol of the future.
-- **Implementation:** Saad Shafique (@saadsh15).
-- **Audit & Review:** Basil Suhail.
+- **Implementation:** Contributor (@Contributor).
+- **Audit & Review:** Author.
 - **Reference:** Task 38 in `Project_S_Roadmap.md`.
 
 **Status:** Operational (v1.0).

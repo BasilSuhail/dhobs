@@ -1,7 +1,7 @@
 # 33 — Dashboard Internal Architecture (Phase 4)
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #176
 Branch: `phase-4/dashboard-internal`
 PR: #180

@@ -1,7 +1,7 @@
 # 29 — Architecture Overhaul
 
 Date: 2026-04-10
-Author: Basil Suhail
+Author: Author
 Related Issue: #176
 Branches: `phase-1/architecture-docs`, `phase-2/network-segmentation`, `phase-3/nginx-reverse-proxy`, `phase-4/dashboard-internal`
 
