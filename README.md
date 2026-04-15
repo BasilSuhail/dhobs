@@ -1,8 +1,8 @@
-# Project S
+# dhobs
 
 > Your personal, private, self-hosted digital hub — one dashboard, one login, zero cloud dependency.
 
-**[Live Preview →](https://basilsuhail.github.io/ProjectS-HomeForge)**
+**[Live Preview →](https://basilsuhail.github.io/dhobs)**
 
 ---
 
