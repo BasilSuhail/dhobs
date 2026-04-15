@@ -441,19 +441,10 @@ timeline
 
 ---
 
-## 13. 👥 Team & Contributors
+## 13. 👥 Contributors
 
-### Core Team
-
-| | |
-|---|---|
-| **Basil Suhail** · Co-founder & Developer | [LinkedIn](https://linkedin.com/in/basilsuhail) · [GitHub](https://github.com/BasilSuhail) |
-| **Saad Shafique** · Co-founder & Developer | [LinkedIn](https://www.linkedin.com/in/saad-shafique-60115934b/) · [GitHub](https://github.com/saadsh15) |
-
-### Contributors
-
-- **BasilSuhail**
-- **saadsh15**
+- [**Basil Suhail**](https://github.com/BasilSuhail)
+- [**Saad Shafique**](https://github.com/saadsh15)
 
 ---
 
