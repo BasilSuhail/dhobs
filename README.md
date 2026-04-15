@@ -1,78 +1,108 @@
-# dhobs
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Pre--Release-orange?style=for-the-badge" alt="Status" />
+  <img src="https://img.shields.io/badge/License-FSL--1.1%2FApache--2.0-blue?style=for-the-badge" alt="License" />
+  <img src="https://img.shields.io/badge/Platform-Docker-2496ED?style=for-the-badge&logo=docker" alt="Platform" />
+</p>
 
-> Your personal, private, self-hosted digital hub — one dashboard, one login, zero cloud dependency.
+<p align="center">
+  <h1 align="center">🏠 dhobs</h1>
+  <p align="center"><strong>Your personal, private, self-hosted digital hub</strong></p>
+  <p align="center">One dashboard · One login · Zero cloud dependency</p>
+</p>
 
-**[Live Preview →](https://basilsuhail.github.io/dhobs)**
+<p align="center">
+  <img src="screenshot.png" alt="dhobs Dashboard Preview" width="80%" />
+</p>
 
----
-
-**GitHub Repo:** [homelab-os-landing →](https://github.com/BasilSuhail/homelab-os-landing)
-
----
-
-## Table of Contents
-
-**Getting Started**
-- [Quick Start](#-quick-start)
-- [Update & Rollback](#-update--rollback)
-- [First-Time Security Setup](#-first-time-security-setup)
-- [Integrated Services](#-integrated-services)
-- [Adding New Services](#-adding-new-services)
-- [Project Logs](#-project-documentation--logs)
-- [Contributors](#contributors)
-
-**Project Overview**
-- [Architecture](Project_S_Logs/29_Architecture_Overhaul.md)
-- [What is it?](#what-is-it)
-- [Core Features](#core-features)
-- [How it Works](#how-it-works)
-- [Security Model](#security-model)
-- [Roadmap](#roadmap)
-- [Licensing](#licensing)
-- [Team](#team)
-
----
----
-
-# Getting Started
-
-*A collaborative project building a unified, self-hosted digital hub platform.*
-
-This repository contains the implementation plan, product definition, technical feasibility analysis, and documentation for Project S — a self-hosted operating system for the home server that integrates the best open-source tools into a single, easy-to-manage interface.
+<p align="center">
+  <strong>
+    <a href="#1-quick-start">Quick Start</a> •
+    <a href="#2-integrated-services">Services</a> •
+    <a href="#3-security-model">Security</a> •
+    <a href="#4-roadmap">Roadmap</a> •
+    <a href="https://basilsuhail.github.io/dhobs">Live Preview</a>
+  </strong>
+</p>
 
 ---
 
-## 🚀 Quick Start
+## 📋 Table of Contents
 
-To start the entire Project S ecosystem with a single command, use the `boom.sh` script (recommended for Mac) or the specialised installation scripts below.
+1. [Quick Start](#1-quick-start)
+2. [Update & Rollback](#2-update--rollback)
+3. [First-Time Security Setup](#3-first-time-security-setup)
+4. [Integrated Services](#4-integrated-services)
+5. [Adding New Services](#5-adding-new-services)
+6. [What's Working](#6-whats-working)
+7. [What's Not Yet Ready](#7-whats-not-yet-ready)
+8. [Security Model](#8-security-model)
+9. [Architecture Overview](#9-architecture-overview)
+10. [Roadmap](#10-roadmap)
+11. [Project Documentation](#11-project-documentation)
+12. [Licensing](#12-licensing)
+13. [Team & Contributors](#13-team--contributors)
 
-**Option A: The "Boom" Script (Mac / Local)**
+---
+
+## 🎯 The Problem
+
+> Google Drive. Office 365. Netflix. 1Password. Chat apps. AI assistants.
+>
+> Every service costs monthly fees, harvests your data, and locks you into ecosystems you don't control.
+
+**dhobs replaces all of that** with self-hosted, open-source alternatives running on hardware you own — a Raspberry Pi, an old PC, or a VPS.
+
+**Install once.** Get a private, encrypted, modular platform that runs your digital life.
+
+---
+
+## 🏗️ Core Principles
+
+| Principle | What it means |
+|---|---|
+| **🎯 Unified** | One login, one dashboard, one update system |
+| **🔒 Private** | Encryption keys you control, nothing leaves your network |
+| **🧩 Modular** | Install only what you need, add more later |
+| **⚡ Simple** | No command line required for day-to-day use |
+
+---
+
+## 1. 🚀 Quick Start
+
+### Option A: The "Boom" Script (Mac / Local)
 
 ```bash
 chmod +x boom.sh
 ./boom.sh
 ```
 
-Creates `.env` automatically, detects your LAN IP, builds, starts all services, and launches your browser. Use this for day-to-day restarts.
+**What it does:**
+- Creates `.env` automatically
+- Detects your LAN IP
+- Builds and starts all services
+- Launches your browser
 
-To stop all services:
+**Best for:** Day-to-day restarts
 
-```bash
-docker compose down
-```
-
-**Option B: The "Install" Script (Linux / First-Time Setup)**
+### Option B: The "Install" Script (Linux / First-Time Setup)
 
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-Creates `.env` automatically, detects your LAN IP, starts all containers, installs Nextcloud Hub apps (Calendar, Contacts, Office, Talk), and configures Nextcloud Office (Collabora). Run this once on a fresh clone.
+**What it does:**
+- Creates `.env` automatically
+- Detects your LAN IP
+- Starts all containers
+- Installs Nextcloud Hub apps (Calendar, Contacts, Office, Talk)
+- Configures Nextcloud Office (Collabora)
 
-> Nextcloud Office is auto-configured on every subsequent container start via `config/nextcloud/setup-office.sh`. No manual steps needed after the first install.
+**Best for:** Fresh clones — run once
 
-**Option C: Manual Docker Setup**
+> ℹ️ Nextcloud Office is auto-configured on every subsequent container start via `config/nextcloud/setup-office.sh`. No manual steps needed after the first install.
+
+### Option C: Manual Docker Setup
 
 ```bash
 cp .env.example .env
@@ -80,39 +110,46 @@ cp .env.example .env
 docker compose up -d
 ```
 
-> `boom.sh` and `install.sh` handle `.env` creation automatically. Only use this option if running `docker compose` directly.
+> ⚠️ `boom.sh` and `install.sh` handle `.env` creation automatically. Only use this option if running `docker compose` directly.
 
-## 🔄 Update & Rollback
+---
 
-Before updating any services, run the pre-update check:
+## 2. 🔄 Update & Rollback
+
+### Pre-Update Check
 
 ```bash
 bash scripts/pre-update-check.sh
 ```
 
-To safely update all services (creates backup first, validates it, then applies):
+### Safe Update (with backup)
 
 ```bash
 bash scripts/update.sh
 ```
 
-If an update breaks something, rollback to the latest backup:
+**Process:**
+1. Creates encrypted backup
+2. Validates backup integrity
+3. Applies updates
+
+### Rollback (if update breaks)
 
 ```bash
 bash scripts/rollback.sh
 ```
 
-> The update script automatically aborts if the backup fails. Your current setup is never touched until a valid backup is confirmed.
+> 🛡️ The update script automatically aborts if the backup fails. Your current setup is never touched until a valid backup is confirmed.
 
 ---
 
-## 🔐 First-Time Security Setup
+## 3. 🔐 First-Time Security Setup
 
-After the containers are running, the dashboard requires a one-time setup before it can be used.
+### Step 1 — Matrix Synapse Secrets
 
-### Step 1 — Matrix Synapse secrets
+`boom.sh` and `install.sh` auto-generate these on first run.
 
-`boom.sh` and `install.sh` auto-generate these on first run. If you're using **Option C (manual `docker compose`)**, add them to `.env` manually:
+**Manual setup (Option C only):**
 
 ```bash
 openssl rand -hex 32   # run three times — one value per variable
@@ -124,29 +161,32 @@ MATRIX_MACAROON_SECRET_KEY=<generated>
 MATRIX_FORM_SECRET=<generated>
 ```
 
-These are injected into `config/matrix/homeserver.yaml` at container startup. Never reuse values between installations.
+> ⚠️ These are injected into `config/matrix/homeserver.yaml` at container startup. Never reuse values between installations.
 
-### Step 2 — Dashboard entropy key & admin account
+### Step 2 — Dashboard Entropy Key & Admin Account
 
-1. Open `http://localhost:3069` — you will be redirected to `/setup` automatically
-2. Move your mouse over the canvas to generate a unique 128-character encryption key
-3. **Copy and store this key somewhere safe** — it encrypts your entire database; it cannot be recovered if lost
-4. Choose a username and a strong password (minimum 12 characters) to create your admin account
-5. You will be logged in automatically and redirected to the dashboard
+1. Open `http://localhost:3069` → redirected to `/setup` automatically
+2. Move mouse over canvas → generates unique 128-character encryption key
+3. **⚠️ Store this key safely** — it encrypts your entire database; cannot be recovered if lost
+4. Choose username + strong password (min 12 characters) → creates admin account
+5. Logged in automatically → redirected to dashboard
 
-> The entropy key is derived from mouse movement + CSPRNG (SHA-512). It is stored AES-256-GCM encrypted on disk and used to derive the database encryption key, session secret, and WebSocket secret via HKDF-SHA512. It never leaves the server.
+> 🔑 The entropy key is derived from mouse movement + CSPRNG (SHA-512). Stored AES-256-GCM encrypted on disk. Used to derive database encryption key, session secret, and WebSocket secret via HKDF-SHA512. Never leaves the server.
 
-### Step 3 — Subsequent logins
+### Step 3 — Subsequent Logins
 
-Navigate to `http://localhost:3069` and log in with the admin credentials created in Step 2. Additional user accounts (with `viewer` role) can be created from the dashboard admin panel.
+Navigate to `http://localhost:3069` and log in with admin credentials.
+
+**Additional users:** Create from dashboard admin panel (with `viewer` role).
 
 ---
 
-## 📦 Integrated Services
+## 4. 📦 Integrated Services
 
-All services are routed through **Traefik** reverse proxy with automatic HTTPS. Direct port access is also available for dashboard iframe embedding.
+All services routed through **Traefik** reverse proxy with automatic HTTPS.
 
-### External Access (Traefik HTTPS)
+### 4.1 External Access (Traefik HTTPS)
+
 | Service | URL |
 |---|---|
 | Traefik Dashboard | `https://traefik.<LAN-IP>.nip.io` |
@@ -162,7 +202,8 @@ All services are routed through **Traefik** reverse proxy with automatic HTTPS. 
 | Kiwix Manager | `https://kiwix-manager.<LAN-IP>.nip.io` |
 | OpenVPN UI | `https://openvpn.<LAN-IP>.nip.io` |
 
-### Direct Ports (Dashboard iframes)
+### 4.2 Direct Ports (Dashboard iframes)
+
 | Service | Port | Service | Port |
 |---|---|---|---|
 | Dashboard | `:3069` | Vaultwarden | `:8083` |
@@ -172,28 +213,34 @@ All services are routed through **Traefik** reverse proxy with automatic HTTPS. 
 | Element | `:8082` | OpenVPN UI | `:8090` |
 | Collabora | `:9980` | Synapse | `:8008` |
 
-### Remote Access (Tailscale — optional)
-When Tailscale is configured, all services are accessible from anywhere via MagicDNS:
-- Dashboard: `http://homeforge:3069`
-- Nextcloud: `http://nextcloud:8081`
-- Jellyfin: `http://jellyfin:8096`
-- And all other services by their direct port.
+### 4.3 Remote Access (Tailscale — Optional)
 
-Run `./scripts/setup-tailscale.sh <AUTHKEY>` to activate.
+Accessible from anywhere via MagicDNS:
 
-### Host Metrics (macOS/Windows — optional)
-On macOS and Windows, Docker runs in a VM and can't read host metrics directly. Run the host agent to see real CPU, memory, disk, and network stats:
+| Service | URL |
+|---|---|
+| Dashboard | `http://homeforge:3069` |
+| Nextcloud | `http://nextcloud:8081` |
+| Jellyfin | `http://jellyfin:8096` |
+| All others | By direct port |
+
+**Activate:** `./scripts/setup-tailscale.sh <AUTHKEY>`
+
+### 4.4 Host Metrics (macOS/Windows — Optional)
+
+Docker runs in a VM on macOS/Windows and can't read host metrics directly.
 
 ```bash
 # macOS/Windows only (Linux users get metrics automatically)
 node scripts/host-agent.js
 ```
 
-The Dashboard will show:
+**Dashboard shows:**
 - 🍎 **macOS** / 🪟 **Windows** / 🐧 **Linux** badge
-- 🔵 **Agent Connected** indicator when running
+- 🔵 **Agent Connected** indicator
 
-### Internal Only
+### 4.5 Internal Only
+
 | Service | Description |
 |---|---|
 | Ollama | Local LLM inference engine |
@@ -202,202 +249,148 @@ The Dashboard will show:
 
 ---
 
-## 🛠️ Adding New Services
+## 5. 🛠️ Adding New Services
 
-To add more applications to the ecosystem:
+**5-step process:**
 
-1. **Docker** — add the service to `docker-compose.yml` and assign it to the correct network (`frontend` for user-facing, `backend` for internal services, `database` if it needs a DB)
-2. **Traefik** — add `traefik.enable=true` and routing labels to the service (see existing services for examples)
-3. **Direct port** — add a port mapping if the service is embedded in a dashboard iframe
-4. **Launcher** — add the app to the `applications` array in `welcome-section.tsx`
-5. **Startup config** — if the service requires Nextcloud app settings, add an `occ` command to `config/nextcloud/setup-office.sh`
+1. **Docker** — Add service to `docker-compose.yml`, assign to correct network (`frontend` / `backend` / `database`)
+2. **Traefik** — Add `traefik.enable=true` + routing labels
+3. **Direct port** — Add port mapping if embedding in dashboard iframe
+4. **Launcher** — Add app to `applications` array in `welcome-section.tsx`
+5. **Startup config** — If service needs Nextcloud settings, add `occ` command to `config/nextcloud/setup-office.sh`
 
-Traefik auto-discovers new services — no nginx config edits needed.
+> ✨ Traefik auto-discovers new services — no nginx config edits needed.
 
 ---
 
-## 📝 Project Documentation & Logs
+## 6. ✅ What's Working
 
-**Architecture** — Start here to understand the entire system:
-- [Architecture Overhaul](Project_S_Logs/29_Architecture_Overhaul.md) — system diagram, service catalog, network topology, security model, deployment lifecycle
-- [Architecture Decision Records](docs/decisions/) — 6 numbered records for every major architectural decision
-- [Data Volume Contract](docs/data-volumes.md) — full data hierarchy, service ownership, backup rules
-- [Dashboard Internal Architecture](Dashboard/Dashboard1/docs/ARCHITECTURE.md) — layer diagram, API route map, auth chain
-
-**Implementation Logs:**
-
-| Resource | Location |
+| Feature | Status |
 |---|---|
-| Technical logs (01–37) | `Project_S_Logs/` directory |
-| Static UI preview | `Project_S_Logs/06_Dashboard_Technical_Report.html` |
-
-Open the HTML file in any browser for a functional, high-fidelity mirror of the dashboard frontend.
-
----
-
-## Contributors
-
-- **BasilSuhail**
-- **saadsh15**
-
----
----
-
-# Project Overview
+| Dashboard with live resource charts (CPU, RAM, disk, network) | ✅ |
+| 11 color themes + glassmorphism UI | ✅ |
+| One-command install on Linux / macOS | ✅ |
+| Security layer: Argon2id, AES-256-GCM, rate-limited auth | ✅ |
+| Multi-user auth with iron-session v8 encrypted cookies | ✅ |
+| All core services integrated and functional | ✅ |
+| Nextcloud Office auto-configured on every container start | ✅ |
+| Entropy key + SQLCipher encrypted database at rest | ✅ |
 
 ---
 
-## What is it?
+## 7. 📅 What's Not Yet Ready
 
-Project S replaces expensive, data-harvesting cloud subscriptions (Google Drive, Office 365, Netflix, 1Password...) with self-hosted, open-source alternatives running on hardware you own — a Raspberry Pi, an old PC, or a VPS.
-
-Install once. Get a private, encrypted, modular platform that runs your digital life.
-
-**Core principles:**
-- **Unified** — one login, one dashboard, one update system
-- **Private** — encryption keys you control, nothing leaves your network
-- **Modular** — install only what you need, add more later
-- **Simple** — no command line required for day-to-day use
-
----
-
-## Core Features
-
-**Currently implemented:**
-
-| Module | What it does | Powered by |
-|---|---|---|
-| File & productivity | Documents, calendar, contacts, email | Nextcloud + Collabora |
-| Media server | Stream video, music, photos | Jellyfin |
-| Code environment | Browser-based IDE with terminal | Eclipse Theia |
-| Communications | Self-hosted encrypted chat | Matrix Synapse + Element |
-| Password manager | Vault for all credentials | Vaultwarden |
-| AI assistant | Local LLM chat interface | Open-WebUI + Ollama |
-| Offline knowledge | Wikipedia & more, no internet required | Kiwix |
-| VPN | Self-hosted private network | OpenVPN + Tailscale |
-| Reverse proxy | Auto-discovering HTTPS router | Traefik |
-| Backups | Incremental, encrypted snapshots | Restic |
-
-**Planned modules:**
-
-| Module | Powered by |
+| Feature | Status |
 |---|---|
-| Workflow automation | n8n |
-| Smart home | Home Assistant |
-| Version control | Gitea |
+| Automated backups with test-restore | 📅 |
+| One-click module store | 📅 |
+| Mobile companion app | 📅 |
+| Smart home & workflow automation modules | 📅 |
 
 ---
 
-## How it Works
+## 8. 🔐 Security Model
 
-HomeForge is an orchestration layer built on Docker. It pulls together best-in-class open-source tools, puts them behind a unified dashboard, and manages them through a single interface.
+> Built encryption-first. The dashboard uses a layered security stack.
 
-### System Architecture
+### 8.1 Encryption Flow
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                         User's Browser                            │
-│        http://<LAN_IP>:<port>  or  https://<service>.nip.io       │
-│        or  http://homeforge:<port> (via Tailscale)                │
-└──────────────────────────────┬───────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                      Traefik Reverse Proxy                        │
-│               HTTPS on :443  |  HTTP redirect :80                 │
-│         Auto-discovers services via Docker labels                 │
-└──┬────────────┬──────────────┬──────────────┬───────────────────┘
-   │            │              │              │
-   ▼            ▼              ▼              ▼
-┌────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
-│Dashboard│  │ Jellyfin │  │Nextcloud │  │ Vaultwarden│
-│:3069    │  │  :8096   │  │  :8081   │  │   :8083   │
-│:3070 WS │  │          │  │+Collabora│  │           │
-└────┬────┘  └──────────┘  │  :9980   │  └───────────┘
-     │                     └────┬─────┘
-     │                          │
-     ▼                          ▼
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
-│Open-WebUI│  │ Element  │  │OpenVPN UI│  │ Kiwix     │
-│  :8085   │  │  :8082   │  │  :8090   │  │  :8087    │
-└────┬─────┘  └──────────┘  └──────────┘  └───────────┘
-     │
-     ▼
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
-│  Ollama  │  │  Theia   │  │  Synapse │  │ OpenVPN   │
-│(internal)│  │  :3030   │  │  :8008   │  │ :1194/udp │
-└──────────┘  └──────────┘  └────┬─────┘  └───────────┘
-                                 │
-                    ┌────────────┴────────────┐
-                    │    Database Network     │
-                    │  MariaDB · Postgres     │
-                    │  (internal only)        │
-                    └─────────────────────────┘
+```mermaid
+flowchart LR
+    Mouse["🖱️ Mouse movement entropy"] --> SHA["SHA‑512"]
+    SHA --> Entropy["128‑char entropy key"]
+    Entropy --> HKDF["HKDF‑SHA512"]
+
+    HKDF --> Session["Session secret"]
+    HKDF --> WS["WebSocket ticket secret"]
+    HKDF --> DB["Database key (AES‑256‑GCM)"]
+
+    DB --> SQLCipher["SQLCipher encrypted DB"]
+    Session --> Iron["iron‑session cookie"]
+    WS --> Terminal["Secure terminal access"]
+
+    style Mouse fill:#facc15,stroke:#333
+    style Entropy fill:#ef4444,stroke:#333,color:#fff
+    style DB fill:#22c55e,stroke:#333
 ```
 
-### Network Topology
+### 8.2 Security Features
+
+| Feature | Implementation |
+|---|---|
+| **🔑 One-time setup wizard** | First launch → `/setup` → mouse entropy → 128-char hex key → admin account created |
+| **🔐 HKDF-SHA512 derivation** | `SESSION_SECRET`, `WS_SECRET`, `DB_KEY` derived at runtime. Never hardcoded. Never in `.env`. |
+| **🗄️ SQLCipher encrypted DB** | SQLite database encrypted with AES-256-GCM at rest |
+| **🔒 Argon2id hashing** | 64 MiB memory, 3 iterations. Plaintext credentials never stored |
+| **👤 Role-based access** | `admin` + `viewer` roles. Middleware guards on privileged routes |
+| **🛑 Rate limiting** | Sliding-window limiter. 10 attempts per username per 15 min. `X-RateLimit-*` headers |
+| **🎫 WebSocket ticket auth** | Terminal access via HMAC-SHA256 ticket. Expires after 30 seconds |
+
+> **✨ Unique feature:** Entropy key derived from your mouse movements. We never see it. It never leaves your server.
+
+---
+
+## 9. 🏛️ Architecture Overview
+
+### 9.1 System Diagram
+
+```mermaid
+flowchart TD
+    User[("🖥️ You (Browser)")] --> Traefik["Traefik Reverse Proxy<br/>HTTPS :443"]
+    
+    User --> Dashboard["Dashboard<br/>:3069"]
+    Dashboard --> Traefik
+
+    Traefik --> Nextcloud["Nextcloud + Collabora<br/>Files & Office"]
+    Traefik --> Jellyfin["Jellyfin<br/>Media"]
+    Traefik --> Matrix["Matrix Synapse + Element<br/>Chat"]
+    Traefik --> Vaultwarden["Vaultwarden<br/>Passwords"]
+    Traefik --> Theia["Eclipse Theia<br/>Browser IDE"]
+    Traefik --> Kiwix["Kiwix<br/>Offline Wikipedia"]
+    Traefik --> OpenWebUI["Open‑WebUI + Ollama<br/>Local AI"]
+    Traefik --> OpenVPN["OpenVPN<br/>Secure remote access"]
+
+    style Dashboard fill:#d4e157,stroke:#333,stroke-width:2px,color:#000
+    style Traefik fill:#22d3ee,stroke:#333,stroke-width:2px
+    style User fill:#a855f7,stroke:#333,stroke-width:2px,color:#fff
+```
+
+### 9.2 Network Topology
 
 | Network | Services |
 |---|---|
-| **frontend** | traefik, dashboard, element, openvpn-ui, kiwix-manager, open-webui, theia, synapse, jellyfin |
-| **backend** | socket-proxy, jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn, homeforge-backup, tailscale |
-| **database** | MariaDB (Nextcloud), Postgres (Synapse) — internal only |
+| **🌐 frontend** | traefik, dashboard, element, openvpn-ui, kiwix-manager, open-webui, theia, synapse, jellyfin |
+| **🔧 backend** | socket-proxy, jellyfin, nextcloud, collabora, theia, synapse, vaultwarden, kiwix, ollama, openvpn, homeforge-backup, tailscale |
+| **🗄️ database** | MariaDB (Nextcloud), Postgres (Synapse) — internal only |
 
-Each service runs in its own Docker container. Project S handles networking, shared data volumes, and service health monitoring so you don't have to.
-
----
-
-## Security Model
-
-Project S is built encryption-first. The dashboard uses a layered security stack:
-
-### Authentication
-- **One-time setup wizard** — first launch redirects to `/setup` where mouse movement entropy generates a 128-character hex key; admin account is created in the same flow
-- **iron-session v8** — encrypted, signed HTTP-only cookie sessions (`homeforge_session`)
-- **Argon2id password hashing** — 64 MiB memory, 3 iterations; credentials never stored in plaintext
-- **Role-based access** — `admin` and `viewer` roles; privileged API routes protected by `requireAdmin()`
-- **Middleware guard** — all dashboard routes redirect to `/login` if unauthenticated
-
-### Encryption & Key Derivation
-- **Entropy key** — mouse movement combined with CSPRNG, hashed via SHA-512 (Web Crypto API), produces a 128-character hex key
-- **HKDF-SHA512** — `SESSION_SECRET`, `WS_SECRET`, and `DB_KEY` are all derived from the entropy key at runtime; never hardcoded or stored in `.env`
-- **SQLCipher via `better-sqlite3-multiple-ciphers`** — the SQLite user database is AES-256-GCM encrypted at rest
-- **Pre/post-setup rekey** — database opens with a temporary UUID-derived key before setup; `PRAGMA rekey` transitions to the entropy-derived key once setup completes
-
-### Rate Limiting & WebSocket Security
-- **Sliding-window rate limiter** — login endpoint allows 10 attempts per username per 15 minutes; returns `X-RateLimit-*` headers
-- **WS ticket auth** — terminal WebSocket connections require a short-lived HMAC-SHA256 ticket (`GET /api/auth/ws-ticket`); tickets expire after 30 seconds
-- **PTY idle timeout** — terminal sessions auto-close after 30 minutes of inactivity
-- **Container allowlist** — WebSocket shell access is restricted to explicitly whitelisted container names
-
-### Container Security
-- **Log rotation** — all 15 services use `json-file` driver with `max-size: 10m`, `max-file: 3` (prevents disk exhaustion)
-- **Healthchecks** — every service has a healthcheck; dashboard monitors all containers
-- **Network segmentation** — three Docker networks (`frontend`, `backend`, `database`); databases are isolated with `internal: true` (no internet access)
-- **Memory limits** — each service has a memory cap to prevent resource starvation
-
-### Secrets Management
-Runtime secrets (`SESSION_SECRET`, `WS_SECRET`, `DB_KEY`) are derived from the entropy key at startup — they are never written to disk or `.env`. Infrastructure secrets are now stored in `data/secrets/` (Docker Secrets):
-
-| Variable | Used by |
-|---|---|
-| `mysql_root_password` | Nextcloud MariaDB |
-| `mysql_password` | Nextcloud MariaDB, Synapse Postgres |
-| `nextcloud_admin_password` | Nextcloud admin account |
-| `collabora_password` | Collabora Online admin |
-| `matrix_registration_secret` | Synapse federation registration |
-| `matrix_macaroon_secret_key` | Synapse macaroon tokens |
-| `matrix_form_secret` | Synapse CSRF protection |
-| `webui_secret_key` | Open-WebUI session signing |
-| `vpn_admin_password` | OpenVPN UI admin account |
-| `restic_password` | Restic backup encryption |
-| `tailscale_authkey` | Tailscale remote access (user-provided) |
-
-Run `bash scripts/migrate-secrets.sh` to automatically generate secret files from your `.env` or generate new random secrets.
+Each service runs in its own Docker container. dhobs handles networking, shared data volumes, and service health monitoring.
 
 ---
 
-## Roadmap
+## 10. 🗺️ Roadmap
+
+### Progress Timeline
+
+```mermaid
+timeline
+    title Project progress
+    section Phase 1 ✅
+        Research & tool selection : Complete
+        Core Docker orchestration : Complete
+    section Phase 2 ✅
+        Security & auth : Complete
+        Entropy key + SQLCipher : Complete
+    section Phase 3 🔨
+        Dashboard UI : 11 themes, live charts
+        Integrated services : Jellyfin, Nextcloud, Matrix, Vaultwarden...
+    section Phase 4 📅
+        Backups & one‑click store : Planned
+        Mobile app : Planned
+    section Phase 5 🔮
+        Smart home & automation : Future
+```
+
+### Phase Details
 
 | Phase | Focus | Status |
 |---|---|---|
@@ -414,7 +407,29 @@ Run `bash scripts/migrate-secrets.sh` to automatically generate secret files fro
 
 ---
 
-## Licensing
+## 11. 📝 Project Documentation
+
+### 11.1 Architecture Resources
+
+| Document | Description |
+|---|---|
+| [Architecture Overhaul](Project_S_Logs/29_Architecture_Overhaul.md) | System diagram, service catalog, network topology, security model, deployment lifecycle |
+| [Architecture Decision Records](docs/decisions/) | 6 numbered records for every major architectural decision |
+| [Data Volume Contract](docs/data-volumes.md) | Full data hierarchy, service ownership, backup rules |
+| [Dashboard Internal Architecture](Dashboard/Dashboard1/docs/ARCHITECTURE.md) | Layer diagram, API route map, auth chain |
+
+### 11.2 Implementation Logs
+
+| Resource | Location |
+|---|---|
+| Technical logs (01–37) | `Project_S_Logs/` directory |
+| Static UI preview | `Project_S_Logs/06_Dashboard_Technical_Report.html` |
+
+> 💡 Open the HTML file in any browser for a functional, high-fidelity mirror of the dashboard frontend.
+
+---
+
+## 12. 📄 Licensing
 
 | Layer | Licence |
 |---|---|
@@ -422,16 +437,18 @@ Run `bash scripts/migrate-secrets.sh` to automatically generate secret files fro
 | Basic app store & UI | Free |
 | Premium integrations | Paid tier |
 
-GPL/AGPL tools (ERPNext, Kiwix, n8n) are available as optional user-deployed modules — not bundled into the core — to respect their licence terms. The paid tier funds ongoing maintenance of complex upstream integrations.
+> GPL/AGPL tools (ERPNext, Kiwix, n8n) are available as optional user-deployed modules — not bundled into the core — to respect their licence terms. The paid tier funds ongoing maintenance of complex upstream integrations.
 
 ---
 
-## Team
+## 13. 👥 Contributors
 
-**Saad Shafique** — Co-founder & Developer
-
-**Basil Suhail** — Co-founder & Developer
+- [**Basil Suhail**](https://github.com/BasilSuhail)
+- [**Saad Shafique**](https://github.com/saadsh15)
 
 ---
 
-*Project S is pre-release software. No public installation is available yet. Watch this repo for the v0.1.0 beta announcement.*
+<p align="center">
+  <strong>🏠 dhobs is pre-release software.</strong><br/>
+  <em>Watch this repo for the v0.1.0 beta announcement.</em>
+</p>
