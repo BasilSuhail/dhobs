@@ -30,8 +30,9 @@ Dashboard/Dashboard1/node_modules/
 Thumbs.db
 dind-data/
 
-# AI tooling (Claude Code superpowers)
-docs/superpowers/
+# AI tooling (Claude Code superpowers) — ALL AI docs
+docs/
+Dashboard/Dashboard1/docs/
 Dashboard/Dashboard1/docs/superpowers/
 Dashboard/Dashboard1/tsconfig.tsbuildinfo
 config/matrix/element-config.json
