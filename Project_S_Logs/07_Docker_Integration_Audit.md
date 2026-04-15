@@ -1,7 +1,7 @@
 # 07 — Docker Integration Audit
 
 Date: 2026-03-26
-Author: Author (basilsuhailkhan@proton.me)
+Author: Author ([redacted])
 Related Issues: #12 (hardcoded IP), #13 (Docker setup blockers)
 Branch: `fix/replace-hardcoded-ip`
 

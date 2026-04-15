@@ -57,7 +57,7 @@ const { exec } = require('child_process');
 // Exposes:
 {
   "platform": "darwin",
-  "hostname": "basils-macbook",
+  "hostname": "macbook-pro",
   "uptime": 172800,
   "cpu": {
     "usage": 42.5,
