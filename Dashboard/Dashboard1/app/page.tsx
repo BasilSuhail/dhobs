@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { WelcomeSection } from "@/components/dashboard/welcome-section"
-import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { MetricsSection } from "@/components/dashboard/metrics-section"
 import { BackupSection } from "@/components/dashboard/backup-section"
 import { OllamaSection } from "@/components/dashboard/ollama-section"
@@ -36,6 +35,7 @@ export default function HomePage() {
   const [currentSection, setCurrentSection] = useState("home")
   const [openWindows, setOpenWindows] = useState<ActiveWindow[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
+  const homeMetricsThreshold = 0.55
 
   useEffect(() => {
     setMounted(true)
@@ -119,6 +119,10 @@ export default function HomePage() {
 
   const bgColor = mounted ? colorTheme.background : "#0a0a0a"
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
+  const highlightedSection =
+    currentSection === "home" && scrollProgress >= homeMetricsThreshold
+      ? "metrics"
+      : currentSection
 
   const handleNavigate = (section: string) => {
     if (section === "ollama") {
@@ -198,7 +202,7 @@ export default function HomePage() {
 
       {/* Sidebar */}
       <Sidebar
-        activeSection={openWindows.some(w => !w.isClosing) ? "app" : currentSection}
+        activeSection={openWindows.some(w => !w.isClosing) ? "app" : highlightedSection}
         currentSection={currentSection}
         hasOpenWindow={openWindows.some(w => !w.isMinimized && !w.isClosing)}
         onNavigate={handleNavigate}
@@ -296,7 +300,7 @@ export default function HomePage() {
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
                 }}
               >
-                <DashboardSection onExecContainer={(name) => { setExecTarget(name); setTerminalOpen(true) }} />
+                <MetricsSection />
               </div>
             </>
           )}

@@ -37,7 +37,6 @@ interface SidebarProps {
 export function Sidebar({
   className,
   activeSection = "home",
-  currentSection = "home",
   hasOpenWindow = false,
   onNavigate,
   terminalOpen, 
@@ -93,21 +92,21 @@ export function Sidebar({
           <NavButton
             icon={LayoutGrid}
             label="Home"
-            active={!hasOpenWindow && currentSection === "home"}
+            active={!hasOpenWindow && activeSection === "home"}
             onClick={() => onNavigate?.("home")}
             theme={colorTheme}
           />
           <NavButton
             icon={Activity}
             label="Metrics"
-            active={!hasOpenWindow && currentSection === "metrics"}
+            active={!hasOpenWindow && activeSection === "metrics"}
             onClick={() => onNavigate?.("metrics")}
             theme={colorTheme}
           />
           <NavButton
             icon={Database}
             label="Backups"
-            active={!hasOpenWindow && currentSection === "backups"}
+            active={!hasOpenWindow && activeSection === "backups"}
             onClick={() => onNavigate?.("backups")}
             theme={colorTheme}
           />

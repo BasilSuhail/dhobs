@@ -29,8 +29,8 @@ import { listUsers } from '@/lib/db/users'
 import { _resetRateLimitStore } from '@/lib/rate-limit'
 
 // Wrong-credential fixtures used in negative tests (not real secrets)
-const WRONG_PASS   = 'incorrect'
-const WRONG_USER   = 'ghost'
+const WRONG_PASS   = 'incorrect-12'
+const WRONG_USER   = 'ghostuser'
 
 import { GET  as setupStatus } from '@/app/api/auth/setup/status/route'
 import { POST as setupPost   } from '@/app/api/auth/setup/route'
