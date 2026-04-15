@@ -282,8 +282,8 @@ export function BackupSection() {
 
                   <div className="space-y-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/30">Target Services</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button 
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5">
+                      <button
                         onClick={() => toggleService('all')}
                         className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight border transition-all ${
                           selectedServices.includes('all')
@@ -293,7 +293,7 @@ export function BackupSection() {
                       >
                         {selectedServices.includes('all') ? 'Deselect All' : 'Select All'}
                       </button>
-                      <div className="w-[1px] h-4 bg-border/50 mx-0.5 self-center" />
+                      <div className="w-[1px] h-4 bg-border/50 mx-0.5 self-center hidden sm:block" />
                       {['dashboard', 'jellyfin', 'nextcloud', 'mariadb', 'matrix', 'vaultwarden'].map(svc => {
                         const isSelected = selectedServices.includes('all') || selectedServices.includes(svc)
                         return (
@@ -371,7 +371,7 @@ export function BackupSection() {
                    </div>
                    {isLoading ? <Skeleton className="h-3 w-16" /> : <span className="text-[10px] font-mono text-foreground/60">Daily 03:00</span>}
                 </div>
-                
+
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -381,11 +381,19 @@ export function BackupSection() {
                     {isLoading ? <Skeleton className="h-3 w-8" /> : <span className="text-[10px] font-mono text-foreground/60">{diskUsage ?? '--'}%</span>}
                   </div>
                   <div className="h-1 w-full bg-secondary/10 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full transition-all duration-1000 ${diskUsage && diskUsage > 90 ? 'bg-rose-500' : diskUsage && diskUsage > 70 ? 'bg-amber-500' : 'bg-purple-500'}`}
                       style={{ width: `${diskUsage ?? 0}%` }}
                     />
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                   <div className="flex items-center gap-2">
+                      <Database className="w-3.5 h-3.5 text-emerald-400/60" />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Total Used</span>
+                   </div>
+                   {isLoading ? <Skeleton className="h-3 w-12" /> : <span className="text-[10px] font-mono text-emerald-400/80">{humanSize(totalBackupSize)}</span>}
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
@@ -420,11 +428,11 @@ export function BackupSection() {
           </div>
 
           <div className="overflow-hidden">
-            {/* Empty State */}
+            {/* Empty State - History */}
             {!isLoading && backups.length === 0 && activeTab === 'history' && (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center">
-                  <Database className="w-6 h-6 text-foreground/10" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 flex items-center justify-center border border-emerald-500/20">
+                  <Database className="w-8 h-8 text-emerald-400/60" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-[11px] font-bold text-foreground uppercase tracking-wider">No Snapshots</h3>
@@ -433,8 +441,35 @@ export function BackupSection() {
               </div>
             )}
 
+            {/* Empty State - Restore Logs */}
+            {!isLoading && restoreLogs.length === 0 && activeTab === 'restore-logs' && (
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-3">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 flex items-center justify-center border border-cyan-500/20">
+                  <RotateCcw className="w-8 h-8 text-cyan-400/60" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-[11px] font-bold text-foreground uppercase tracking-wider">No Restore Logs</h3>
+                  <p className="text-[10px] text-foreground/30 max-w-[200px]">Restore a snapshot to see history.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Loading State - Restore Logs */}
+            {isLoading && activeTab === 'restore-logs' && (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded border border-border/40">
+                    <Skeleton className="w-3 h-3 rounded-full" />
+                    <Skeleton className="w-24 h-3" />
+                    <Skeleton className="w-20 h-3 ml-auto" />
+                    <Skeleton className="w-16 h-3" />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Desktop Table View */}
-            <table className={`hidden md:table w-full text-[11px] text-left ${(!isLoading && backups.length === 0 && activeTab === 'history') ? 'opacity-0 h-0' : ''}`}>
+            <table className={`hidden md:table w-full text-[11px] text-left ${(!isLoading && backups.length === 0 && activeTab === 'history') || (isLoading && activeTab === 'restore-logs') ? 'opacity-0 h-0' : ''}`}>
               <thead>
                 <tr className="border-b border-border text-foreground/20 uppercase tracking-wider text-[9px] font-medium">
                   <th className="px-4 py-2 w-4"></th>
@@ -483,9 +518,18 @@ export function BackupSection() {
                         </td>
                         <td className="px-2 py-2 text-foreground/40 font-mono text-[10px] whitespace-nowrap">{humanSize(b.archive_size)}</td>
                         <td className="px-2 py-2">
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${b.status === 'success' ? 'text-emerald-400 bg-emerald-400/10' : b.status === 'in_progress' ? 'text-amber-400 bg-amber-400/10' : 'text-red-400 bg-red-400/10'}`}>
-                            {b.status.replace('_', ' ')}
-                          </span>
+                          {b.status === 'in_progress' ? (
+                            <div className="w-24 space-y-1">
+                              <div className="h-1 w-full bg-secondary/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-500 animate-pulse" style={{ width: '60%' }} />
+                              </div>
+                              <span className="text-[8px] font-bold text-amber-400 uppercase tracking-tight">Running...</span>
+                            </div>
+                          ) : (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${b.status === 'success' ? 'text-emerald-400 bg-emerald-400/10' : b.status === 'restored' ? 'text-cyan-400 bg-cyan-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                              {b.status.replace('_', ' ')}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
