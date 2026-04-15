@@ -26,9 +26,38 @@ echo "🚀 Launching Project S (Build & Run Mode)..."
 # Create .env if missing
 if [ ! -f .env ]; then
     if [ -f .env.example ]; then
-        echo "📝 Creating .env from .env.example..."
-        cp .env.example .env
-        echo "✅ Created .env. (Edit it manually if you need custom passwords)"
+        echo "┌─────────────────────────────────────────────────────┐"
+        echo "│  ⚠️  FIRST-TIME SETUP: .env FILE REQUIRED          │"
+        echo "└─────────────────────────────────────────────────────┘"
+        echo ""
+        echo "📝 .env.example detected. This file contains:"
+        echo "   • Database passwords"
+        echo "   • Matrix secrets"
+        echo "   • API keys"
+        echo ""
+        echo "   Recommended: Review and customize values before continuing."
+        echo ""
+        
+        # Check for --force flag for silent mode
+        if [[ "$*" == *"--force"* ]]; then
+            echo "⚡ --force flag detected: auto-creating .env..."
+            cp .env.example .env
+        else
+            # Interactive prompt
+            read -p "   Create .env now? [Y/n] " -n 1 -t 60 REPLY
+            echo ""
+            if [[ -z "$REPLY" ]] || [[ "$REPLY" =~ ^[Yy]$ ]]; then
+                cp .env.example .env
+                echo "✅ Created .env from .env.example"
+                echo ""
+                echo "   📌 Next step: Edit .env and customize passwords before running boom.sh again"
+                echo "   Or run with --force to skip this warning"
+                exit 0
+            else
+                echo "❌ .env required. Run boom.sh again when ready."
+                exit 1
+            fi
+        fi
     else
         echo "❌ Error: .env.example not found."
         exit 1
@@ -55,40 +84,33 @@ if [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; then
     fi
 fi
 
-# Sync Matrix secrets into homeserver.yaml template
+# Sync Matrix secrets into homeserver.yaml template using envsubst
+echo "🔧 Generating Matrix homeserver config..."
 LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- || echo "localhost")
 REG_SECRET=$(grep "^MATRIX_REGISTRATION_SECRET=" .env 2>/dev/null | cut -d'=' -f2-)
 MAC_SECRET=$(grep "^MATRIX_MACAROON_SECRET_KEY=" .env 2>/dev/null | cut -d'=' -f2-)
 FORM_SECRET=$(grep "^MATRIX_FORM_SECRET=" .env 2>/dev/null | cut -d'=' -f2-)
 DB_PASS=$(cat ./data/secrets/mysql_password 2>/dev/null || echo "dummy")
 
-cat <<EOF > ./config/matrix/homeserver.yaml.tpl
-server_name: "localhost"
-pid_file: /data/homeserver.pid
-listeners:
-  - port: 8008
-    tls: false
-    type: http
-    x_forwarded: true
-    resources:
-      - names: [client, federation]
-        compress: false
-database:
-  name: psycopg2
-  args:
-    user: synapse
-    password: "${DB_PASS:-change_me_generate_with_openssl_rand_hex_32}"
-    database: synapse
-    host: synapse-db
-    cp_min: 5
-    cp_max: 10
-log_config: "/data/localhost.log.config"
-media_store_path: /data/media_store
-registration_shared_secret: "$REG_SECRET"
-macaroon_secret_key: "$MAC_SECRET"
-form_secret: "$FORM_SECRET"
-report_stats: false
-EOF
+# Export variables for envsubst (safe YAML templating)
+export HOMESERVER_SERVER_NAME="localhost"
+export HOMESERVER_DB_PASS="${DB_PASS:-cfg_value_from_data_secrets}"
+export HOMESERVER_REG_KEY="${REG_SECRET:-cfg_value_from_data_secrets}"
+export HOMESERVER_MAC_KEY="${MAC_SECRET:-cfg_value_from_data_secrets}"
+export HOMESERVER_FORM_KEY="${FORM_SECRET:-cfg_value_from_data_secrets}"
+
+# Generate homeserver.yaml from template using envsubst
+envsubst < ./config/matrix/homeserver.yaml.tpl > ./config/matrix/homeserver.yaml.tmp
+mv ./config/matrix/homeserver.yaml.tmp ./config/matrix/homeserver.yaml
+
+# Validate generated YAML
+if command -v python3 &> /dev/null; then
+    if python3 -c "import yaml; yaml.safe_load(open('./config/matrix/homeserver.yaml'))" 2>/dev/null; then
+        echo "   ✅ Matrix config validated"
+    else
+        echo "   ⚠️  Matrix config validation skipped (PyYAML not installed)"
+    fi
+fi
 
 # Generate Element config
 cat <<EOF > ./config/matrix/element-config.json
