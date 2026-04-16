@@ -20,6 +20,23 @@ make release      # cross-compile all targets → dist/
 # Health:   http://localhost:9101/health
 ```
 
+## Service Install
+
+```bash
+./homeforge-agent --install-service
+./homeforge-agent --uninstall-service
+```
+
+| Platform | Install Target | Notes |
+|--------|--------|--------|
+| macOS | `~/Library/LaunchAgents/com.homeforge.agent.plist` | User LaunchAgent, starts on login |
+| Linux | `/etc/systemd/system/homeforge-agent.service` | Requires root, starts on boot |
+| Windows | Task Scheduler: `HomeForge Host Agent` | Requires elevated shell, starts on boot |
+
+Logs:
+- macOS / Linux: `/tmp/homeforge-agent.log`
+- Windows: Task Scheduler history / task last-run result
+
 ## Endpoints
 
 | Endpoint   | Response                          |
