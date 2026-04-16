@@ -13,20 +13,11 @@
 # wopi_callback_url overrides this — telling richdocuments to use the
 # Docker-internal hostname (http://nextcloud:80) for all WOPI callbacks.
 
-# Wait for Collabora to be reachable before configuring richdocuments.
-echo "Waiting for Collabora to be reachable..."
-RETRIES=0
-MAX_RETRIES=30
-while ! curl -sf http://collabora:9980/ > /dev/null 2>&1; do
-    RETRIES=$((RETRIES + 1))
-    if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-        echo "WARNING: Collabora not reachable after ${MAX_RETRIES} attempts. Configuring anyway."
-        break
-    fi
-    sleep 2
-done
-if [ "$RETRIES" -lt "$MAX_RETRIES" ]; then
+WAITER="${HOMEFORGE_WAITER:-/usr/local/bin/wait-for-db.sh}"
+if "$WAITER" http http://collabora:9980/ 90 "Collabora"; then
     echo "Collabora is reachable. Configuring richdocuments..."
+else
+    echo "WARNING: Collabora not reachable after wait window. Configuring anyway."
 fi
 
 php /var/www/html/occ app:enable richdocuments || true

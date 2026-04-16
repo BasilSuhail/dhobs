@@ -132,6 +132,7 @@ bash scripts/update.sh
 1. Creates encrypted backup
 2. Validates backup integrity
 3. Applies updates
+4. Waits for healthy database-backed startup before traffic reaches app services
 
 ### Rollback (if update breaks)
 
@@ -274,6 +275,7 @@ node scripts/host-agent.js
 | Multi-user auth with iron-session v8 encrypted cookies | ✅ |
 | All core services integrated and functional | ✅ |
 | Nextcloud Office auto-configured on every container start | ✅ |
+| Nextcloud/Synapse startup waits for healthy databases and migration guards | ✅ |
 | Entropy key + SQLCipher encrypted database at rest | ✅ |
 
 ---
