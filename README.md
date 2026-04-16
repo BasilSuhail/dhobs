@@ -84,6 +84,12 @@ chmod +x boom.sh
 
 **Best for:** Day-to-day restarts
 
+To stop stack:
+
+```bash
+docker compose down
+```
+
 **Important:**
 - `boom.sh` starts Docker stack
 - `boom.sh` does **not** install OS auto-start for host metrics agent
@@ -246,6 +252,13 @@ New user path:
 cd agent
 make all
 ./homeforge-agent
+```
+
+To stop manual agent run:
+
+```bash
+# same terminal
+Ctrl+C
 ```
 
 To install host auto-start:

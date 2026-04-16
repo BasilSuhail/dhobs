@@ -20,6 +20,13 @@ make release      # cross-compile all targets → dist/
 # Health:   http://localhost:9101/health
 ```
 
+To stop manual run:
+
+```bash
+# same terminal
+Ctrl+C
+```
+
 ## Service Install
 
 ```bash
