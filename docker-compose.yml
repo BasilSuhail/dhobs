@@ -150,7 +150,7 @@ services:
         limits:
           memory: 512m
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$(cat /run/secrets/mysql_root_password)\""]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -172,6 +172,8 @@ services:
     volumes:
       - ./data/nextcloud/html:/var/www/html
       - ./data/nextcloud/data:/var/www/nextcloud_data
+      - ./scripts/wait-for-db.sh:/usr/local/bin/wait-for-db.sh:ro
+      - ./config/nextcloud/startup-waiter.sh:/docker-entrypoint-hooks.d/before-starting/00-startup-waiter.sh:ro
       - ./config/nextcloud/setup-office.sh:/docker-entrypoint-hooks.d/before-starting/setup-office.sh:ro
       - ./config/nextcloud/setup-office-post-install.sh:/docker-entrypoint-hooks.d/post-installation/setup-office-post-install.sh:ro
     environment:
@@ -190,7 +192,7 @@ services:
       - nextcloud_admin_password
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       collabora:
         condition: service_healthy
     deploy:
@@ -337,11 +339,14 @@ services:
     ports:
       - '8008:8008'
     depends_on:
-      - synapse-db
+      synapse-db:
+        condition: service_healthy
     volumes:
       - ./data/matrix/synapse:/data
+      - ./scripts/wait-for-db.sh:/usr/local/bin/wait-for-db.sh:ro
       - ./config/matrix:/etc/synapse-config:ro
     environment:
+      - MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME:-localhost}
       - MATRIX_REGISTRATION_SECRET_FILE=/run/secrets/matrix_registration_secret
       - MATRIX_MACAROON_SECRET_KEY_FILE=/run/secrets/matrix_macaroon_secret_key
       - MATRIX_FORM_SECRET_FILE=/run/secrets/matrix_form_secret
@@ -352,7 +357,7 @@ services:
       - matrix_macaroon_secret_key
       - matrix_form_secret
       - mysql_password
-    entrypoint: ["/bin/sh", "-c", "python3 /etc/synapse-config/gen_config.py && cp /etc/synapse-config/localhost.log.config /data/localhost.log.config && exec python -m synapse.app.homeserver -c /data/homeserver.yaml -c /data/localhost.log.config"]
+    entrypoint: ["/bin/sh", "/etc/synapse-config/entrypoint.sh"]
     restart: on-failure:5
     deploy:
       resources:

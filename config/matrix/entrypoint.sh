@@ -1,25 +1,21 @@
 #!/bin/sh
-set -e
+set -eu
 
-# Substitute environment variables into homeserver.yaml before starting Synapse
-# This is needed because Synapse reads the config file directly and doesn't support
-# environment variable interpolation natively.
-INPUT="/data/homeserver.yaml.tpl"
-OUTPUT="/data/homeserver.yaml"
+WAITER="${HOMEFORGE_WAITER:-/usr/local/bin/wait-for-db.sh}"
 
-if [ -f "$INPUT" ]; then
-    # Use envsubst-style replacement with sed
-    sed \
-        -e "s/\${MATRIX_DB_USER}/${MATRIX_DB_USER}/g" \
-        -e "s/\${MATRIX_DB_PASSWORD}/${MATRIX_DB_PASSWORD}/g" \
-        -e "s/\${MATRIX_REGISTRATION_SECRET}/${MATRIX_REGISTRATION_SECRET}/g" \
-        -e "s/\${MATRIX_MACAROON_SECRET_KEY}/${MATRIX_MACAROON_SECRET_KEY}/g" \
-        -e "s/\${MATRIX_FORM_SECRET}/${MATRIX_FORM_SECRET}/g" \
-        "$INPUT" > "$OUTPUT"
-    echo "[entrypoint] homeserver.yaml generated from template"
+"$WAITER" tcp synapse-db 5432 90 "Synapse Postgres"
+
+python3 /etc/synapse-config/gen_config.py
+cp /etc/synapse-config/localhost.log.config /data/localhost.log.config
+
+if command -v update_synapse_database >/dev/null 2>&1; then
+    echo "[entrypoint] Applying Synapse database migrations"
+    (
+        cd /data
+        update_synapse_database --database-config /data/homeserver.yaml --run-background-updates
+    )
 else
-    echo "[entrypoint] Using existing homeserver.yaml (no template found)"
+    echo "[entrypoint] update_synapse_database not found; Synapse will migrate on startup"
 fi
 
-# Start Synapse
 exec python -m synapse.app.homeserver -c /data/homeserver.yaml -c /data/localhost.log.config

@@ -10,7 +10,7 @@ def get_secret(key):
 with open('/etc/synapse-config/homeserver.yaml.tpl') as f:
     content = f.read()
 
-for key in ['MATRIX_DB_USER', 'MATRIX_DB_PASSWORD', 'MATRIX_REGISTRATION_SECRET',
+for key in ['MATRIX_SERVER_NAME', 'MATRIX_DB_USER', 'MATRIX_DB_PASSWORD', 'MATRIX_REGISTRATION_SECRET',
             'MATRIX_MACAROON_SECRET_KEY', 'MATRIX_FORM_SECRET']:
     content = content.replace(f'${{{key}}}', get_secret(key))
 
