@@ -7,11 +7,19 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"log"
+	stdnet "net"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,13 +28,21 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
-	"github.com/shirou/gopsutil/v3/net"
+	gopsutilnet "github.com/shirou/gopsutil/v3/net"
 )
 
 const (
-	port     = ":9101"
-	cacheTTL = 2 * time.Second
+	port              = ":9101"
+	cacheTTL          = 2 * time.Second
+	serviceLabel      = "com.homeforge.agent"
+	serviceTaskName   = "HomeForge Host Agent"
+	defaultAgentLog   = "/tmp/homeforge-agent.log"
+	launchAgentRel    = "Library/LaunchAgents/com.homeforge.agent.plist"
+	systemdServiceRel = "/etc/systemd/system/homeforge-agent.service"
 )
+
+//go:embed init/*
+var initTemplates embed.FS
 
 // --- JSON response types (must match dashboard expectations in app/api/stats/route.ts) ---
 
@@ -200,7 +216,7 @@ func isVirtualFS(fstype string) bool {
 }
 
 func collectNetwork() NetMetrics {
-	counters, err := net.IOCounters(false) // false = aggregate all interfaces
+	counters, err := gopsutilnet.IOCounters(false) // false = aggregate all interfaces
 	if err != nil || len(counters) == 0 {
 		return NetMetrics{}
 	}
@@ -331,9 +347,231 @@ func round1(f float64) float64 {
 	return float64(int(f*10+0.5)) / 10
 }
 
+func executablePath() (string, error) {
+	path, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(path)
+	if err == nil {
+		return resolved, nil
+	}
+	return path, nil
+}
+
+func renderTemplate(name string, values map[string]string) (string, error) {
+	raw, err := initTemplates.ReadFile(name)
+	if err != nil {
+		return "", err
+	}
+
+	out := string(raw)
+	for key, val := range values {
+		out = strings.ReplaceAll(out, "{{"+key+"}}", val)
+	}
+
+	return out, nil
+}
+
+func ensureDir(path string) error {
+	return os.MkdirAll(path, 0o755)
+}
+
+func writeFile(path string, content string, mode os.FileMode) error {
+	if err := ensureDir(filepath.Dir(path)); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(content), mode)
+}
+
+func runCommand(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func runCommandQuiet(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	return cmd.Run()
+}
+
+func agentPortBusy() bool {
+	ln, err := stdnet.Listen("tcp", port)
+	if err != nil {
+		return true
+	}
+	_ = ln.Close()
+	return false
+}
+
+func installLaunchd(binaryPath string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	plistPath := filepath.Join(home, launchAgentRel)
+	content, err := renderTemplate("init/launchd.plist.tpl", map[string]string{
+		"LABEL":       serviceLabel,
+		"BINARY_PATH": binaryPath,
+		"WORKING_DIR": filepath.Dir(binaryPath),
+		"LOG_PATH":    defaultAgentLog,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := writeFile(plistPath, content, 0o644); err != nil {
+		return err
+	}
+
+	_ = runCommandQuiet("launchctl", "unload", "-w", plistPath)
+	if err := runCommand("launchctl", "load", "-w", plistPath); err != nil {
+		return err
+	}
+	if agentPortBusy() {
+		log.Printf("LaunchAgent installed. Port %s already busy, skipping immediate start.", port)
+		return nil
+	}
+
+	log.Printf("LaunchAgent installed at %s", plistPath)
+	return nil
+}
+
+func uninstallLaunchd() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	plistPath := filepath.Join(home, launchAgentRel)
+	_ = runCommandQuiet("launchctl", "unload", "-w", plistPath)
+	if err := os.Remove(plistPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	log.Printf("LaunchAgent removed from %s", plistPath)
+	return nil
+}
+
+func installSystemd(binaryPath string) error {
+	if os.Geteuid() != 0 {
+		return errors.New("systemd install requires root")
+	}
+
+	content, err := renderTemplate("init/systemd.service.tpl", map[string]string{
+		"BINARY_PATH": binaryPath,
+		"WORKING_DIR": filepath.Dir(binaryPath),
+		"LOG_PATH":    defaultAgentLog,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := writeFile(systemdServiceRel, content, 0o644); err != nil {
+		return err
+	}
+	if err := runCommand("systemctl", "daemon-reload"); err != nil {
+		return err
+	}
+	if err := runCommand("systemctl", "enable", "homeforge-agent.service"); err != nil {
+		return err
+	}
+	if agentPortBusy() {
+		log.Printf("systemd service installed. Port %s already busy, skipping immediate start.", port)
+		return nil
+	}
+	if err := runCommand("systemctl", "start", "homeforge-agent.service"); err != nil {
+		return err
+	}
+
+	log.Printf("systemd service installed at %s", systemdServiceRel)
+	return nil
+}
+
+func uninstallSystemd() error {
+	if os.Geteuid() != 0 {
+		return errors.New("systemd uninstall requires root")
+	}
+
+	_ = runCommand("systemctl", "disable", "--now", "homeforge-agent.service")
+	if err := os.Remove(systemdServiceRel); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := runCommand("systemctl", "daemon-reload"); err != nil {
+		return err
+	}
+
+	log.Printf("systemd service removed from %s", systemdServiceRel)
+	return nil
+}
+
+func installWindowsTask(binaryPath string) error {
+	taskRun := fmt.Sprintf("\"%s\"", binaryPath)
+	return runCommand("schtasks", "/create", "/tn", serviceTaskName, "/tr", taskRun, "/sc", "onstart", "/ru", "SYSTEM", "/rl", "HIGHEST", "/f")
+}
+
+func uninstallWindowsTask() error {
+	return runCommand("schtasks", "/delete", "/tn", serviceTaskName, "/f")
+}
+
+func installService() error {
+	binaryPath, err := executablePath()
+	if err != nil {
+		return err
+	}
+
+	switch runtime.GOOS {
+	case "darwin":
+		return installLaunchd(binaryPath)
+	case "linux":
+		return installSystemd(binaryPath)
+	case "windows":
+		return installWindowsTask(binaryPath)
+	default:
+		return fmt.Errorf("service install unsupported on %s", runtime.GOOS)
+	}
+}
+
+func uninstallService() error {
+	switch runtime.GOOS {
+	case "darwin":
+		return uninstallLaunchd()
+	case "linux":
+		return uninstallSystemd()
+	case "windows":
+		return uninstallWindowsTask()
+	default:
+		return fmt.Errorf("service uninstall unsupported on %s", runtime.GOOS)
+	}
+}
+
 // --- Main ---
 
 func main() {
+	installFlag := flag.Bool("install-service", false, "Install the host agent as an OS-native service")
+	uninstallFlag := flag.Bool("uninstall-service", false, "Remove the OS-native host agent service")
+	flag.Parse()
+
+	if *installFlag && *uninstallFlag {
+		log.Fatal("use only one of --install-service or --uninstall-service")
+	}
+
+	if *installFlag {
+		if err := installService(); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if *uninstallFlag {
+		if err := uninstallService(); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
 	http.HandleFunc("/metrics", handleMetrics)
 	http.HandleFunc("/health", handleHealth)
 

@@ -238,6 +238,12 @@ make all
 ./homeforge-agent
 ```
 
+To install host auto-start:
+
+```bash
+./homeforge-agent --install-service
+```
+
 **Dashboard shows:**
 - 🍎 **macOS** / 🪟 **Windows** / 🐧 **Linux** badge
 - 🔵 **Agent Connected** indicator
