@@ -92,6 +92,7 @@ docker compose down
 
 **Important:**
 - `boom.sh` starts Docker stack
+- on macOS / Windows, `boom.sh` also starts host metrics agent for current session
 - `boom.sh` does **not** install OS auto-start for host metrics agent
 - macOS / Windows users who want host metrics after reboot must install agent separately
 
@@ -244,11 +245,12 @@ Docker runs in a VM on macOS/Windows and can't read host metrics directly. Use t
 
 New user path:
 - run `boom.sh` first to start dashboard stack
-- if on macOS or Windows and you want real host metrics, install host agent too
+- if on macOS or Windows, `boom.sh` already starts host agent for current session
+- install host agent only if you want it to come back after reboot or login
 - Linux users do not need host agent for normal metrics
 
 ```bash
-# macOS/Windows only (Linux users get metrics automatically)
+# optional manual run if not using boom.sh
 cd agent
 make all
 ./homeforge-agent
