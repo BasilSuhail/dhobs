@@ -700,3 +700,12 @@
 * Duration 0.5 days
 * Owner Author
 * Status ✅ Complete — Merged via PR #208
+
+### Task 65 Backup UI Polish and Theme Alignment
+* Category UI Polish
+* Description Refine the Backup tab to match Metrics-page quality: stat pills, skeleton loading, mobile card view, real progress, and polished empty state.
+* Dependencies Issue #211, Log 54
+* Priority Medium
+* Duration 0.5 day
+* Owner Author
+* Status ✅ Complete — Merged via PR #214
