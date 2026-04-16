@@ -1,3 +1,3 @@
 :HL["/ProjectS-HomeForge/_next/static/chunks/03skr0w94vvsw.css","style"]
 :HL["/ProjectS-HomeForge/_next/static/chunks/0-2hot4e2vkx6.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"ywpgjwt7UnU6Y-qV3o4dX"}
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"mzwAW5QMLMnU1asHNLOai"}
