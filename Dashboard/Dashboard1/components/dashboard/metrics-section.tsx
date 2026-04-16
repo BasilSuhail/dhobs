@@ -665,7 +665,7 @@ export function MetricsSection({ landingData }: { landingData?: StatsData }) {
             )}
 
             {/* UPS Status */}
-            {stats?.ups?.batteryPerc !== null && stats && (
+            {stats?.ups && stats.ups.batteryPerc !== null && (
               <div>
                 <SectionHeader title="UPS" />
                 <div className="bg-secondary/5 rounded-lg p-3">

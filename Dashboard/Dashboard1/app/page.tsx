@@ -60,7 +60,13 @@ export default function HomePage() {
     ],
     disks: [
       { mount: "/", total: "1TB", used: "320GB", avail: "680GB", usePerc: 32, device: "/dev/sda1" }
-    ]
+    ],
+    ups: {
+      batteryPerc: 100,
+      loadPerc: 12,
+      runtimeMin: 45,
+      status: "OL"
+    }
   } : undefined
 
   useEffect(() => {
