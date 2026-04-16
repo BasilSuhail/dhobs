@@ -28,17 +28,35 @@
 
 ## 📋 Table of Contents
 
-1. [Quick Start](#1-quick-start)
-2. [Update & Rollback](#2-update--rollback)
-3. [First-Time Security Setup](#3-first-time-security-setup)
-4. [Integrated Services](#4-integrated-services)
+### 🚀 Getting Started
+1. [Quick Start](#1--quick-start)
+2. [Update & Rollback](#2--update--rollback)
+3. [First-Time Security Setup](#3--first-time-security-setup)
+
+### 📦 Services & Usage
+4. [Integrated Services](#4--integrated-services)
+   - [4.1 External Access (Traefik HTTPS)](#41-external-access-traefik-https)
+   - [4.2 Direct Ports (Dashboard iframes)](#42-direct-ports-dashboard-iframes)
+   - [4.3 Remote Access (Tailscale — Optional)](#43-remote-access-tailscale--optional)
+   - [4.4 Host Metrics (macOS/Windows — Optional)](#44-host-metrics-macoswindows--optional)
+   - [4.5 Internal Only](#45-internal-only)
 5. [Adding New Services](#5-adding-new-services)
+
+### 🛡️ Core Infrastructure
 6. [What's Working](#6-whats-working)
 7. [What's Not Yet Ready](#7-whats-not-yet-ready)
 8. [Security Model](#8-security-model)
+   - [8.1 Encryption Flow](#81-encryption-flow)
+   - [8.2 Security Features](#82-security-features)
 9. [Architecture Overview](#9-architecture-overview)
+   - [9.1 System Diagram](#91-system-diagram)
+   - [9.2 Network Topology](#92-network-topology)
+
+### 🗺️ Project & Meta
 10. [Roadmap](#10-roadmap)
 11. [Project Documentation](#11-project-documentation)
+    - [11.1 Architecture Resources](#111-architecture-resources)
+    - [11.2 Implementation Logs](#112-implementation-logs)
 12. [Licensing](#12-licensing)
 13. [Team & Contributors](#13-team--contributors)
 
