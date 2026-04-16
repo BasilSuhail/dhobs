@@ -120,3 +120,7 @@ Linux install will require root.
 macOS install will be user-level, no root.
 
 Linux and Windows command paths implemented, but not live-run on this macOS host.
+
+README follow-up:
+- clarified `boom.sh` starts Docker stack only
+- clarified host agent auto-start is separate optional step on macOS/Windows

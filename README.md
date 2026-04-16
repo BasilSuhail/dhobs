@@ -84,6 +84,11 @@ chmod +x boom.sh
 
 **Best for:** Day-to-day restarts
 
+**Important:**
+- `boom.sh` starts Docker stack
+- `boom.sh` does **not** install OS auto-start for host metrics agent
+- macOS / Windows users who want host metrics after reboot must install agent separately
+
 ### Option B: The "Install" Script (Linux / First-Time Setup)
 
 ```bash
@@ -231,6 +236,11 @@ Accessible from anywhere via MagicDNS:
 
 Docker runs in a VM on macOS/Windows and can't read host metrics directly. Use the compiled Go agent for high-performance, zero-dependency monitoring.
 
+New user path:
+- run `boom.sh` first to start dashboard stack
+- if on macOS or Windows and you want real host metrics, install host agent too
+- Linux users do not need host agent for normal metrics
+
 ```bash
 # macOS/Windows only (Linux users get metrics automatically)
 cd agent
@@ -242,6 +252,12 @@ To install host auto-start:
 
 ```bash
 ./homeforge-agent --install-service
+```
+
+To remove host auto-start:
+
+```bash
+./homeforge-agent --uninstall-service
 ```
 
 **Dashboard shows:**
