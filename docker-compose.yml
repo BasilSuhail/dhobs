@@ -346,6 +346,7 @@ services:
       - ./scripts/wait-for-db.sh:/usr/local/bin/wait-for-db.sh:ro
       - ./config/matrix:/etc/synapse-config:ro
     environment:
+      - MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME:-localhost}
       - MATRIX_REGISTRATION_SECRET_FILE=/run/secrets/matrix_registration_secret
       - MATRIX_MACAROON_SECRET_KEY_FILE=/run/secrets/matrix_macaroon_secret_key
       - MATRIX_FORM_SECRET_FILE=/run/secrets/matrix_form_secret

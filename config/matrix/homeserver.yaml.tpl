@@ -1,4 +1,4 @@
-server_name: "${HOMESERVER_SERVER_NAME}"
+server_name: "${MATRIX_SERVER_NAME}"
 pid_file: /data/homeserver.pid
 listeners:
   - port: 8008
@@ -12,14 +12,14 @@ database:
   name: psycopg2
   args:
     user: synapse
-    password: "${HOMESERVER_DB_PASS}"
+    password: "${MATRIX_DB_PASSWORD}"
     database: synapse
     host: synapse-db
     cp_min: 5
     cp_max: 10
 log_config: "/data/localhost.log.config"
 media_store_path: /data/media_store
-registration_shared_secret: "${HOMESERVER_REG_KEY}"
-macaroon_secret_key: "${HOMESERVER_MAC_KEY}"
-form_secret: "${HOMESERVER_FORM_KEY}"
+registration_shared_secret: "${MATRIX_REGISTRATION_SECRET}"
+macaroon_secret_key: "${MATRIX_MACAROON_SECRET_KEY}"
+form_secret: "${MATRIX_FORM_SECRET}"
 report_stats: false

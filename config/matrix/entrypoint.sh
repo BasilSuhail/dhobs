@@ -10,7 +10,10 @@ cp /etc/synapse-config/localhost.log.config /data/localhost.log.config
 
 if command -v update_synapse_database >/dev/null 2>&1; then
     echo "[entrypoint] Applying Synapse database migrations"
-    update_synapse_database --database-config /data/homeserver.yaml --run-background-updates
+    (
+        cd /data
+        update_synapse_database --database-config /data/homeserver.yaml --run-background-updates
+    )
 else
     echo "[entrypoint] update_synapse_database not found; Synapse will migrate on startup"
 fi
