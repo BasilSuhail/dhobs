@@ -312,7 +312,7 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setCORSHeaders(w)
+	setCORSHeaders(w, r)
 
 	m, ok := metricsCache.get()
 	if !ok {
@@ -331,14 +331,18 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
-	setCORSHeaders(w)
+	setCORSHeaders(w, r)
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, `{"status":"ok","platform":%q}`, runtime.GOOS)
 }
 
-func setCORSHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET")
+func setCORSHeaders(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	// Allow only the dashboard origin — reject wildcard to prevent XSS-based metrics exfiltration
+	if origin == "http://localhost:3069" || origin == "http://127.0.0.1:3069" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET")
+	}
 }
 
 // --- Helpers ---
