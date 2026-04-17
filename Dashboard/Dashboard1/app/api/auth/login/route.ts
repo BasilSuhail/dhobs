@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { verifyUser, isSetupComplete } from '@/lib/db/users'
 import { sessionOptions, type SessionData } from '@/lib/session'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { getDb } from '@/lib/db'
 
 const LoginSchema = z.object({
   username: z.string().min(1).max(64),
@@ -14,14 +15,8 @@ const LoginSchema = z.object({
 const LOGIN_LIMIT = { windowMs: 15 * 60 * 1000, max: 10 }
 
 export async function POST(req: NextRequest) {
-  // Clean up expired temp TOTP tokens
-  const tokenStore = globalThis as typeof globalThis & { _totpTokens?: Map<string, { expires: number }> }
-  if (tokenStore._totpTokens) {
-    const now = Date.now()
-    for (const [key, val] of tokenStore._totpTokens) {
-      if (val.expires < now) tokenStore._totpTokens.delete(key)
-    }
-  }
+  // Clean up expired temp TOTP tokens from SQLite
+  getDb().prepare('DELETE FROM totp_temp_tokens WHERE expires_at < ?').run(Date.now())
 
   if (!isSetupComplete()) {
     return NextResponse.json({ error: 'Setup not complete' }, { status: 403 })
@@ -68,14 +63,9 @@ export async function POST(req: NextRequest) {
       `${user.id}:${user.username}:${user.role}:${Date.now()}`
     ).toString('base64url')
 
-    const store = globalThis as typeof globalThis & { _totpTokens?: Map<string, { userId: number; username: string; role: string; expires: number }> }
-    if (!store._totpTokens) store._totpTokens = new Map()
-    store._totpTokens.set(tempToken, {
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-      expires: Date.now() + 5 * 60 * 1000,
-    })
+    getDb().prepare(
+      'INSERT INTO totp_temp_tokens (token, user_id, username, role, expires_at) VALUES (?, ?, ?, ?, ?)'
+    ).run(tempToken, user.id, user.username, user.role, Date.now() + 5 * 60 * 1000)
 
     return NextResponse.json(
       { needsTotp: true, tempToken },
