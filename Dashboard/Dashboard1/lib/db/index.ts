@@ -56,6 +56,14 @@ export function getDb(): Database.Database {
     -- Run periodically via index check
 
     INSERT OR IGNORE INTO app_state(key, value) VALUES ('setup_complete', '0');
+
+    CREATE TABLE IF NOT EXISTS totp_temp_tokens (
+      token      TEXT    PRIMARY KEY,
+      user_id    INTEGER NOT NULL,
+      username   TEXT    NOT NULL,
+      role       TEXT    NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
   `)
 
   // Add TOTP columns if they don't exist (idempotent)

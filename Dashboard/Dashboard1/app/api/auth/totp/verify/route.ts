@@ -23,15 +23,17 @@ export async function POST(req: NextRequest) {
 
   // Login mode with tempToken
   if (tempToken) {
-    const tokenStore = globalThis as typeof globalThis & { _totpTokens?: Map<string, { userId: number; username: string; role: string; expires: number }> }
-    const tokenData = tokenStore._totpTokens?.get(tempToken)
+    const db = getDb()
+    const tokenData = db.prepare(
+      'SELECT user_id, username, role, expires_at FROM totp_temp_tokens WHERE token = ?'
+    ).get(tempToken) as { user_id: number; username: string; role: string; expires_at: number } | undefined
 
-    if (!tokenData || tokenData.expires < Date.now()) {
-      tokenStore._totpTokens?.delete(tempToken)
+    if (!tokenData || tokenData.expires_at < Date.now()) {
+      db.prepare('DELETE FROM totp_temp_tokens WHERE token = ?').run(tempToken)
       return NextResponse.json({ error: 'Token expired' }, { status: 401 })
     }
 
-    const user = getUserById(tokenData.userId)
+    const user = getUserById(tokenData.user_id)
     if (!user || !user.totp_secret) {
       return NextResponse.json({ error: 'TOTP not configured' }, { status: 400 })
     }
@@ -41,12 +43,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid code' }, { status: 401 })
     }
 
-    tokenStore._totpTokens?.delete(tempToken)
+    db.prepare('DELETE FROM totp_temp_tokens WHERE token = ?').run(tempToken)
 
     // Create session via cookie response
     const cookieRes = new NextResponse()
     const session = await getIronSession<SessionData>(req, cookieRes, sessionOptions)
-    session.userId = tokenData.userId
+    session.userId = tokenData.user_id
     session.username = tokenData.username
     session.role = tokenData.role as 'admin' | 'viewer'
     await session.save()

@@ -57,10 +57,14 @@ function isContainerRunning(name: string): Promise<boolean> {
   })
 }
 
+// One-time use tracking for WS tickets — prevents replay within the TTL window
+const _usedTickets = new Set<string>()
+
 /**
  * Verify a WS auth ticket issued by GET /api/auth/ws-ticket.
  * Ticket format: "{timestamp_ms}.{hmac-sha256-hex}"
- * Returns true only when the HMAC is valid AND the ticket is within 30 seconds of issue.
+ * Returns true only when the HMAC is valid, the ticket is within 5 seconds of
+ * issue, and the ticket has not been used before (one-time use).
  */
 function verifyWsTicket(ticket: string | null): boolean {
   const secret = process.env.WS_SECRET
@@ -72,18 +76,30 @@ function verifyWsTicket(ticket: string | null): boolean {
   const ts  = ticket.slice(0, dot)
   const sig = ticket.slice(dot + 1)
 
-  // Reject tickets older than 30 seconds
+  // Reject tickets older than 5 seconds
   const timestamp = parseInt(ts, 10)
-  if (isNaN(timestamp) || Date.now() - timestamp > 30_000) return false
+  if (isNaN(timestamp) || Date.now() - timestamp > 5_000) return false
 
   // Constant-time HMAC comparison — prevents timing oracle attacks
   const expected = createHmac('sha256', secret).update(ts).digest('hex')
+  let valid: boolean
   try {
-    return timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))
+    valid = timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))
   } catch {
     // Buffer.from throws if sig is not valid hex or wrong length
     return false
   }
+
+  if (!valid) return false
+
+  // One-time use: reject replayed tickets
+  if (_usedTickets.has(ticket)) return false
+  _usedTickets.add(ticket)
+
+  // Auto-evict after TTL to bound memory growth
+  setTimeout(() => _usedTickets.delete(ticket), 5_000)
+
+  return true
 }
 
 const server = createServer((_req, res) => {
