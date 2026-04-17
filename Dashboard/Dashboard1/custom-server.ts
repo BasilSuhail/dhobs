@@ -33,11 +33,12 @@ const VALID_SHELL_TYPES = new Set(['ollama', 'container', null])
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 
 
-/** Check if a named container is running via Docker socket. */
+/** Check if a named container is running via socket-proxy (TCP). */
 function isContainerRunning(name: string): Promise<boolean> {
   return new Promise((resolve) => {
     const req = httpGet({
-      socketPath: '/var/run/docker.sock',
+      host: 'socket-proxy',
+      port: 2375,
       path: `/containers/${name}/json`,
     }, (res) => {
       let data = ''

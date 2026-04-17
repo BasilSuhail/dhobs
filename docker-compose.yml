@@ -83,7 +83,6 @@ services:
       - '3069:3069'
       - '3070:3070'
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data:ro
       - ./data/security:/app/data/security
       # Host metrics for Linux support (graceful degrade on macOS/Windows)
@@ -93,10 +92,12 @@ services:
       - PORT=3069
       - WS_PORT=3070
       - SECURITY_DIR=/app/data/security
+      - DOCKER_HOST=tcp://socket-proxy:2375
     restart: 'unless-stopped'
     depends_on:
       - jellyfin
       - nextcloud
+      - socket-proxy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3069/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 30s

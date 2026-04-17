@@ -7,7 +7,8 @@ export async function POST() {
   return new Promise<NextResponse>((resolve) => {
     const req = http.request(
       {
-        socketPath: '/var/run/docker.sock',
+        host: 'socket-proxy',
+        port: 2375,
         path: '/containers/project-s-kiwix-reader/restart',
         method: 'POST',
       },
