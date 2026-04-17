@@ -306,6 +306,25 @@ fi
 # ──────────────────────────────────────────────
 echo ""
 echo "Setting up external health monitor..."
+
+# Ensure cron is installed on Linux if missing
+if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v crontab &> /dev/null; then
+    echo "   crontab not found. Attempting to install cron..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update && sudo apt-get install -y cron
+        sudo systemctl enable --now cron || true
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -S --noconfirm cronie
+        sudo systemctl enable --now cronie
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y cronie
+        sudo systemctl enable --now cronie
+    else
+        echo "   ⚠️  Could not find a supported package manager to install cron."
+        echo "   Please install 'cron' or 'cronie' manually for health monitoring."
+    fi
+fi
+
 HEALTH_SCRIPT="$(pwd)/health.sh"
 
 # Make the script executable
