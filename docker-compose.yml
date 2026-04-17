@@ -239,7 +239,7 @@ services:
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password=${COLLABORA_PASSWORD}
-      - extra_params=--o:ssl.enable=false --o:ssl.termination=false
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=false --o:security.capabilities=false
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9980/"]
       interval: 30s
@@ -247,11 +247,10 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    cap_drop:
+      - ALL
     cap_add:
       - MKNOD
-      - SYS_ADMIN
-    security_opt:
-      - seccomp=unconfined
     deploy:
       resources:
         limits:
@@ -569,9 +568,9 @@ services:
     container_name: project-s-openvpn
     networks:
       - backend
-    privileged: true
     cap_add:
       - NET_ADMIN
+      - NET_RAW
     ports:
       - '1194:1194/udp'
     volumes:
@@ -597,8 +596,8 @@ services:
     depends_on:
       - openvpn
     environment:
-      - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME:-admin}
-      - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD:-admin}
+      - OPENVPN_ADMIN_USERNAME=${VPN_ADMIN_USERNAME}
+      - OPENVPN_ADMIN_PASSWORD=${VPN_ADMIN_PASSWORD}
     volumes:
       - ./data/vpn:/etc/openvpn
       - ./data/vpn/db:/opt/openvpn-ui/db
