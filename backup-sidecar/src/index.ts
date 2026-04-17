@@ -78,15 +78,21 @@ app.delete('/backups/:jobId', (req, res) => {
   
   if (!row) return res.status(404).json({ error: 'Backup not found' })
 
-  // Delete the physical file only if it exists and is valid
+  // Delete the physical file only if it exists, is valid, and within the backup directory
   if (row.archive_path && typeof row.archive_path === 'string' && row.archive_path.trim() !== '') {
-    const archivePath = path.join(process.env.SNAPSHOT_DIR || '/backups', row.archive_path)
-    try {
-      if (fs.existsSync(archivePath) && fs.lstatSync(archivePath).isFile()) {
-        fs.unlinkSync(archivePath)
+    const baseDir = path.resolve(process.env.SNAPSHOT_DIR || '/backups')
+    const archivePath = path.resolve(baseDir, row.archive_path)
+    // Boundary check — prevent path traversal via crafted archive_path in DB
+    if (!archivePath.startsWith(baseDir + path.sep)) {
+      console.warn(`Path traversal blocked for archive_path: ${row.archive_path}`)
+    } else {
+      try {
+        if (fs.existsSync(archivePath) && fs.lstatSync(archivePath).isFile()) {
+          fs.unlinkSync(archivePath)
+        }
+      } catch (e) {
+        console.warn(`Failed to delete file ${archivePath}: ${e}`)
       }
-    } catch (e) {
-      console.warn(`Failed to delete file ${archivePath}: ${e}`)
     }
   }
 
