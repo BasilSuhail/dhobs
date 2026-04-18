@@ -35,7 +35,8 @@ export default function HomePage() {
   const [currentSection, setCurrentSection] = useState("home")
   const [openWindows, setOpenWindows] = useState<ActiveWindow[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
-  const homeMetricsThreshold = 0.55
+  const homeMetricsThreshold = 0.35
+  const homeBackupsThreshold = 0.65
 
   // Mock data for Landing Page
   const MOCK_STATS = IS_LANDING ? {
@@ -78,7 +79,7 @@ export default function HomePage() {
       if (!containerRef.current || currentSection !== "home") return
       const scrollTop = window.scrollY
       const windowHeight = window.innerHeight
-      const progress = Math.min(scrollTop / windowHeight, 1)
+      const progress = Math.min(scrollTop / (windowHeight * 2), 1)
       setScrollProgress(progress)
     }
 
@@ -152,7 +153,9 @@ export default function HomePage() {
   const bgColor = mounted ? colorTheme.background : "#0a0a0a"
   const accentColor = mounted ? colorTheme.accent : "#d4e157"
   const highlightedSection =
-    currentSection === "home" && scrollProgress >= homeMetricsThreshold
+    currentSection === "home" && scrollProgress >= homeBackupsThreshold
+      ? "backups"
+      : currentSection === "home" && scrollProgress >= homeMetricsThreshold
       ? "metrics"
       : currentSection
 
@@ -190,7 +193,7 @@ export default function HomePage() {
   return (
     <div 
       ref={containerRef}
-      className={currentSection === "home" ? "relative min-h-[200vh]" : "relative h-screen overflow-hidden"}
+      className={currentSection === "home" ? "relative min-h-[300vh]" : "relative h-screen overflow-hidden"}
       style={{ backgroundColor: bgColor }}
     >
       {/* Landing Page Banner */}
@@ -324,7 +327,7 @@ export default function HomePage() {
             <>
               <div
                 style={{
-                  opacity: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 0 : 1 - scrollProgress * 1.5,
+                  opacity: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 0 : 1 - scrollProgress * 4,
                   transform: `translateY(${-scrollProgress * 50}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
                   pointerEvents: openWindows.some(w => !w.isMinimized && !w.isClosing) ? 'none' : 'auto',
@@ -335,12 +338,26 @@ export default function HomePage() {
               </div>
               <div
                 style={{
-                  opacity: scrollProgress > 0.3 ? (scrollProgress - 0.3) / 0.7 : 0,
-                  transform: `translateY(${(1 - scrollProgress) * 30}px)`,
+                  opacity: scrollProgress > 0.15
+                    ? scrollProgress < 0.55
+                      ? (scrollProgress - 0.15) / 0.4
+                      : Math.max(0, 1 - (scrollProgress - 0.55) / 0.15)
+                    : 0,
+                  transform: `translateY(${(1 - Math.min(scrollProgress / 0.35, 1)) * 30}px)`,
                   transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
                 }}
               >
                 <MetricsSection landingData={MOCK_STATS as any} />
+              </div>
+              <div
+                style={{
+                  opacity: scrollProgress > 0.65 ? Math.min((scrollProgress - 0.65) / 0.2, 1) : 0,
+                  transform: `translateY(${Math.max(0, (1 - (scrollProgress - 0.65) / 0.2)) * 30}px)`,
+                  transition: "opacity 0.1s ease-out, transform 0.1s ease-out",
+                  pointerEvents: scrollProgress > 0.65 ? 'auto' : 'none',
+                }}
+              >
+                <BackupSection isLanding={IS_LANDING} />
               </div>
             </>
           )}
