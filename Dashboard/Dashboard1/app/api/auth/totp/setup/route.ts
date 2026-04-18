@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { getUserById } from '@/lib/db/users'
 import { generateTotpSecret, generateTotpUri, generateQrDataUri } from '@/lib/totp'
+import { getDb } from '@/lib/db'
 
 export async function GET() {
   const session = await requireSession()
@@ -13,8 +14,13 @@ export async function GET() {
   }
 
   const secret = generateTotpSecret()
+  
+  // Save the generated secret to the database so it can be verified later
+  getDb().prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, session.userId)
+
   const uri = generateTotpUri(secret, session.username)
   const qrDataUri = await generateQrDataUri(uri)
 
   return NextResponse.json({ enabled: false, secret, qrDataUri })
 }
+
