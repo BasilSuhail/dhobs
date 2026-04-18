@@ -29,23 +29,6 @@ const SERVICE_PORTS = [
   { name: "VPN Manager", port: 8090, icon: Shield },
 ]
 
-const bookmarks = {
-  Communicate: [
-    { name: "Discord", url: "discord.com" },
-    { name: "Gmail", url: "gmail.com" },
-    { name: "Slack", url: "slack.com" },
-  ],
-  Cloud: [
-    { name: "Box", url: "box.com" },
-    { name: "Dropbox", url: "dropbox.com" },
-    { name: "Drive", url: "drive.google.com" },
-  ],
-  Dev: [
-    { name: "GitHub", url: "github.com" },
-    { name: "Devdocs", url: "devdocs.io" },
-    { name: "Stack Overflow", url: "stackoverflow.com" },
-  ],
-}
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -206,46 +189,6 @@ export function WelcomeSection({ onNavigate }: WelcomeSectionProps) {
                 </a>
               )
             })}
-          </div>
-        </div>
-
-        {/* Bookmarks */}
-        <div>
-          <h2 
-            className="text-sm font-bold tracking-wider mb-6 uppercase"
-            style={{ color: colorTheme.foreground }}
-          >
-            Bookmarks
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-            {Object.entries(bookmarks).map(([category, links]) => (
-              <div key={category}>
-                <h3 
-                  className="text-xs font-semibold tracking-wider mb-3 uppercase"
-                  style={{ color: colorTheme.accent }}
-                >
-                  {category}
-                </h3>
-                <ul className="space-y-2">
-                  {links.map((link) => {
-                    const href = link.url.startsWith('http') ? link.url : `https://${link.url}`
-                    return (
-                      <li key={link.name}>
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm transition-colors hover:underline"
-                          style={{ color: colorTheme.muted }}
-                        >
-                          {link.name}
-                        </a>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ))}
           </div>
         </div>
 
