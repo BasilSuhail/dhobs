@@ -42,9 +42,10 @@ php /var/www/html/occ config:app:set richdocuments wopi_callback_url \
 # IMPORTANT: this value is baked into Nextcloud's Content Security Policy on
 # every page load. If it is 'localhost', the browser will block Collabora from
 # loading on any device that is not the server itself.
-# For local Docker access, we use localhost:9980.
+# For local Docker access, we use the HOMEFORGE_LAN_IP variable.
+PUBLIC_WOPI_HOST="${HOMEFORGE_LAN_IP:-localhost}"
 php /var/www/html/occ config:app:set richdocuments public_wopi_url \
-    --value="http://localhost:9980" || true
+    --value="http://${PUBLIC_WOPI_HOST}:9980" || true
 
 # Trust Collabora hostname in Nextcloud
 php /var/www/html/occ config:system:set trusted_domains 3 \
