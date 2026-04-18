@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
+import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { verifyUser, isSetupComplete } from '@/lib/db/users'
 import { sessionOptions, type SessionData } from '@/lib/session'
@@ -59,9 +60,7 @@ export async function POST(req: NextRequest) {
 
   // If user has TOTP enabled, require second factor before creating session
   if (user.totp_enabled) {
-    const tempToken = Buffer.from(
-      `${user.id}:${user.username}:${user.role}:${Date.now()}`
-    ).toString('base64url')
+    const tempToken = randomBytes(32).toString('hex')
 
     getDb().prepare(
       'INSERT INTO totp_temp_tokens (token, user_id, username, role, expires_at) VALUES (?, ?, ?, ?, ?)'

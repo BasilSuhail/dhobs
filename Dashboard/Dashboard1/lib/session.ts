@@ -19,10 +19,9 @@
 import type { SessionOptions } from 'iron-session'
 
 export interface SessionData {
-  userId:       number
-  username:     string
-  role:         'admin' | 'viewer'
-  totpVerified?: boolean
+  userId:   number
+  username: string
+  role:     'admin' | 'viewer'
 }
 
 /**
@@ -47,6 +46,6 @@ export const sessionOptions: SessionOptions = {
     httpOnly: true,
     // Only enforce secure in production; allows local dev over http
     secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    sameSite: 'strict' as const,
   },
 }

@@ -17,6 +17,6 @@ export async function GET() {
     .update(ts)
     .digest('hex')
 
-  // Ticket format: "{timestamp}.{hmac-hex}" — 30 second TTL enforced by the WS server
+  // Ticket format: "{timestamp}.{hmac-hex}" — 5 second TTL enforced by the WS server
   return NextResponse.json({ ticket: `${ts}.${sig}` })
 }
