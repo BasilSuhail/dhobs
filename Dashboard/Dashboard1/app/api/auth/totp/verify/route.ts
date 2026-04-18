@@ -6,6 +6,10 @@ import { verifyTotpCode } from '@/lib/totp'
 import { getDb } from '@/lib/db'
 import { getIronSession } from 'iron-session'
 import { sessionOptions, type SessionData } from '@/lib/session'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+// 5 attempts per temp token per 15-minute window — prevents TOTP brute-force
+const TOTP_LIMIT = { windowMs: 15 * 60 * 1000, max: 5 }
 
 const TotpSchema = z.object({
   code: z.string().length(6).regex(/^\d{6}$/),
@@ -23,6 +27,15 @@ export async function POST(req: NextRequest) {
 
   // Login mode with tempToken
   if (tempToken) {
+    // Rate-limit by temp token — prevents brute-forcing the 6-digit TOTP code
+    const rl = checkRateLimit(`totp:${tempToken}`, TOTP_LIMIT)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please log in again.' },
+        { status: 429 }
+      )
+    }
+
     const db = getDb()
     const tokenData = db.prepare(
       'SELECT user_id, username, role, expires_at FROM totp_temp_tokens WHERE token = ?'

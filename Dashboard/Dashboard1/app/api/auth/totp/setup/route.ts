@@ -13,10 +13,12 @@ export async function GET() {
     return NextResponse.json({ enabled: true })
   }
 
-  const secret = generateTotpSecret()
-  
-  // Save the generated secret to the database so it can be verified later
-  getDb().prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, session.userId)
+  // Reuse any pending (unconfirmed) secret — avoids rotating mid-setup if the
+  // endpoint is called more than once before the user scans the QR code.
+  const secret = user.totp_secret ?? generateTotpSecret()
+  if (!user.totp_secret) {
+    getDb().prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, session.userId)
+  }
 
   const uri = generateTotpUri(secret, session.username)
   const qrDataUri = await generateQrDataUri(uri)
