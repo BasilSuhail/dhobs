@@ -18,6 +18,7 @@
 | Architecture SSOT | ✅ Merged | #241 | `docs/architecture-ssot-241` | #56 |
 | Network Segmentation | ✅ Merged | #242 | `feat/network-segmentation-242` | #57 |
 | Host Agent Auto-Start | ⏳ PR Open | #245 | `feat/host-agent-autostart-245` | #58 |
+| Logout Functionality  | ⏳ PR Open | #262 | `feat/logout-262`              | #59 |
 
 ### v1.0 Features Shipped
 

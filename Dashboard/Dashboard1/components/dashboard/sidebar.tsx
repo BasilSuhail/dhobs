@@ -12,6 +12,7 @@ import {
   Activity,
   Database,
   Check,
+  LogOut,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -49,6 +50,11 @@ export function Sidebar({
   const [showThemes, setShowThemes] = useState(false)
   const [bouncingId, setBouncingId] = useState<string | null>(null)
   const { colorTheme, setColorTheme } = useTheme()
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/login'
+  }
 
   // Trigger bounce animation on dock click
   const handleBounceClick = (id: string) => {
@@ -191,7 +197,7 @@ export function Sidebar({
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button 
+              <button
                 onClick={() => setShowSettings(!showSettings)}
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-xl transition-all"
@@ -210,6 +216,22 @@ export function Sidebar({
               <p>Settings</p>
             </TooltipContent>
           </Tooltip>
+          {!IS_LANDING && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleLogout}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl transition-all hover:bg-red-500/10"
+                  style={{ color: colorTheme.muted }}
+                >
+                  <LogOut className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={12}>
+                <p>Logout</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Settings Popup */}

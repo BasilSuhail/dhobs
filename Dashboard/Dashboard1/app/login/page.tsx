@@ -27,8 +27,12 @@ export default function LoginPage() {
 
   useEffect(() => {
     fetch('/api/auth/setup/status')
-      .then(r => r.json())
-      .then(data => { if (!data.complete) router.replace('/setup') })
+      .then(async r => {
+        // 401 = setup complete but unauthenticated — stay on /login
+        if (r.status === 401) return
+        const data = await r.json()
+        if (!data.complete) router.replace('/setup')
+      })
       .catch(() => {})
   }, [])
 
