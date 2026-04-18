@@ -31,7 +31,8 @@ export default function LoginPage() {
         // 401 = setup complete but unauthenticated — stay on /login
         if (r.status === 401) return
         const data = await r.json()
-        if (!data.complete) router.replace('/setup')
+        // Removed: router.replace('/setup') if !data.complete
+        // We now let the user decide via the link in the footer
       })
       .catch(() => {})
   }, [])
@@ -150,7 +151,11 @@ export default function LoginPage() {
           </Card>
         )}
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">HomeForge · Self-hosted server dashboard</p>
+        <p className="mt-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+          <span>HomeForge · Self-hosted server dashboard</span>
+          <span className="text-border">|</span>
+          <a href="/setup" className="text-primary hover:underline transition-all">Go to Setup</a>
+        </p>
       </div>
     </div>
   )

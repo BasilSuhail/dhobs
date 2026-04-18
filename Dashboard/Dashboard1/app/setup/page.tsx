@@ -527,8 +527,10 @@ export default function SetupPage() {
           </Card>
         )}
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          HomeForge · Self-hosted server dashboard
+        <p className="mt-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+          <span>HomeForge · Self-hosted server dashboard</span>
+          <span className="text-border">|</span>
+          <a href="/login" className="text-primary hover:underline transition-all">Sign In</a>
         </p>
       </div>
     </div>

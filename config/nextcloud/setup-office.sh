@@ -14,19 +14,27 @@
 # Docker-internal hostname (http://nextcloud:80) for all WOPI callbacks.
 
 WAITER="${HOMEFORGE_WAITER:-/usr/local/bin/wait-for-db.sh}"
+OCC="php /var/www/html/occ"
+
+# Check if Nextcloud is installed before running any occ commands
+if ! $OCC status --output=json 2>/dev/null | grep -q '"installed":true'; then
+    echo "Nextcloud not installed yet. Skipping office configuration."
+    exit 0
+fi
+
 if "$WAITER" http http://collabora:9980/ 90 "Collabora"; then
     echo "Collabora is reachable. Configuring richdocuments..."
 else
     echo "WARNING: Collabora not reachable after wait window. Configuring anyway."
 fi
 
-php /var/www/html/occ app:enable richdocuments || true
+$OCC app:enable richdocuments || true
 
-php /var/www/html/occ config:system:set allow_local_remote_servers \
+$OCC config:system:set allow_local_remote_servers \
     --value=true --type=boolean || true
 
 # wopi_url: Nextcloud → Collabora (Docker-internal, for WOPI discovery XML)
-php /var/www/html/occ config:app:set richdocuments wopi_url \
+$OCC config:app:set richdocuments wopi_url \
     --value="http://collabora:9980" || true
 
 # wopi_callback_url: THE KEY SETTING for Docker bridge networks.
@@ -35,7 +43,7 @@ php /var/www/html/occ config:app:set richdocuments wopi_url \
 # (CheckFileInfo, GetFile, PutFile). Without this, Collabora tries to
 # reach http://localhost:8081 which is unreachable from inside its container.
 # Requires richdocuments v8.0+ (PR #3315, Dec 2023).
-php /var/www/html/occ config:app:set richdocuments wopi_callback_url \
+$OCC config:app:set richdocuments wopi_callback_url \
     --value="http://nextcloud:80" || true
 
 # public_wopi_url: Browser → Collabora (the editor iframe URL)
@@ -44,13 +52,13 @@ php /var/www/html/occ config:app:set richdocuments wopi_callback_url \
 # loading on any device that is not the server itself.
 # For local Docker access, we use the HOMEFORGE_LAN_IP variable.
 PUBLIC_WOPI_HOST="${HOMEFORGE_LAN_IP:-localhost}"
-php /var/www/html/occ config:app:set richdocuments public_wopi_url \
+$OCC config:app:set richdocuments public_wopi_url \
     --value="http://${PUBLIC_WOPI_HOST}:9980" || true
 
 # Trust Collabora hostname in Nextcloud
-php /var/www/html/occ config:system:set trusted_domains 3 \
+$OCC config:system:set trusted_domains 3 \
     --value="collabora" || true
 
 # Trust own Docker hostname (Collabora → Nextcloud WOPI callbacks)
-php /var/www/html/occ config:system:set trusted_domains 5 \
+$OCC config:system:set trusted_domains 5 \
     --value="nextcloud" || true
