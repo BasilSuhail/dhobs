@@ -54,3 +54,15 @@ php /var/www/html/occ config:system:set trusted_domains 3 \
 # Trust own Docker hostname (Collabora → Nextcloud WOPI callbacks)
 php /var/www/html/occ config:system:set trusted_domains 5 \
     --value="nextcloud" || true
+
+# Re-fetch Collabora discovery XML directly — ensures cache has current server_name.
+# Uses curl rather than PHP Server::get() which is unreliable in hook context.
+INSTANCEID=$(php /var/www/html/occ config:system:get instanceid 2>/dev/null || true)
+if [ -n "$INSTANCEID" ]; then
+    DISCOVERY_DIR="/var/www/nextcloud_data/appdata_${INSTANCEID}/richdocuments/remoteData"
+    mkdir -p "$DISCOVERY_DIR"
+    curl -sf http://collabora:9980/hosting/discovery -o "$DISCOVERY_DIR/discovery" && \
+        chown -R www-data:www-data "$DISCOVERY_DIR" && \
+        echo "[setup-office] Discovery cache refreshed" || \
+        echo "[setup-office] WARNING: Could not fetch discovery from Collabora"
+fi

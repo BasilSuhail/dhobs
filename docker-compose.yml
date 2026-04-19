@@ -232,10 +232,9 @@ services:
     volumes:
       - ./config/collabora/coolwsd-override.xml:/etc/coolwsd/coolwsd.d/homeforge-wopi.xml:ro
     environment:
-      # Only the Docker-internal hostname needed — Collabora callbacks use
-      # wopi_callback_url (set in Nextcloud via occ) instead of the browser's WOPISrc.
+      # server_name must match LAN IP so browser CSP allows the Collabora iframe.
       - aliasgroup1=http://nextcloud:80
-      - server_name=localhost:9980
+      - server_name=${HOMEFORGE_LAN_IP:-localhost}:9980
       - dictionaries=en_US
       - username=${COLLABORA_USERNAME}
       - password=${COLLABORA_PASSWORD}
