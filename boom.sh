@@ -76,7 +76,7 @@ fi
 # If you explicitly set HOMEFORGE_LAN_IP=localhost, boom.sh will NEVER overwrite it.
 # If you explicitly set a real LAN IP, boom.sh will NEVER overwrite it either.
 # Only a blank/missing value triggers auto-detection.
-CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
+CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
 if [ -z "$CURRENT_LAN_IP" ]; then
     DETECTED_IP=""
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -97,10 +97,10 @@ fi
 
 # Sync Matrix secrets into homeserver.yaml template using envsubst
 echo "🔧 Generating Matrix homeserver config..."
-LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- || echo "localhost")
-REG_SECRET=$(grep "^MATRIX_REGISTRATION_SECRET=" .env 2>/dev/null | cut -d'=' -f2-)
-MAC_SECRET=$(grep "^MATRIX_MACAROON_SECRET_KEY=" .env 2>/dev/null | cut -d'=' -f2-)
-FORM_SECRET=$(grep "^MATRIX_FORM_SECRET=" .env 2>/dev/null | cut -d'=' -f2-)
+LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ' || echo "localhost")
+REG_SECRET=$(grep "^MATRIX_REGISTRATION_SECRET=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
+MAC_SECRET=$(grep "^MATRIX_MACAROON_SECRET_KEY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
+FORM_SECRET=$(grep "^MATRIX_FORM_SECRET=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
 DB_PASS=$(cat ./data/secrets/mysql_password 2>/dev/null || echo "dummy")
 
 # Export variables for envsubst (safe YAML templating)

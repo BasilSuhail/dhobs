@@ -43,7 +43,7 @@ php /var/www/html/occ config:app:set richdocuments wopi_callback_url \
 # every page load. If it is 'localhost', the browser will block Collabora from
 # loading on any device that is not the server itself.
 # For local Docker access, we use the HOMEFORGE_LAN_IP variable.
-PUBLIC_WOPI_HOST="${HOMEFORGE_LAN_IP:-localhost}"
+PUBLIC_WOPI_HOST=$(echo "${HOMEFORGE_LAN_IP:-localhost}" | tr -d ' ')
 php /var/www/html/occ config:app:set richdocuments public_wopi_url \
     --value="http://${PUBLIC_WOPI_HOST}:9980" || true
 

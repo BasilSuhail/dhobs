@@ -22,7 +22,7 @@ if [ ! -f .env ]; then
 fi
 
 # Auto-detect LAN IP if not set or set to placeholder 'localhost' in .env
-CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
+CURRENT_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
 if [ -f .env ] && { [ -z "$CURRENT_LAN_IP" ] || [ "$CURRENT_LAN_IP" = "localhost" ]; }; then
     DETECTED_IP=""
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -138,7 +138,7 @@ fi
 # Use HOMEFORGE_LAN_IP from .env if set, otherwise fall back to localhost
 ELEMENT_HOST="localhost"
 if [ -f .env ]; then
-    LAN_IP=$(grep HOMEFORGE_LAN_IP .env | cut -d'=' -f2-)
+    LAN_IP=$(grep HOMEFORGE_LAN_IP .env | cut -d'=' -f2- | tr -d ' ')
     if [ -n "$LAN_IP" ]; then
         ELEMENT_HOST="$LAN_IP"
     fi
@@ -173,7 +173,7 @@ chmod +x ./config/nextcloud/setup-office-post-install.sh
 
 # Verify HOMEFORGE_LAN_IP is set before starting — Collabora's server_name
 # depends on it and will mismatch if empty, causing "Document loading failed".
-FINAL_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2-)
+FINAL_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env 2>/dev/null | cut -d'=' -f2- | tr -d ' ')
 if [ -z "$FINAL_LAN_IP" ]; then
     echo "Error: HOMEFORGE_LAN_IP could not be detected and is not set in .env"
     echo "Please set it manually: echo 'HOMEFORGE_LAN_IP=<your-machine-ip>' >> .env"
@@ -273,7 +273,7 @@ docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments
 docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments wopi_callback_url --value="http://nextcloud:80" || true
 INSTALL_HOST="${HOMEFORGE_LAN_IP:-localhost}"
 if [ -f .env ]; then
-    ENV_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env | cut -d'=' -f2-)
+    ENV_LAN_IP=$(grep "^HOMEFORGE_LAN_IP=" .env | cut -d'=' -f2- | tr -d ' ')
     [ -n "$ENV_LAN_IP" ] && INSTALL_HOST="$ENV_LAN_IP"
 fi
 docker exec -u www-data project-s-nextcloud php occ config:app:set richdocuments public_wopi_url --value="http://${INSTALL_HOST}:9980" || true
